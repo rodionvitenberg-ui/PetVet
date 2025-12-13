@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Блок @theme используется для создания твоих кастомных классов */
+@theme {
+  /* 1. Цвет для основной страницы (Светло-серый) */
+  --color-page-bg: #F5F5F5;
+
+  /* 2. Цвет для Хедера (Белый) */
+  --color-header-bg: #ededed;
+
+  /* 3. Цвет для Фильтров (Тоже белый или чуть темнее, на твой вкус) */
+  --color-filter-bg: #ededed; 
+  
+  /* 4. Основной текст (Темно-серый) */
+  --color-brand-text: #222222;
+
+  /* 5. Акцентный (Розовый Airbnb или твой Персиковый) */
+  --color-brand-accent: #FF385C;
+}
+
+/* Базовые настройки для всего тела страницы */
+body {
+  /* Используем переменную page-bg как фон по умолчанию */
+  background-color: var(--color-page-bg);
+  color: var(--color-brand-text);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0; /* Важно убрать отступы */
+}
