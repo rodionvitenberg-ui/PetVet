@@ -1,3 +1,5 @@
+//web-portal/components/dashboard/PetCard.tsx
+
 import React from 'react';
 import { Plus, Activity, Share2, Mars, Venus } from 'lucide-react';
 

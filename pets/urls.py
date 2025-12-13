@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PetViewSet, CategoryViewSet, AttributeViewSet, HealthEventViewSet
+from .views import PetViewSet, CategoryViewSet, AttributeViewSet, HealthEventViewSet, TagViewSet
 
 # Создаем роутер
 router = DefaultRouter()
@@ -21,6 +21,7 @@ router.register(r'categories', CategoryViewSet, basename='category')
 # 3. Атрибуты (Справочник)
 # GET /api/attributes/
 router.register(r'attributes', AttributeViewSet, basename='attribute')
+router.register(r'tags', TagViewSet, basename='tag')
 
 # 4. Медицинская карта / События (НОВОЕ)
 # GET /api/events/ - Список всех событий (прививки, вес)

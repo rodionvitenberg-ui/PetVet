@@ -6,7 +6,6 @@ from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, Healt
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        # Добавили target_gender и sort_order, чтобы фронт знал, кому и как показывать
         fields = ['id', 'name', 'slug', 'target_gender', 'sort_order']
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -61,9 +60,8 @@ class HealthEventSerializer(serializers.ModelSerializer):
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
-    categories = serializers.SlugRelatedField(
-        many=True, 
-        slug_field='slug', 
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True,
         queryset=Category.objects.all()
     )
     # EAV Атрибуты: разрешаем и чтение, и запись

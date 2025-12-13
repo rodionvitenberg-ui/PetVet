@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import filters
-from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q, Case, When, IntegerField
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.db.models import Q, Case, When, IntegerField, Count
 import re
 
 from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent
@@ -73,14 +73,12 @@ class PetViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     # --- ВОТ ЭТОТ МЕТОД МЫ ДОБАВЛЯЕМ ---
-    @action(detail=False, methods=['GET'])
+    @action(detail=False, methods=['GET'], permission_classes=[AllowAny])
     def feed(self, request):
         """
-        Публичная лента: Показывает ВСЕХ зверей (чужих и своих), у кого is_public=True.
-        Поддерживает фильтрацию и поиск.
+        Публичная лента: Показывает ВСЕХ зверей.
+        Теперь доступна даже без токена.
         """
-        # 1. Запрос: Ищем всех активных и публичных
-        # order_by('-created_at') выведет сначала новых
         queryset = Pet.objects.filter(is_active=True, is_public=True)\
             .select_related('owner')\
             .prefetch_related(
@@ -90,17 +88,13 @@ class PetViewSet(viewsets.ModelViewSet):
                 'categories'
             ).order_by('-created_at') 
         
-        # 2. Применяем фильтры (PetFilter + SearchFilter)
-        # Это позволяет искать в ленте "только рыжих корги"
         filtered_queryset = self.filter_queryset(queryset)
 
-        # 3. Пагинация (чтобы не вывалить 1000 котов сразу)
         page = self.paginate_queryset(filtered_queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        # Если пагинация отключена
         serializer = self.get_serializer(filtered_queryset, many=True)
         return Response(serializer.data)
 
@@ -124,8 +118,17 @@ class HealthEventViewSet(viewsets.ModelViewSet):
         )
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all().prefetch_related('children')
+    queryset = Category.objects.annotate(children_count=Count('children')).prefetch_related('children')
     serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if self.request.query_params.get('leafs'):
+            return queryset.filter(children_count=0)
+            
+        return queryset
 
     @action(detail=True, methods=['get'])
     def tags(self, request, pk=None):
@@ -196,4 +199,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class AttributeViewSet(viewsets.ModelViewSet):
     queryset = Attribute.objects.all()
     serializer_class = AttributeSerializer
+    permission_classes = [IsAuthenticated]
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]

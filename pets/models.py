@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
+import pytils
 import uuid
 
 class Category(models.Model):
@@ -144,10 +145,11 @@ class Pet(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base_slug = slugify(self.name, allow_unicode=True)
-            if not base_slug:
-                base_slug = str(uuid.uuid4())[:8]
-            self.slug = base_slug
+            self.slug = pytils.translit.slugify(self.name)
+            
+            if not self.slug:
+                self.slug = str(uuid.uuid4())[:8]
+        
         super().save(*args, **kwargs)
 
 class PetImage(models.Model):

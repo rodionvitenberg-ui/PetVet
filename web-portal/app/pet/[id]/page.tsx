@@ -1,3 +1,5 @@
+// web-portal/app/pet/[id]/page.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -19,6 +21,7 @@ interface HealthEvent {
   created_by_name: string;
   created_by_is_vet: boolean;
   created_by_clinic?: string;
+  pet: number; // ID питомца, к которому относится событие
 }
 
 interface PetDetail {
@@ -31,7 +34,7 @@ interface PetDetail {
 }
 
 export default function PetDetailPage() {
-  const { id } = useParams(); // Получаем ID из URL
+  const { id } = useParams(); // Сюда приходит строка вида "15-barsik"
   const router = useRouter();
   
   const [pet, setPet] = useState<PetDetail | null>(null);
@@ -40,6 +43,23 @@ export default function PetDetailPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // 1. Получаем "чистый" ID из URL
+      // useParams может вернуть массив или строку, поэтому приводим к строке
+      const rawId = Array.isArray(id) ? id[0] : id;
+      
+      // Если ID нет, ничего не делаем
+      if (!rawId) return;
+
+      // "Откусываем" слаг: parseInt("15-barsik") вернет число 15
+      const cleanId = parseInt(rawId, 10);
+      
+      // Если ID невалидный (например, просто "barsik"), выходим
+      if (isNaN(cleanId)) {
+        console.error("Некорректный ID питомца");
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('access_token');
       if (!token) {
         router.push('/login');
@@ -47,14 +67,12 @@ export default function PetDetailPage() {
       }
 
       try {
-        // 1. Загружаем данные ПИТОМЦА
-        const petRes = await fetch(`http://127.0.0.1:8000/api/pets/${id}/`, { // Внимание: тут может быть нужен slug, но пока пробуем id или поменяй на slug в API
+        // 2. Загружаем данные ПИТОМЦА используя чистый ID
+        const petRes = await fetch(`http://127.0.0.1:8000/api/pets/${cleanId}/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        // 2. Загружаем СОБЫТИЯ (Всю медкарту)
-        // ВАЖНО: Сейчас мы тянем все события. В идеале на бэке нужен фильтр ?pet=ID
-        // Пока сделаем фильтрацию на клиенте (для MVP)
+        // 3. Загружаем СОБЫТИЯ
         const eventsRes = await fetch(`http://127.0.0.1:8000/api/events/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -63,20 +81,23 @@ export default function PetDetailPage() {
           const petData = await petRes.json();
           const allEvents = await eventsRes.json();
           
-          // Фильтруем события только для ЭТОГО питомца
-          const petEvents = allEvents.filter((e: any) => e.pet === Number(id));
+          // 4. Фильтруем события, сравнивая с числовым ID
+          const petEvents = allEvents.filter((e: any) => e.pet === cleanId);
           
           setPet(petData);
           setEvents(petEvents);
+        } else {
+            // Обработка случая, если питомец не найден (например, 404)
+            console.error("Ошибка при загрузке данных");
         }
       } catch (error) {
-        console.error("Ошибка:", error);
+        console.error("Ошибка сети:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchData();
+    fetchData();
   }, [id, router]);
 
   if (loading) return <div className="p-10 text-center">Загрузка карточки...</div>;
@@ -99,7 +120,7 @@ export default function PetDetailPage() {
         <div className="px-4 pb-8 max-w-3xl mx-auto flex items-center gap-6">
            <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden shadow-md border-4 border-white">
              {pet.images[0] ? (
-               <img src={pet.images[0].image} className="w-full h-full object-cover" />
+               <img src={pet.images[0].image} className="w-full h-full object-cover" alt={pet.name} />
              ) : (
                <div className="flex items-center justify-center h-full text-3xl">🐾</div>
              )}
@@ -188,7 +209,7 @@ export default function PetDetailPage() {
                       </div>
                    </div>
 
-                   {/* ЗЕЛЕНАЯ ГАЛОЧКА (Самое важное!) */}
+                   {/* ЗЕЛЕНАЯ ГАЛОЧКА */}
                    {event.is_verified && (
                      <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100" title="Подтверждено врачом">
                        <CheckCircle2 size={14} />

@@ -1,3 +1,5 @@
+// web-portal/app/dashboard.page.tsx
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -120,7 +122,7 @@ export default function DashboardPage() {
                 <PetCard 
                     key={pet.id} 
                     pet={pet} 
-                    onClick={() => router.push(`/pet/${pet.id}`)}
+                    onClick={() => router.push(`/pet/${pet.id}-${pet.slug}`)}
                 />
             ))
         )}

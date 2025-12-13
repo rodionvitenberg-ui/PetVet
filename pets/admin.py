@@ -8,6 +8,7 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'parent', 'slug')
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name',)
+    filter_horizontal = ('tags', 'attributes')
 
 @admin.register(Attribute)
 class AttributeAdmin(admin.ModelAdmin):
@@ -60,8 +61,8 @@ class HealthEventInline(admin.TabularInline):
 # 2. Регистрируем саму модель событий отдельно (чтобы видеть общий список всех прививок всех зверей)
 @admin.register(HealthEvent)
 class HealthEventAdmin(admin.ModelAdmin):
-    list_display = ('pet', 'event_type', 'date', 'title', 'next_date')
-    list_filter = ('event_type', 'date', 'pet__categories') # Фильтр по типу и дате
+    list_display = ('pet', 'event_type', 'date', 'created_by', 'title', 'next_date')
+    list_filter = ('event_type', 'date', 'created_by', 'pet__categories') # Фильтр по типу и дате
     search_fields = ('pet__name', 'title', 'description')
     date_hierarchy = 'date' # Красивая навигация по датам сверху
     autocomplete_fields = ['pet'] # Важно, если питомцев будет много
@@ -71,7 +72,9 @@ class PetAdmin(admin.ModelAdmin):
     form = PetAdminForm
     
     # Добавил 'mother' и 'father' в autocomplete, чтобы не листать список из 1000 котов
-    autocomplete_fields = ['categories', 'owner', 'mother', 'father'] 
+    autocomplete_fields = ['categories', 'owner', 'mother', 'father']
+
+    filter_horizontal = ('categories', 'tags') 
 
     list_display = ('name', 'owner', 'gender', 'birth_date', 'get_categories', 'is_active', 'is_public', 'created_at')
     list_filter = ('is_active', 'gender', 'categories', 'is_public', 'tags')
