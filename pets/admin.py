@@ -19,78 +19,73 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Attribute)
 class AttributeAdmin(admin.ModelAdmin):
-    # Добавили sort_order
-    list_display = ('name', 'unit', 'sort_order')
-    # Позволяет менять порядок прямо в списке, не заходя в карточку!
+    # Добавили 'icon_preview' в список
+    list_display = ('name', 'unit', 'sort_order', 'icon_preview')
     list_editable = ('sort_order',) 
     search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
+
+    # Функция превью для атрибутов
+    def icon_preview(self, obj):
+        if obj.icon:
+            return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
+        return "-"
+    icon_preview.short_description = "Иконка"
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     verbose_name = "Метка"
     verbose_name_plural = "Метки"
-    list_display = ('name', 'slug', 'target_gender', 'sort_order')
+    # Добавили 'icon_preview' в список
+    list_display = ('name', 'slug', 'target_gender', 'sort_order', 'icon_preview')
     list_editable = ('sort_order',)
-    list_filter = ('target_gender',)
-    search_fields = ('name',)
+    search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
+    list_filter = ('target_gender',)
+
+    # Функция превью для тегов
+    def icon_preview(self, obj):
+        if obj.icon:
+            return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
+        return "-"
+    icon_preview.short_description = "Иконка"
+
+# ... (Остальные классы PetAdmin, HealthEventAdmin и т.д. оставляем без изменений)
+class PetAttributeInline(admin.TabularInline):
+    model = PetAttribute
+    extra = 1
+    autocomplete_fields = ['attribute']
+
+class PetImageInline(admin.TabularInline):
+    model = PetImage
+    extra = 1
+
+class HealthEventInline(admin.TabularInline):
+    model = HealthEvent
+    extra = 0
+    fields = ('event_type', 'title', 'date', 'status', 'is_verified')
+    readonly_fields = ('is_verified',)
+    show_change_link = True
 
 class PetAdminForm(forms.ModelForm):
     class Meta:
         model = Pet
         fields = '__all__'
-
-class PetAttributeInline(admin.TabularInline):
-    model = PetAttribute
-    extra = 1
-    autocomplete_fields = ['attribute'] 
-
-class PetImageInline(admin.TabularInline):
-    model = PetImage
-    extra = 1
-    readonly_fields = ('image_preview',)
-
-    def image_preview(self, obj):
-        if obj.image:
-            return mark_safe(f'<img src="{obj.image.url}" width="100" style="border-radius: 5px;" />')
-        return "Нет изображения"
-
-    image_preview.short_description = "Превью"
-
-class HealthEventInline(admin.TabularInline):
-    model = HealthEvent
-    extra = 0 # Не показывать пустые строки, пока не нажмешь "Добавить"
-    fields = ('date', 'event_type', 'title', 'next_date', 'document')
-    readonly_fields = ('created_at',)
-    classes = ('collapse',) # Можно свернуть, чтобы не занимало место
-
-# 2. Регистрируем саму модель событий отдельно (чтобы видеть общий список всех прививок всех зверей)
-@admin.register(HealthEvent)
-class HealthEventAdmin(admin.ModelAdmin):
-    list_display = ('pet', 'event_type', 'date', 'created_by', 'title', 'next_date')
-    list_filter = ('event_type', 'date', 'created_by', 'pet__categories') # Фильтр по типу и дате
-    search_fields = ('pet__name', 'title', 'description')
-    date_hierarchy = 'date' # Красивая навигация по датам сверху
-    autocomplete_fields = ['pet'] # Важно, если питомцев будет много
+        widgets = {
+            'birth_date': admin.widgets.AdminDateWidget(attrs={'type': 'date'}),
+        }
 
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
     form = PetAdminForm
-    
-    # Добавил 'mother' и 'father' в autocomplete, чтобы не листать список из 1000 котов
     autocomplete_fields = ['categories', 'owner', 'mother', 'father']
-
     filter_horizontal = ('categories', 'tags') 
-
     list_display = ('name', 'owner', 'gender', 'birth_date', 'get_categories', 'is_active', 'is_public', 'created_at')
     list_filter = ('is_active', 'gender', 'categories', 'is_public', 'tags')
     search_fields = ('name', 'description', 'owner__username', 'owner__email')
-    
     inlines = [PetAttributeInline, PetImageInline, HealthEventInline]
     prepopulated_fields = {'slug': ('name',)}
     
-    # Обновленная структура карточки
     fieldsets = (
         ('Основное', {
             'fields': ('owner', 'name', 'gender', 'birth_date', 'slug', 'is_active', 'is_public', 'description')
@@ -100,12 +95,18 @@ class PetAdmin(admin.ModelAdmin):
             'description': 'Родители должны быть старше ребенка. Мама - только девочки, Папа - только мальчики.'
         }),
         ('Классификация', {
-            'fields': ('categories', 'tags')
+            'fields': ('categories', 'tags'),
         }),
     )
 
     def get_categories(self, obj):
-        return ", ".join([cat.name for cat in obj.categories.all()])
-    
-    get_categories.short_description = 'Вид / Категория'
+        return ", ".join([c.name for c in obj.categories.all()])
+    get_categories.short_description = "Категории"
 
+@admin.register(HealthEvent)
+class HealthEventAdmin(admin.ModelAdmin):
+    list_display = ('title', 'pet', 'event_type', 'date', 'status', 'is_verified')
+    list_filter = ('event_type', 'status', 'is_verified', 'date')
+    search_fields = ('title', 'pet__name', 'description')
+    date_hierarchy = 'date'
+    autocomplete_fields = ['pet']

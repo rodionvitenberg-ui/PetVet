@@ -57,7 +57,7 @@ class Tag(models.Model):
         blank=True, 
         verbose_name="Ограничение по полу"
     )
-
+    icon = models.FileField(upload_to='attribute_icons/', blank=True, null=True, verbose_name="Иконка (SVG/PNG)")
     sort_order = models.IntegerField(default=0, verbose_name="Порядок вывода")
 
     class Meta:
@@ -76,7 +76,7 @@ class Attribute(models.Model):
     slug = models.SlugField(max_length=100, unique=True)
     unit = models.CharField(max_length=100, blank=True, verbose_name="Единица измерения")
     
-    # СОРТИРОВКА: Чем меньше число, тем выше атрибут в списке
+    icon = models.FileField(upload_to='attribute_icons/', blank=True, null=True, verbose_name="Иконка (SVG/PNG)")
     sort_order = models.IntegerField(default=0, verbose_name="Порядок вывода")
 
     class Meta:
@@ -107,11 +107,8 @@ class Pet(models.Model):
     GENDER_CHOICES = [('M', 'Мальчик'), ('F', 'Девочка')]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, verbose_name="Пол")
 
-    # НОВЫЕ ПОЛЯ: ВОЗРАСТ И РОДИТЕЛИ
+    clinic_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Ветклиника")
     birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
-
-    # Родословная (Ссылки на самих себя)
-    # limit_choices_to помогает в админке показывать только девочек для мамы и мальчиков для папы
     mother = models.ForeignKey(
         'self', 
         null=True, blank=True, 

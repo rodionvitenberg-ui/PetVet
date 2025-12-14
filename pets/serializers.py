@@ -6,7 +6,7 @@ from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, Healt
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = ['id', 'name', 'slug', 'target_gender', 'sort_order']
+        fields = ['id', 'name', 'slug', 'target_gender', 'sort_order', 'icon']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,7 +16,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class AttributeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attribute
-        fields = ['id', 'name', 'slug', 'unit', 'sort_order']
+        fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon']
 
 class PetAttributeSerializer(serializers.ModelSerializer):
     # Для чтения показываем полную инфу об атрибуте
