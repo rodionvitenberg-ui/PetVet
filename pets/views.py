@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import filters
@@ -6,10 +6,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Case, When, IntegerField, Count
 import re
 
-from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent
+from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage
 from .serializers import (
     PetSerializer, CategorySerializer, AttributeSerializer, 
-    TagSerializer, HealthEventSerializer
+    TagSerializer, HealthEventSerializer, PetImageSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PetFilter
@@ -59,7 +59,6 @@ class PetViewSet(viewsets.ModelViewSet):
     filterset_class = PetFilter
     
     def get_queryset(self):
-        # Стандартный запрос: показывает только питомцев ТЕКУЩЕГО пользователя
         return Pet.objects.filter(owner=self.request.user, is_active=True)\
             .prefetch_related(
                 'attributes__attribute', 
@@ -72,13 +71,8 @@ class PetViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-    # --- ВОТ ЭТОТ МЕТОД МЫ ДОБАВЛЯЕМ ---
     @action(detail=False, methods=['GET'], permission_classes=[AllowAny])
     def feed(self, request):
-        """
-        Публичная лента: Показывает ВСЕХ зверей.
-        Теперь доступна даже без токена.
-        """
         queryset = Pet.objects.filter(is_active=True, is_public=True)\
             .select_related('owner')\
             .prefetch_related(
@@ -89,7 +83,6 @@ class PetViewSet(viewsets.ModelViewSet):
             ).order_by('-created_at') 
         
         filtered_queryset = self.filter_queryset(queryset)
-
         page = self.paginate_queryset(filtered_queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -98,15 +91,20 @@ class PetViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(filtered_queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['POST'], parser_classes=[parsers.MultiPartParser])
+    def upload_image(self, request, pk=None):
+        pet = self.get_object()
+        serializer = PetImageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(pet=pet)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class HealthEventViewSet(viewsets.ModelViewSet):
-    """
-    API для управления медицинской картой (Вакцинация, Вес, Визиты)
-    """
     serializer_class = HealthEventSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # Показываем события только моих питомцев
         return HealthEvent.objects.filter(pet__owner=self.request.user).order_by('-date')
 
     def perform_create(self, serializer):
@@ -118,40 +116,73 @@ class HealthEventViewSet(viewsets.ModelViewSet):
         )
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.annotate(children_count=Count('children')).prefetch_related('children')
+    queryset = Category.objects.annotate(children_count=Count('children'))\
+        .prefetch_related('children')\
+        .order_by('sort_order', 'name')
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         if self.request.query_params.get('leafs'):
             return queryset.filter(children_count=0)
-            
         return queryset
 
+    # === [FIXED] ТЕГИ ===
     @action(detail=True, methods=['get'])
     def tags(self, request, pk=None):
+        """
+        Возвращает теги:
+        1. Привязанные к этой категории (или ее родителям).
+        2. Глобальные (не привязанные ни к чему).
+        """
         try:
             category = Category.objects.get(pk=pk)
         except Category.DoesNotExist:
             return Response({"error": "Category not found"}, status=404)
 
-        def get_all_child_ids(category_obj):
-            children = category_obj.children.all()
-            ids = [category_obj.id]
-            for child in children:
-                ids.extend(get_all_child_ids(child))
-            return ids
+        # Используем словарь для уникальности по ID (на случай дублей)
+        tags_map = {}
 
-        category_ids = get_all_child_ids(category)
+        # 1. Теги от категории и родителей
+        current = category
+        while current:
+            for tag in current.tags.all():
+                tags_map[tag.id] = tag
+            current = current.parent
         
-        # Сортируем теги согласно sort_order
-        tags = Tag.objects.filter(
-            pet__categories__id__in=category_ids
-        ).distinct().order_by('sort_order', 'name')
+        # 2. Глобальные теги (у которых нет связей с категориями)
+        # В filter используем имя модели в нижнем регистре: category
+        global_tags = Tag.objects.filter(category__isnull=True)
+        for tag in global_tags:
+            tags_map[tag.id] = tag
+        
+        # Превращаем обратно в список и сортируем
+        tags_list = list(tags_map.values())
+        
+        # Сортировка: сначала по sort_order, потом по имени
+        tags_list.sort(key=lambda x: (getattr(x, 'sort_order', 0), x.name))
 
-        serializer = TagSerializer(tags, many=True)
+        serializer = TagSerializer(tags_list, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def attributes(self, request, pk=None):
+        try:
+            category = Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            return Response({"error": "Category not found"}, status=404)
+
+        attrs_map = {}
+        current = category
+        while current:
+            for attr in current.attributes.all():
+                attrs_map[attr.id] = attr
+            current = current.parent
+        
+        sorted_attributes = sorted(list(attrs_map.values()), key=lambda x: getattr(x, 'sort_order', 0))
+
+        serializer = AttributeSerializer(sorted_attributes, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
@@ -191,17 +222,15 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         for item in response_data:
             item["values"] = sorted(list(item["values"]))
         
-        # Сортируем фильтры по важности
         response_data.sort(key=lambda x: x['sort_order'])
-
         return Response(response_data)
 
 class AttributeViewSet(viewsets.ModelViewSet):
     queryset = Attribute.objects.all()
     serializer_class = AttributeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]

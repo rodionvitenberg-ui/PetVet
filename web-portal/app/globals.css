@@ -1,28 +1,70 @@
 @import "tailwindcss";
 
-/* Блок @theme используется для создания твоих кастомных классов */
+/* === НАСТРОЙКИ ТЕМ === */
 @theme {
-  /* 1. Цвет для основной страницы (Светло-серый) */
-  --color-page-bg: #F5F5F5;
-
-  /* 2. Цвет для Хедера (Белый) */
-  --color-header-bg: #ededed;
-
-  /* 3. Цвет для Фильтров (Тоже белый или чуть темнее, на твой вкус) */
-  --color-filter-bg: #ededed; 
+  /* Связываем Tailwind классы с CSS-переменными */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   
-  /* 4. Основной текст (Темно-серый) */
-  --color-brand-text: #222222;
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
-  /* 5. Акцентный (Розовый Airbnb или твой Персиковый) */
-  --color-brand-accent: #FF385C;
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  
+  --color-border-color: var(--border-color);
 }
 
-/* Базовые настройки для всего тела страницы */
+/* === ЗНАЧЕНИЯ ПЕРЕМЕННЫХ === */
+:root {
+  /* DEFAULT (Владелец) - Черно/Белый минимализм (как сейчас) */
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f3f4f6; /* gray-100 */
+  --secondary-foreground: #1f2937; /* gray-800 */
+  
+  --accent: #3b82f6; /* blue-500 */
+  --accent-foreground: #ffffff;
+
+  --surface: #ffffff;
+  --surface-hover: #f9fafb;
+  
+  --border-color: #e5e7eb;
+}
+
+/* THEME: VETERINARIAN (Ветеринар) - Медицинский бирюзовый/зеленый */
+.theme-vet {
+  --primary: #059669; /* emerald-600 */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #ecfdf5; /* emerald-50 */
+  --secondary-foreground: #065f46;
+  
+  --accent: #0ea5e9; /* sky-500 */
+  
+  --surface: #ffffff;
+  --surface-hover: #f0fdf4;
+}
+
+/* THEME: BREEDER (Животновод) - Теплый, премиальный коричневый/золотой */
+.theme-breeder {
+  --primary: #78350f; /* amber-900 */
+  --primary-foreground: #fffbeb;
+  
+  --secondary: #fffbeb; /* amber-50 */
+  --secondary-foreground: #92400e;
+  
+  --accent: #d97706; /* amber-600 */
+  
+  --surface: #ffffff;
+  --surface-hover: #fff8f1;
+}
+
+/* Базовые стили */
 body {
-  /* Используем переменную page-bg как фон по умолчанию */
-  background-color: var(--color-page-bg);
-  color: var(--color-brand-text);
-  font-family: Arial, Helvetica, sans-serif;
-  margin: 0; /* Важно убрать отступы */
+  @apply bg-gray-50 text-gray-900;
 }

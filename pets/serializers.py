@@ -11,7 +11,7 @@ class TagSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'parent']
+        fields = ['id', 'name', 'slug', 'parent', 'icon', 'sort_order']
 
 class AttributeSerializer(serializers.ModelSerializer):
     class Meta:

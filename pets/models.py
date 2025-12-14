@@ -23,9 +23,21 @@ class Category(models.Model):
     tags = models.ManyToManyField('Tag', blank=True, verbose_name="Метки категории")
     attributes = models.ManyToManyField('Attribute', blank=True, verbose_name="Доступные атрибуты")
 
+    icon = models.FileField(
+        upload_to='category_icons/', 
+        null=True, 
+        blank=True, 
+        verbose_name="Иконка (SVG/PNG)"
+    )
+    sort_order = models.IntegerField(
+        default=0, 
+        verbose_name="Порядок вывода"
+    )
+
     class Meta:
         verbose_name = "Вид/Категория"
         verbose_name_plural = "Виды/Категории"
+        ordering = ['sort_order', 'name']
 
     def __str__(self):
         return self.name

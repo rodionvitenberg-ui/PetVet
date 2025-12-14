@@ -5,10 +5,17 @@ from .models import Category, Pet, Attribute, PetAttribute, Tag, PetImage, Healt
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent', 'slug')
+    list_display = ('name', 'parent', 'slug', 'sort_order', 'icon_preview')
+    list_editable = ('sort_order',)
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name',)
     filter_horizontal = ('tags', 'attributes')
+
+    def icon_preview(self, obj):
+        if obj.icon:
+            return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
+        return "-"
+    icon_preview.short_description = "Иконка"
 
 @admin.register(Attribute)
 class AttributeAdmin(admin.ModelAdmin):
