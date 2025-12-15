@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from datetime import date
-from django.db import transaction
 from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent
 
 class TagSerializer(serializers.ModelSerializer):
@@ -19,10 +18,7 @@ class AttributeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon']
 
 class PetAttributeSerializer(serializers.ModelSerializer):
-    # Для чтения показываем полную инфу об атрибуте
     attribute = AttributeSerializer(read_only=True)
-    
-    # Для записи нам нужен slug атрибута (например, "color")
     attribute_slug = serializers.CharField(write_only=True)
 
     class Meta:
@@ -36,107 +32,117 @@ class PetImageSerializer(serializers.ModelSerializer):
 
 class HealthEventSerializer(serializers.ModelSerializer):
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     
-    # Информация об авторе
     created_by_name = serializers.ReadOnlyField(source='created_by.username')
-    
-    # Выводим название клиники, если это врач (иначе будет null)
     created_by_clinic = serializers.ReadOnlyField(source='created_by.clinic_name')
-    
-    # Выводим статус автора (Врач или нет) для красивого бейджика на фронте
     created_by_is_vet = serializers.ReadOnlyField(source='created_by.is_veterinarian')
 
     class Meta:
         model = HealthEvent
         fields = [
-            'id', 'pet', 'event_type', 'event_type_display', 
+            'id', 'pet', 'event_type', 'event_type_display',
+            'status', 'status_display',
             'title', 'date', 'next_date', 'description', 'document',
-            'created_by_name', 'created_by_clinic', 'created_by_is_vet', # <-- Инфо об авторе
-            'is_verified' # <-- Статус записи (Галочка)
+            'created_by_name', 'created_by_clinic', 'created_by_is_vet',
+            'is_verified'
         ]
-        # ВАЖНО: Запрещаем юзеру писать в это поле вручную
-        read_only_fields = ['is_verified', 'created_by']    # Выводим человекочитаемое название типа события
-   
+        read_only_fields = ['is_verified', 'created_by']
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
-    categories = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Category.objects.all()
-    )
-    # EAV Атрибуты: разрешаем и чтение, и запись
+    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all())
     attributes = PetAttributeSerializer(many=True, required=False)
-    
     images = PetImageSerializer(many=True, read_only=True)
-    tags = serializers.SlugRelatedField(
-        many=True, 
-        slug_field='slug', 
-        queryset=Tag.objects.all(),
-        required=False
-    )
+    tags = serializers.SlugRelatedField(many=True, slug_field='slug', queryset=Tag.objects.all(), required=False)
     
-    # Родословная: принимаем ID, отдаем строку (или можно вложенный объект, пока ID проще)
-    mother = serializers.PrimaryKeyRelatedField(
-        queryset=Pet.objects.filter(gender='F'), 
-        required=False, 
-        allow_null=True
-    )
-    father = serializers.PrimaryKeyRelatedField(
-        queryset=Pet.objects.filter(gender='M'), 
-        required=False, 
-        allow_null=True
-    )
+    mother = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='F'), required=False, allow_null=True)
+    father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
-    # Вычисляемое поле возраста
     age = serializers.SerializerMethodField()
-    
-    # Показываем последние 3 события (чтобы не грузить всё сразу)
     recent_events = serializers.SerializerMethodField()
 
     class Meta:
         model = Pet
         fields = [
             'id', 'owner', 'name', 'slug', 'description', 
-            'gender', 'birth_date', 'age', # <-- Новые поля
-            'mother', 'father', # <-- Родословная
+            'gender', 'birth_date', 'age',
+            'mother', 'father',
             'categories', 'attributes', 'tags',
             'is_public', 
             'is_active', 'images', 'recent_events', 'created_at',
+            'clinic_name',
         ]
 
     def get_age(self, obj):
-        """Считаем возраст: 2 года, 5 месяцев"""
         if not obj.birth_date:
             return None
         today = date.today()
         years = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
-        
         if years == 0:
             months = (today.year - obj.birth_date.year) * 12 + today.month - obj.birth_date.month
             return f"{months} мес."
         return f"{years} лет"
 
     def get_recent_events(self, obj):
-        # Берем 3 последних события
-        events = obj.events.all()[:3]
-        return HealthEventSerializer(events, many=True).data
+        events = obj.events.all()[:5]
+        return HealthEventSerializer(events, many=True, context=self.context).data
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        representation['categories'] = CategorySerializer(instance.categories.all(), many=True, context=self.context).data
+        representation['tags'] = TagSerializer(instance.tags.all(), many=True, context=self.context).data
+        
+        # Упрощенная логика родителей (без картинок)
+        if instance.mother:
+            representation['mother_info'] = {
+                'id': instance.mother.id,
+                'name': instance.mother.name,
+                'gender': instance.mother.gender,
+            }
+            
+        if instance.father:
+            representation['father_info'] = {
+                'id': instance.father.id,
+                'name': instance.father.name,
+                'gender': instance.father.gender,
+            }
+
+        return representation
+
+    def validate(self, data):
+        birth_date = data.get('birth_date')
+        if self.instance and not birth_date:
+            birth_date = self.instance.birth_date
+
+        mother = data.get('mother')
+        father = data.get('father')
+
+        if birth_date:
+            if mother and mother.birth_date and mother.birth_date >= birth_date:
+                raise serializers.ValidationError({'mother': "Мать не может быть моложе ребенка!"})
+            if father and father.birth_date and father.birth_date >= birth_date:
+                raise serializers.ValidationError({'father': "Отец не может быть моложе ребенка!"})
+        
+        if self.instance:
+            if mother and mother.id == self.instance.id:
+                raise serializers.ValidationError({'mother': "Питомец не может быть своей матерью."})
+            if father and father.id == self.instance.id:
+                raise serializers.ValidationError({'father': "Питомец не может быть своим отцом."})
+
+        return data
 
     def create(self, validated_data):
-        """
-        Кастомное создание для поддержки вложенных EAV-атрибутов
-        """
         attributes_data = validated_data.pop('attributes', [])
         categories = validated_data.pop('categories', [])
         tags = validated_data.pop('tags', [])
         
-        # Создаем питомца
         pet = Pet.objects.create(**validated_data)
         
-        # Связываем M2M
         pet.categories.set(categories)
         pet.tags.set(tags)
         
-        # Обрабатываем атрибуты
         for attr_item in attributes_data:
             attr_slug = attr_item.get('attribute_slug')
             value = attr_item.get('value')
@@ -144,41 +150,29 @@ class PetSerializer(serializers.ModelSerializer):
                 attribute_obj = Attribute.objects.get(slug=attr_slug)
                 PetAttribute.objects.create(pet=pet, attribute=attribute_obj, value=value)
             except Attribute.DoesNotExist:
-                pass # Или рейзить ошибку, если строго
-                
+                pass
         return pet
 
     def update(self, instance, validated_data):
-        """
-        Кастомное обновление для EAV
-        """
         attributes_data = validated_data.pop('attributes', [])
         categories = validated_data.pop('categories', [])
         tags = validated_data.pop('tags', [])
 
-        # Обновляем стандартные поля
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Обновляем M2M
         if categories:
             instance.categories.set(categories)
         if tags:
             instance.tags.set(tags)
             
-        # Обновляем Атрибуты (Удаляем старые и пишем новые, либо обновляем)
-        # Простая стратегия: обновляем значения по слагу
         if attributes_data:
-            # Можно очистить старые, если логика "полная замена":
-            # instance.attributes.all().delete()
-            
             for attr_item in attributes_data:
                 attr_slug = attr_item.get('attribute_slug')
                 value = attr_item.get('value')
                 try:
                     attribute_obj = Attribute.objects.get(slug=attr_slug)
-                    # update_or_create - если есть, обновит значение, если нет - создаст
                     PetAttribute.objects.update_or_create(
                         pet=instance,
                         attribute=attribute_obj,
@@ -186,5 +180,4 @@ class PetSerializer(serializers.ModelSerializer):
                     )
                 except Attribute.DoesNotExist:
                     pass
-                    
         return instance

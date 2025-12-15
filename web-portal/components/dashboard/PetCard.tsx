@@ -1,9 +1,7 @@
-//web-portal/components/dashboard/PetCard.tsx
-
 import React from 'react';
-import { Plus, Activity, Share2, Mars, Venus } from 'lucide-react';
+import { Plus, Share2, Mars, Venus } from 'lucide-react';
 
-// Обновленный тип данных для питомца (как отдает наш Django бэкенд)
+// === ТИПЫ ДАННЫХ ===
 interface PetAttribute {
   attribute: {
     slug: string;
@@ -15,7 +13,7 @@ interface PetAttribute {
 interface Pet {
   id: number;
   name: string;
-  attributes: PetAttribute[]; // <-- Теперь это массив, а не просто строка
+  attributes: PetAttribute[];
   age: string;    
   gender: 'M' | 'F';
   is_public: boolean;
@@ -24,14 +22,14 @@ interface Pet {
 }
 
 interface PetCardProps {
-  isAddButton?: boolean; // Флаг: это кнопка "Добавить"?
-  pet?: Pet;             // Данные питомца
-  onClick?: () => void;  // Действие при клике
+  isAddButton?: boolean;
+  pet?: Pet;
+  onClick?: () => void;
 }
 
 export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
   
-  // ВАРИАНТ 1: Кнопка "Добавить питомца" (Если isAddButton = true)
+  // ВАРИАНТ 1: Кнопка "Добавить питомца"
   if (isAddButton) {
     return (
       <div 
@@ -46,15 +44,11 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
     );
   }
 
-  // ВАРИАНТ 2: Карточка питомца (Если передали pet)
+  // ВАРИАНТ 2: Карточка питомца
   if (!pet) return null;
 
   // --- ПОДГОТОВКА ДАННЫХ ---
-  
-  // 1. Берем картинку (первую из списка или null)
   const mainImage = pet.images && pet.images.length > 0 ? pet.images[0].image : null;
-
-  // 2. Ищем породу внутри списка атрибутов (ищем slug='breed')
   const breedAttr = pet.attributes?.find(a => a.attribute.slug === 'breed' || a.attribute.slug === 'poroda');
   const breed = breedAttr ? breedAttr.value : 'Порода не указана';
 
@@ -73,27 +67,17 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
             className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
           />
         ) : (
-           // Заглушка, если фото нет
            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
               <span className="text-6xl opacity-50">🐾</span>
            </div>
         )}
       </div>
 
-      {/* Затемнение снизу, чтобы текст читался */}
+      {/* Затемнение */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
 
-      {/* 2. ВЕРХНЯЯ ЧАСТЬ (Статусы) */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-        {/* Статус здоровья */}
-        <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-            <Activity size={14} className="text-green-500" />
-            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">
-              {pet.status || "Здоров"}
-            </span>
-        </div>
-
-        {/* Значок "Публичный", если is_public = true */}
+      {/* 2. ВЕРХНЯЯ ЧАСТЬ (Только иконка "Публичный") */}
+      <div className="absolute top-4 left-4 right-4 flex justify-end items-start">
         {pet.is_public && (
            <div className="bg-white/90 p-1.5 rounded-full text-blue-600 shadow-sm" title="Публичный профиль">
              <Share2 size={14} />
@@ -107,7 +91,6 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
         <div className="flex justify-between items-end mb-1">
             <h3 className="text-2xl font-bold leading-tight">{pet.name}</h3>
             
-            {/* Иконка пола (Марс/Венера) */}
             <div className="mb-1">
                 {pet.gender === 'M' ? (
                    <Mars className="text-blue-300" size={20} />
@@ -117,14 +100,12 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
             </div>
         </div>
 
-        {/* Порода и Возраст */}
         <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
             <span>{breed}</span>
             <span>•</span>
             <span>{pet.age || "Возраст скрыт"}</span>
         </div>
         
-        {/* Цветная полоска пола в самом низу (Синяя или Розовая) */}
         <div className={`absolute bottom-0 left-0 h-1.5 w-full ${pet.gender === 'M' ? 'bg-blue-500' : 'bg-pink-500'}`} />
       </div>
     </div>
