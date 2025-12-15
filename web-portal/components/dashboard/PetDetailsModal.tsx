@@ -29,6 +29,7 @@ interface ParentInfo {
     id: number;
     name: string;
     gender: 'M' | 'F';
+    image?: string | null;
 }
 
 interface HealthStatus {
@@ -92,7 +93,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
   useEffect(() => {
     if (isOpen && displayPetId) {
-      setPet(null); // Стираем старое, чтобы не было лага
+      setPet(null);
       setLoading(true);
       
       const token = localStorage.getItem('access_token');
@@ -133,9 +134,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
           });
 
           if (res.ok) {
-              // Успешно удалено
               onClose();
-              // Перезагружаем страницу, чтобы обновить список
               window.location.reload();
           } else {
               alert("Не удалось удалить профиль. Попробуйте позже.");
@@ -284,7 +283,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                 
                 {pet && activeTab === 'info' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {/* ТЕГИ */}
+                        {/* ТЕГИ: Добавлена проверка на наличие массива */}
                         {pet.tags && pet.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                                 {pet.tags.map((tag, index) => (
@@ -299,7 +298,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             </div>
                         )}
 
-                        {/* АТРИБУТЫ */}
+                        {/* АТРИБУТЫ: Добавлена проверка ?. перед map */}
                         <div>
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Характеристики</h3>
                             <div className="grid grid-cols-2 gap-3">
@@ -308,7 +307,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                     label="Клиника" 
                                     value={pet.clinic_name || 'Не прикреплен'} 
                                 />
-                                {pet.attributes.map((attr, idx) => (
+                                {pet.attributes?.map((attr, idx) => (
                                     <InfoCard 
                                         key={idx}
                                         icon={
@@ -333,8 +332,12 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                             onClick={() => handleParentClick(pet.mother_info!.id)}
                                             className="flex items-center gap-3 p-3 bg-pink-50/50 hover:bg-pink-50 rounded-2xl border border-pink-100 cursor-pointer transition-colors group"
                                         >
-                                            <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0 border border-pink-200">
-                                                <span className="text-pink-500 font-bold text-lg">♀</span>
+                                            <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0 border border-pink-200 overflow-hidden">
+                                                 {pet.mother_info.image ? (
+                                                     <img src={getMediaUrl(pet.mother_info.image)!} className="w-full h-full object-cover" alt="" />
+                                                 ) : (
+                                                     <span className="text-pink-500 font-bold text-lg">♀</span>
+                                                 )}
                                             </div>
                                             <div className="overflow-hidden">
                                                 <p className="text-[10px] text-pink-400 font-bold uppercase truncate">Мама</p>
@@ -352,8 +355,12 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                             onClick={() => handleParentClick(pet.father_info!.id)}
                                             className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 rounded-2xl border border-blue-100 cursor-pointer transition-colors group"
                                         >
-                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
-                                                <span className="text-blue-500 font-bold text-lg">♂</span>
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 overflow-hidden">
+                                                {pet.father_info.image ? (
+                                                     <img src={getMediaUrl(pet.father_info.image)!} className="w-full h-full object-cover" alt="" />
+                                                 ) : (
+                                                     <span className="text-blue-500 font-bold text-lg">♂</span>
+                                                 )}
                                             </div>
                                             <div className="overflow-hidden">
                                                 <p className="text-[10px] text-blue-400 font-bold uppercase truncate">Папа</p>
@@ -369,7 +376,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             </div>
                         )}
 
-                        {/* === УДАЛЕНИЕ ПРОФИЛЯ === */}
                         <div className="pt-8 mt-8 border-t border-gray-100">
                             <button 
                                 onClick={handleDelete}
@@ -394,7 +400,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
                 {pet && activeTab === 'medical' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {/* СТАТУС */}
                         <div className={`p-4 rounded-xl border flex items-start gap-3 ${getStatusColor(pet.health_status?.color)}`}>
                              <div className="mt-0.5 shrink-0"><Activity size={20} /></div>
                              <div>
@@ -405,7 +410,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                              </div>
                         </div>
 
-                        {/* ИСТОРИЯ */}
                         <div>
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">История событий</h3>
                             {(!pet.recent_events || pet.recent_events.length === 0) ? (
@@ -417,6 +421,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                 </div>
                             ) : (
                                 <div className="space-y-3">
+                                    {/* События: Добавлена проверка ?. перед map */}
                                     {pet.recent_events?.map((event) => (
                                         <div key={event.id} className="group flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all">
                                             <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${

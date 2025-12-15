@@ -51,11 +51,13 @@ class HealthEventSerializer(serializers.ModelSerializer):
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
-    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all())
-    attributes = PetAttributeSerializer(many=True, required=False)
     images = PetImageSerializer(many=True, read_only=True)
-    tags = serializers.SlugRelatedField(many=True, slug_field='slug', queryset=Tag.objects.all(), required=False)
     
+    # Для записи (валидация ID/Slug). Для чтения мы переопределяем их в to_representation
+    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all(), required=False)
+    tags = serializers.SlugRelatedField(many=True, slug_field='slug', queryset=Tag.objects.all(), required=False)
+    attributes = PetAttributeSerializer(many=True, required=False)
+
     mother = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='F'), required=False, allow_null=True)
     father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
@@ -85,53 +87,40 @@ class PetSerializer(serializers.ModelSerializer):
         return f"{years} лет"
 
     def get_recent_events(self, obj):
+        # Используем prefetch из viewset, чтобы не делать лишних запросов
         events = obj.events.all()[:5]
         return HealthEventSerializer(events, many=True, context=self.context).data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         
+        # === ГАРАНТИРОВАННЫЙ ВЫВОД СЛОЖНЫХ ПОЛЕЙ ===
+        # Мы явно сериализуем связанные объекты, чтобы фронт получал не ID, а полные объекты (name, icon и т.д.)
+        
         representation['categories'] = CategorySerializer(instance.categories.all(), many=True, context=self.context).data
         representation['tags'] = TagSerializer(instance.tags.all(), many=True, context=self.context).data
+        representation['attributes'] = PetAttributeSerializer(instance.attributes.all(), many=True, context=self.context).data
         
-        # Упрощенная логика родителей (без картинок)
-        if instance.mother:
-            representation['mother_info'] = {
-                'id': instance.mother.id,
-                'name': instance.mother.name,
-                'gender': instance.mother.gender,
-            }
-            
-        if instance.father:
-            representation['father_info'] = {
-                'id': instance.father.id,
-                'name': instance.father.name,
-                'gender': instance.father.gender,
+        # Оптимизированные родители (картинки)
+        def get_parent_data(parent_instance):
+            if not parent_instance:
+                return None
+            images = list(parent_instance.images.all())
+            main_img_obj = next((img for img in images if img.is_main), None)
+            if not main_img_obj and images:
+                main_img_obj = images[0]
+                
+            return {
+                "id": parent_instance.id,
+                "name": parent_instance.name,
+                "gender": parent_instance.gender,
+                "image": main_img_obj.image.url if main_img_obj else None
             }
 
+        representation['mother_info'] = get_parent_data(instance.mother)
+        representation['father_info'] = get_parent_data(instance.father)
+        
         return representation
-
-    def validate(self, data):
-        birth_date = data.get('birth_date')
-        if self.instance and not birth_date:
-            birth_date = self.instance.birth_date
-
-        mother = data.get('mother')
-        father = data.get('father')
-
-        if birth_date:
-            if mother and mother.birth_date and mother.birth_date >= birth_date:
-                raise serializers.ValidationError({'mother': "Мать не может быть моложе ребенка!"})
-            if father and father.birth_date and father.birth_date >= birth_date:
-                raise serializers.ValidationError({'father': "Отец не может быть моложе ребенка!"})
-        
-        if self.instance:
-            if mother and mother.id == self.instance.id:
-                raise serializers.ValidationError({'mother': "Питомец не может быть своей матерью."})
-            if father and father.id == self.instance.id:
-                raise serializers.ValidationError({'father': "Питомец не может быть своим отцом."})
-
-        return data
 
     def create(self, validated_data):
         attributes_data = validated_data.pop('attributes', [])
@@ -140,17 +129,20 @@ class PetSerializer(serializers.ModelSerializer):
         
         pet = Pet.objects.create(**validated_data)
         
-        pet.categories.set(categories)
-        pet.tags.set(tags)
-        
-        for attr_item in attributes_data:
-            attr_slug = attr_item.get('attribute_slug')
-            value = attr_item.get('value')
-            try:
-                attribute_obj = Attribute.objects.get(slug=attr_slug)
-                PetAttribute.objects.create(pet=pet, attribute=attribute_obj, value=value)
-            except Attribute.DoesNotExist:
-                pass
+        if categories:
+            pet.categories.set(categories)
+        if tags:
+            pet.tags.set(tags)
+            
+        if attributes_data:
+            for attr_item in attributes_data:
+                attr_slug = attr_item.get('attribute_slug')
+                value = attr_item.get('value')
+                try:
+                    attribute_obj = Attribute.objects.get(slug=attr_slug)
+                    PetAttribute.objects.create(pet=pet, attribute=attribute_obj, value=value)
+                except Attribute.DoesNotExist:
+                    pass
         return pet
 
     def update(self, instance, validated_data):

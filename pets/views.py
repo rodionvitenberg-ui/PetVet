@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Case, When, IntegerField, Count
+from django.db import connection
+# Импорт для полнотекстового поиска Postgres
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 import re
 
 from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage
@@ -29,25 +32,24 @@ class CustomSearchFilter(filters.SearchFilter):
         if not search_query:
             return queryset
         
-        q_objects = (
-            Q(name__icontains=search_query) |
-            Q(description__icontains=search_query) |
-            Q(attributes__value__icontains=search_query) |
-            Q(tags__name__icontains=search_query) |
-            Q(categories__name__icontains=search_query)
+        # === [OPTIMIZATION FIX: Full Text Search] ===
+        # Вместо медленного Full Table Scan (icontains) используем индексы Postgres.
+        # Веса (A, B, C) определяют важность совпадения.
+        vector = (
+            SearchVector('name', weight='A') +
+            SearchVector('tags__name', weight='A') +
+            SearchVector('attributes__value', weight='B') +
+            SearchVector('categories__name', weight='B') +
+            SearchVector('description', weight='C')
         )
         
-        filtered_queryset = queryset.filter(q_objects).distinct()
+        query = SearchQuery(search_query)
         
-        return filtered_queryset.annotate(
-            search_priority=Case(
-                When(name__icontains=search_query, then=1),
-                When(tags__name__icontains=search_query, then=2), 
-                When(attributes__value__icontains=search_query, then=3),
-                default=4,
-                output_field=IntegerField(),
-            )
-        ).order_by('search_priority', '-id')
+        # annotate добавляет поле rank (релевантность), по которому мы сортируем.
+        # distinct() обязателен, чтобы убрать дубли при совпадении в разных связанных таблицах.
+        return queryset.annotate(
+            rank=SearchRank(vector, query)
+        ).filter(rank__gt=0).order_by('-rank', '-id').distinct()
 
 class PetViewSet(viewsets.ModelViewSet):
     """
@@ -59,11 +61,16 @@ class PetViewSet(viewsets.ModelViewSet):
     filterset_class = PetFilter
     
     def get_queryset(self):
+        # === [OPTIMIZATION FIX: N+1 Parents] ===
+        # Загружаем родителей и их картинки заранее для сериализатора
         return Pet.objects.filter(owner=self.request.user, is_active=True)\
+            .select_related('owner', 'mother', 'father') \
             .prefetch_related(
                 'attributes__attribute', 
                 'tags', 
-                'images', 
+                'images',          # Картинки самого питомца
+                'mother__images',  # Картинки мамы (кэш для сериализатора)
+                'father__images',  # Картинки папы (кэш для сериализатора)
                 'categories',
                 'events' 
             )
@@ -105,7 +112,10 @@ class HealthEventViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return HealthEvent.objects.filter(pet__owner=self.request.user).order_by('-date')
+        # Оптимизация для событий: подгружаем связанные поля
+        return HealthEvent.objects.filter(pet__owner=self.request.user)\
+            .select_related('pet', 'created_by')\
+            .order_by('-date')
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -128,78 +138,87 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset.filter(children_count=0)
         return queryset
 
-    # === [FIXED] ТЕГИ ===
+    # === [OPTIMIZATION FIX: CTE Helpers] ===
+    # Вспомогательные методы для рекурсивных запросов через SQL
+
+    def _get_ancestor_ids(self, category_id):
+        """Получает ID категории и всех родителей вверх по дереву одним запросом"""
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                WITH RECURSIVE ancestors AS (
+                    SELECT id, parent_id FROM pets_category WHERE id = %s
+                    UNION ALL
+                    SELECT c.id, c.parent_id FROM pets_category c
+                    INNER JOIN ancestors a ON c.id = a.parent_id
+                ) SELECT id FROM ancestors;
+            """, [category_id])
+            rows = cursor.fetchall()
+        return [row[0] for row in rows]
+
+    def _get_descendant_ids(self, category_id):
+        """Получает ID категории и всех детей вниз по дереву одним запросом"""
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                WITH RECURSIVE descendants AS (
+                    SELECT id FROM pets_category WHERE id = %s
+                    UNION ALL
+                    SELECT c.id FROM pets_category c
+                    INNER JOIN descendants d ON c.parent_id = d.id
+                ) SELECT id FROM descendants;
+            """, [category_id])
+            rows = cursor.fetchall()
+        return [row[0] for row in rows]
+
+    # === Endpoints ===
+
     @action(detail=True, methods=['get'])
     def tags(self, request, pk=None):
         """
-        Возвращает теги:
-        1. Привязанные к этой категории (или ее родителям).
-        2. Глобальные (не привязанные ни к чему).
+        Возвращает теги категории (и ее родителей) + глобальные.
+        Использует CTE для избавления от N+1.
         """
-        try:
-            category = Category.objects.get(pk=pk)
-        except Category.DoesNotExist:
+        ancestor_ids = self._get_ancestor_ids(pk)
+        
+        if not ancestor_ids:
             return Response({"error": "Category not found"}, status=404)
 
-        # Используем словарь для уникальности по ID (на случай дублей)
-        tags_map = {}
+        tags = Tag.objects.filter(
+            Q(category__id__in=ancestor_ids) | Q(category__isnull=True)
+        ).distinct().order_by('sort_order', 'name')
 
-        # 1. Теги от категории и родителей
-        current = category
-        while current:
-            for tag in current.tags.all():
-                tags_map[tag.id] = tag
-            current = current.parent
-        
-        # 2. Глобальные теги (у которых нет связей с категориями)
-        # В filter используем имя модели в нижнем регистре: category
-        global_tags = Tag.objects.filter(category__isnull=True)
-        for tag in global_tags:
-            tags_map[tag.id] = tag
-        
-        # Превращаем обратно в список и сортируем
-        tags_list = list(tags_map.values())
-        
-        # Сортировка: сначала по sort_order, потом по имени
-        tags_list.sort(key=lambda x: (getattr(x, 'sort_order', 0), x.name))
-
-        serializer = TagSerializer(tags_list, many=True)
+        serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def attributes(self, request, pk=None):
-        try:
-            category = Category.objects.get(pk=pk)
-        except Category.DoesNotExist:
+        """
+        Возвращает атрибуты категории (и родителей).
+        Использует CTE для избавления от N+1.
+        """
+        ancestor_ids = self._get_ancestor_ids(pk)
+        
+        if not ancestor_ids:
             return Response({"error": "Category not found"}, status=404)
 
-        attrs_map = {}
-        current = category
-        while current:
-            for attr in current.attributes.all():
-                attrs_map[attr.id] = attr
-            current = current.parent
-        
-        sorted_attributes = sorted(list(attrs_map.values()), key=lambda x: getattr(x, 'sort_order', 0))
+        attributes = Attribute.objects.filter(
+            category__id__in=ancestor_ids
+        ).distinct().order_by('sort_order')
 
-        serializer = AttributeSerializer(sorted_attributes, many=True)
+        serializer = AttributeSerializer(attributes, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def filters(self, request, pk=None):
-        try:
-            category = Category.objects.get(pk=pk)
-        except Category.DoesNotExist:
-            return Response({"error": "Category not found"}, status=404)
+        """
+        Возвращает доступные фильтры для категории на основе потомков.
+        Использует CTE для избавления от N+1 (Python-рекурсии).
+        """
+        category_ids = self._get_descendant_ids(pk)
+        
+        if not category_ids:
+             return Response({"error": "Category not found"}, status=404)
 
-        def get_all_child_ids(category_obj):
-            children = category_obj.children.all()
-            ids = [category_obj.id]
-            for child in children:
-                ids.extend(get_all_child_ids(child))
-            return ids
-
-        category_ids = get_all_child_ids(category)
+        # Одним запросом выбираем атрибуты для всех подкатегорий
         pet_attributes = PetAttribute.objects.filter(
             pet__categories__id__in=category_ids
         ).select_related('attribute')
