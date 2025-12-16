@@ -1,15 +1,14 @@
-from rest_framework import viewsets, status, parsers
+from rest_framework import viewsets, status, parsers, permissions, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Case, When, IntegerField, Count
 from django.db import connection
-# Импорт для полнотекстового поиска Postgres
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 import re
 
-from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage
+from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage, HealthEventAttachment
 from .serializers import (
     PetSerializer, CategorySerializer, AttributeSerializer, 
     TagSerializer, HealthEventSerializer, PetImageSerializer
@@ -22,6 +21,18 @@ def normalize_search_text(text):
         return ""
     return re.sub(r'\s+', ' ', text.lower().strip())
 
+# === Права доступа ===
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Разрешает редактирование только создателю записи.
+    Остальным - только чтение (если они видят запись).
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.created_by == request.user
+
+# === Поиск ===
 class CustomSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
         search_term = self.get_search_terms(request)
@@ -32,9 +43,6 @@ class CustomSearchFilter(filters.SearchFilter):
         if not search_query:
             return queryset
         
-        # === [OPTIMIZATION FIX: Full Text Search] ===
-        # Вместо медленного Full Table Scan (icontains) используем индексы Postgres.
-        # Веса (A, B, C) определяют важность совпадения.
         vector = (
             SearchVector('name', weight='A') +
             SearchVector('tags__name', weight='A') +
@@ -45,11 +53,11 @@ class CustomSearchFilter(filters.SearchFilter):
         
         query = SearchQuery(search_query)
         
-        # annotate добавляет поле rank (релевантность), по которому мы сортируем.
-        # distinct() обязателен, чтобы убрать дубли при совпадении в разных связанных таблицах.
         return queryset.annotate(
             rank=SearchRank(vector, query)
         ).filter(rank__gt=0).order_by('-rank', '-id').distinct()
+
+# === ViewSets ===
 
 class PetViewSet(viewsets.ModelViewSet):
     """
@@ -61,18 +69,16 @@ class PetViewSet(viewsets.ModelViewSet):
     filterset_class = PetFilter
     
     def get_queryset(self):
-        # === [OPTIMIZATION FIX: N+1 Parents] ===
-        # Загружаем родителей и их картинки заранее для сериализатора
         return Pet.objects.filter(owner=self.request.user, is_active=True)\
             .select_related('owner', 'mother', 'father') \
             .prefetch_related(
                 'attributes__attribute', 
                 'tags', 
-                'images',          # Картинки самого питомца
-                'mother__images',  # Картинки мамы (кэш для сериализатора)
-                'father__images',  # Картинки папы (кэш для сериализатора)
+                'images',          
+                'mother__images', 
+                'father__images',
                 'categories',
-                'events' 
+                'events__attachments' # Подгружаем вложения событий для ленты
             )
 
     def perform_create(self, serializer):
@@ -109,21 +115,51 @@ class PetViewSet(viewsets.ModelViewSet):
 
 class HealthEventViewSet(viewsets.ModelViewSet):
     serializer_class = HealthEventSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser) # Разрешаем загрузку файлов
     
     def get_queryset(self):
-        # Оптимизация для событий: подгружаем связанные поля
+        # Показываем события питомцев, которыми владеет пользователь
         return HealthEvent.objects.filter(pet__owner=self.request.user)\
             .select_related('pet', 'created_by')\
+            .prefetch_related('attachments')\
             .order_by('-date')
 
     def perform_create(self, serializer):
         user = self.request.user
-        is_trusted_source = user.is_veterinarian and user.is_verified
-        serializer.save(
+        is_trusted_source = user.is_veterinarian and getattr(user, 'is_verified', False)
+        
+        # 1. Сохраняем само событие
+        event = serializer.save(
             created_by=user, 
             is_verified=is_trusted_source
         )
+        
+        # 2. Обрабатываем файлы (ключ 'attachments')
+        files = self.request.FILES.getlist('attachments')
+        for f in files:
+            HealthEventAttachment.objects.create(event=event, file=f)
+            
+        # Поддержка легаси ключа 'document' (если фронт шлет по-старому)
+        if 'document' in self.request.FILES:
+             HealthEventAttachment.objects.create(event=event, file=self.request.FILES['document'])
+
+    def perform_update(self, serializer):
+        event = serializer.save()
+        
+        # При редактировании добавляем НОВЫЕ файлы (старые не трогаем, они удаляются отдельно через API вложений)
+        files = self.request.FILES.getlist('attachments')
+        for f in files:
+            HealthEventAttachment.objects.create(event=event, file=f)
+
+# Исправленная опечатка: class вместо Сlass
+class HealthEventAttachmentViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    queryset = HealthEventAttachment.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Разрешаем удалять только если пользователь - создатель САМОГО СОБЫТИЯ
+        return HealthEventAttachment.objects.filter(event__created_by=self.request.user)
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.annotate(children_count=Count('children'))\
@@ -138,11 +174,8 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset.filter(children_count=0)
         return queryset
 
-    # === [OPTIMIZATION FIX: CTE Helpers] ===
-    # Вспомогательные методы для рекурсивных запросов через SQL
-
+    # === CTE Helpers ===
     def _get_ancestor_ids(self, category_id):
-        """Получает ID категории и всех родителей вверх по дереву одним запросом"""
         with connection.cursor() as cursor:
             cursor.execute("""
                 WITH RECURSIVE ancestors AS (
@@ -156,7 +189,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         return [row[0] for row in rows]
 
     def _get_descendant_ids(self, category_id):
-        """Получает ID категории и всех детей вниз по дереву одним запросом"""
         with connection.cursor() as cursor:
             cursor.execute("""
                 WITH RECURSIVE descendants AS (
@@ -169,16 +201,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             rows = cursor.fetchall()
         return [row[0] for row in rows]
 
-    # === Endpoints ===
-
     @action(detail=True, methods=['get'])
     def tags(self, request, pk=None):
-        """
-        Возвращает теги категории (и ее родителей) + глобальные.
-        Использует CTE для избавления от N+1.
-        """
         ancestor_ids = self._get_ancestor_ids(pk)
-        
         if not ancestor_ids:
             return Response({"error": "Category not found"}, status=404)
 
@@ -191,12 +216,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'])
     def attributes(self, request, pk=None):
-        """
-        Возвращает атрибуты категории (и родителей).
-        Использует CTE для избавления от N+1.
-        """
         ancestor_ids = self._get_ancestor_ids(pk)
-        
         if not ancestor_ids:
             return Response({"error": "Category not found"}, status=404)
 
@@ -209,16 +229,10 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'])
     def filters(self, request, pk=None):
-        """
-        Возвращает доступные фильтры для категории на основе потомков.
-        Использует CTE для избавления от N+1 (Python-рекурсии).
-        """
         category_ids = self._get_descendant_ids(pk)
-        
         if not category_ids:
              return Response({"error": "Category not found"}, status=404)
 
-        # Одним запросом выбираем атрибуты для всех подкатегорий
         pet_attributes = PetAttribute.objects.filter(
             pet__categories__id__in=category_ids
         ).select_related('attribute')

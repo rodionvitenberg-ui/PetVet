@@ -82,7 +82,7 @@ class Attribute(models.Model):
     class Meta:
         verbose_name = "Атрибут"
         verbose_name_plural = "Атрибуты"
-        ordering = ['sort_order'] # <-- Автоматическая сортировка везде
+        ordering = ['sort_order'] 
 
     def __str__(self):
         return self.name
@@ -141,14 +141,12 @@ class Pet(models.Model):
         """
         Проверка логики (Валидация) перед сохранением
         """
-        # 1. Проверка на возраст родителей
         if self.birth_date:
             if self.mother and self.mother.birth_date and self.mother.birth_date >= self.birth_date:
                 raise ValidationError({'mother': "Мать не может быть моложе ребенка!"})
             if self.father and self.father.birth_date and self.father.birth_date >= self.birth_date:
                 raise ValidationError({'father': "Отец не может быть моложе ребенка!"})
         
-        # 2. Проверка, чтобы питомец не был своим родителем (защита от дурака)
         if self.mother == self or self.father == self:
              raise ValidationError("Питомец не может быть своим собственным родителем.")
 
@@ -212,38 +210,35 @@ class HealthEvent(models.Model):
         verbose_name="Тип события"
     )
     
-    # --- НОВОЕ ПОЛЕ: СТАТУС ---
     STATUS_CHOICES = [
-        ('planned', 'Запланировано'),   # В будущем (серенькое)
-        ('confirmed', 'Подтверждено'),  # Клиент подтвердил визит
-        ('completed', 'Завершено'),     # Сделано! (Вешаем тег)
-        ('cancelled', 'Отменено'),      # Не пришли
+        ('planned', 'Запланировано'),
+        ('confirmed', 'Подтверждено'),
+        ('completed', 'Завершено'),
+        ('cancelled', 'Отменено'),
     ]
     
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='completed', # Для обратной совместимости старые записи считаем выполненными
+        default='completed', 
         verbose_name="Статус события"
     )
 
-    title = models.CharField(max_length=255, verbose_name="Название (например, Нобивак)")
-    date = models.DateField(verbose_name="Дата события")
+    title = models.CharField(max_length=255, verbose_name="Название")
     
-    next_date = models.DateField(
+    # === [CHANGED] Теперь DateTimeField для точного времени ===
+    date = models.DateTimeField(verbose_name="Время события")
+    
+    # Напоминание тоже с точным временем
+    next_date = models.DateTimeField(
         null=True, 
         blank=True, 
-        verbose_name="Дата следующего (Напоминание)"
+        verbose_name="Напоминание (Дата и Время)"
     )
     
     description = models.TextField(blank=True, verbose_name="Заметки / Описание")
     
-    document = models.FileField(
-        upload_to='health_docs/', 
-        null=True, 
-        blank=True, 
-        verbose_name="Документ / Фото"
-    )
+    # === [REMOVED] document field (перенесено в HealthEventAttachment) ===
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -255,7 +250,7 @@ class HealthEvent(models.Model):
     
     is_verified = models.BooleanField(default=False, verbose_name="Подтверждено врачом")
     
-    # История изменений (Audit Log)
+    # История изменений
     history = HistoricalRecords()
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -266,4 +261,62 @@ class HealthEvent(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        return f"{self.pet.name} - {self.title} ({self.get_status_display()})"
+        return f"{self.pet.name} - {self.title}"
+
+class HealthEventAttachment(models.Model):
+    """
+    [NEW] Вложения к событию (Фото, PDF, анализы).
+    Поддерживает множественную загрузку.
+    """
+    event = models.ForeignKey(
+        HealthEvent, 
+        on_delete=models.CASCADE, 
+        related_name='attachments',
+        verbose_name="Событие"
+    )
+    file = models.FileField(
+        upload_to='health_docs/%Y/%m/',
+        verbose_name="Файл"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Вложение (Медкарта)"
+        verbose_name_plural = "Вложения (Медкарта)"
+
+    def __str__(self):
+        return f"File for {self.event.title}"
+
+class PetAccess(models.Model):
+    """
+    [NEW] Управление доступом (Врачи <-> Питомцы).
+    """
+    pet = models.ForeignKey(
+        Pet, 
+        on_delete=models.CASCADE, 
+        related_name='access_grants',
+        verbose_name="Питомец"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='granted_accesses',
+        verbose_name="Кому предоставлен доступ (Врач)"
+    )
+    
+    ACCESS_LEVELS = [
+        ('read', 'Только просмотр'),
+        ('write', 'Просмотр и Запись'),
+    ]
+    access_level = models.CharField(max_length=10, choices=ACCESS_LEVELS, default='read')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    class Meta:
+        verbose_name = "Доступ к питомцу"
+        verbose_name_plural = "Доступы к питомцам"
+        unique_together = ('pet', 'user') # Один врач - одна запись на питомца
+
+    def __str__(self):
+        return f"Access: {self.user} -> {self.pet}"

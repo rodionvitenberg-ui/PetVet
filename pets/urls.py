@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PetViewSet, CategoryViewSet, AttributeViewSet, HealthEventViewSet, TagViewSet
+from .views import PetViewSet, CategoryViewSet, AttributeViewSet, HealthEventViewSet, TagViewSet, HealthEventAttachmentViewSet
 
 # Создаем роутер
 router = DefaultRouter()
@@ -26,7 +26,8 @@ router.register(r'tags', TagViewSet, basename='tag')
 # 4. Медицинская карта / События (НОВОЕ)
 # GET /api/events/ - Список всех событий (прививки, вес)
 # POST /api/events/ - Добавить запись
-router.register(r'events', HealthEventViewSet, basename='event')
+router.register(r'health-events', HealthEventViewSet, basename='health-event')
+router.register(r'attachments', HealthEventAttachmentViewSet, basename='attachment')
 
 urlpatterns = [
     # Включаем все URL, сгенерированные роутером

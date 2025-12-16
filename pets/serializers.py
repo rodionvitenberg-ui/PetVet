@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from datetime import date
-from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent
+from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent, HealthEventAttachment
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,6 +30,12 @@ class PetImageSerializer(serializers.ModelSerializer):
         model = PetImage
         fields = ['id', 'image', 'is_main']
 
+# === [NEW] Сериализатор для вложений ===
+class HealthEventAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HealthEventAttachment
+        fields = ['id', 'file', 'created_at']
+
 class HealthEventSerializer(serializers.ModelSerializer):
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -37,13 +43,26 @@ class HealthEventSerializer(serializers.ModelSerializer):
     created_by_name = serializers.ReadOnlyField(source='created_by.username')
     created_by_clinic = serializers.ReadOnlyField(source='created_by.clinic_name')
     created_by_is_vet = serializers.ReadOnlyField(source='created_by.is_veterinarian')
+    
+    # Вложения (файлы) - только для чтения в этом сериализаторе
+    attachments = HealthEventAttachmentSerializer(many=True, read_only=True)
+
+    # Форматирование даты и времени
+    date = serializers.DateTimeField(format="%Y-%m-%d %H:%M", input_formats=["%Y-%m-%d %H:%M", "iso-8601"])
+    next_date = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M", 
+        input_formats=["%Y-%m-%d %H:%M", "iso-8601"], 
+        required=False, 
+        allow_null=True
+    )
 
     class Meta:
         model = HealthEvent
         fields = [
             'id', 'pet', 'event_type', 'event_type_display',
             'status', 'status_display',
-            'title', 'date', 'next_date', 'description', 'document',
+            'title', 'date', 'next_date', 'description', 
+            'attachments',  # <-- Вместо document
             'created_by_name', 'created_by_clinic', 'created_by_is_vet',
             'is_verified'
         ]
@@ -53,7 +72,6 @@ class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     images = PetImageSerializer(many=True, read_only=True)
     
-    # Для записи (валидация ID/Slug). Для чтения мы переопределяем их в to_representation
     categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all(), required=False)
     tags = serializers.SlugRelatedField(many=True, slug_field='slug', queryset=Tag.objects.all(), required=False)
     attributes = PetAttributeSerializer(many=True, required=False)
@@ -87,21 +105,17 @@ class PetSerializer(serializers.ModelSerializer):
         return f"{years} лет"
 
     def get_recent_events(self, obj):
-        # Используем prefetch из viewset, чтобы не делать лишних запросов
+        # Используем prefetch из viewset
         events = obj.events.all()[:5]
         return HealthEventSerializer(events, many=True, context=self.context).data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         
-        # === ГАРАНТИРОВАННЫЙ ВЫВОД СЛОЖНЫХ ПОЛЕЙ ===
-        # Мы явно сериализуем связанные объекты, чтобы фронт получал не ID, а полные объекты (name, icon и т.д.)
-        
         representation['categories'] = CategorySerializer(instance.categories.all(), many=True, context=self.context).data
         representation['tags'] = TagSerializer(instance.tags.all(), many=True, context=self.context).data
         representation['attributes'] = PetAttributeSerializer(instance.attributes.all(), many=True, context=self.context).data
         
-        # Оптимизированные родители (картинки)
         def get_parent_data(parent_instance):
             if not parent_instance:
                 return None
