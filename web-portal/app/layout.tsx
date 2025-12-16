@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google"; 
 import "./globals.css";
 
-// 1. Импортируем Хедер
+// 1. Импортируем наш новый провайдер
+import { AppModeProvider } from '@/components/providers/AppModeProvider';
 import Header from "@/components/Header";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
@@ -20,13 +21,11 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${inter.className} bg-brand-bg text-brand-text min-h-screen`}>
-        
-        {/* 2. Вставляем Хедер сюда. Он будет на ВСЕХ страницах. */}
-        <Header />
-        
-        {/* Здесь будет рендериться dashboard/page.tsx, calendar/page.tsx и т.д. */}
-        {children}
-        
+        {/* 2. Оборачиваем Хедер и Контент в Провайдер */}
+        <AppModeProvider>
+            <Header />
+            {children}
+        </AppModeProvider>
       </body>
     </html>
   );

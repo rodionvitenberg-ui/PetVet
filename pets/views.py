@@ -5,10 +5,14 @@ from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Case, When, IntegerField, Count
 from django.db import connection
+# Импорты для токенов и подписей
+from django.core import signing
+from django.conf import settings
+
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 import re
 
-from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage, HealthEventAttachment
+from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage, HealthEventAttachment, PetAccess
 from .serializers import (
     PetSerializer, CategorySerializer, AttributeSerializer, 
     TagSerializer, HealthEventSerializer, PetImageSerializer
@@ -21,18 +25,12 @@ def normalize_search_text(text):
         return ""
     return re.sub(r'\s+', ' ', text.lower().strip())
 
-# === Права доступа ===
 class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Разрешает редактирование только создателю записи.
-    Остальным - только чтение (если они видят запись).
-    """
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
         return obj.created_by == request.user
 
-# === Поиск ===
 class CustomSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
         search_term = self.get_search_terms(request)
@@ -57,11 +55,10 @@ class CustomSearchFilter(filters.SearchFilter):
             rank=SearchRank(vector, query)
         ).filter(rank__gt=0).order_by('-rank', '-id').distinct()
 
-# === ViewSets ===
-
 class PetViewSet(viewsets.ModelViewSet):
     """
     API для управления питомцами.
+    Поддерживает: CRUD, Ленту (feed), Доступ (sharing).
     """
     serializer_class = PetSerializer
     permission_classes = [IsAuthenticated]
@@ -69,7 +66,13 @@ class PetViewSet(viewsets.ModelViewSet):
     filterset_class = PetFilter
     
     def get_queryset(self):
-        return Pet.objects.filter(owner=self.request.user, is_active=True)\
+        user = self.request.user
+        # === [LOGIC UPDATE] ===
+        # Показываем питомцев, где пользователь Владелец ИЛИ имеет Активный Доступ
+        return Pet.objects.filter(
+            Q(owner=user) | 
+            Q(access_grants__user=user, access_grants__is_active=True)
+        ).filter(is_active=True).distinct()\
             .select_related('owner', 'mother', 'father') \
             .prefetch_related(
                 'attributes__attribute', 
@@ -78,12 +81,84 @@ class PetViewSet(viewsets.ModelViewSet):
                 'mother__images', 
                 'father__images',
                 'categories',
-                'events__attachments' # Подгружаем вложения событий для ленты
+                'events__attachments'
             )
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    # === [NEW FEATURE] 1. Генерация QR-токена ===
+    @action(detail=True, methods=['get'])
+    def share_token(self, request, pk=None):
+        """
+        Генерирует временную ссылку/токен для передачи прав доступа.
+        Только владелец может вызвать этот метод.
+        """
+        pet = self.get_object()
+        
+        if pet.owner != request.user:
+            return Response({"error": "Только владелец может делиться доступом"}, status=403)
+        
+        # Подписываем ID питомца. Токен будет валиден, пока мы его проверяем (например, 1 час).
+        # Формат данных: "pet_share:<pet_id>"
+        signer = signing.TimestampSigner()
+        token = signer.sign(f"pet_share:{pet.id}")
+        
+        # Можно вернуть полный URL для QR-кода, если есть схема deep-link
+        # return Response({"token": token, "qr_link": f"petvet://share/{token}"})
+        return Response({"token": token})
+
+    # === [NEW FEATURE] 2. Активация доступа (сканирование QR) ===
+    @action(detail=False, methods=['post'])
+    def accept_access(self, request):
+        """
+        Ветеринар отправляет сюда токен из QR-кода, чтобы получить доступ.
+        """
+        token = request.data.get('token')
+        if not token:
+            return Response({"error": "Токен не предоставлен"}, status=400)
+        
+        signer = signing.TimestampSigner()
+        try:
+            # Проверяем подпись и срок жизни (например, 1 час = 3600 сек)
+            original = signer.unsign(token, max_age=3600)
+            prefix, pet_id_str = original.split(':')
+            
+            if prefix != 'pet_share':
+                raise signing.BadSignature()
+                
+            pet_id = int(pet_id_str)
+            pet = Pet.objects.get(id=pet_id)
+            
+        except signing.SignatureExpired:
+            return Response({"error": "Срок действия QR-кода истек. Попросите новый."}, status=400)
+        except (signing.BadSignature, ValueError):
+            return Response({"error": "Некорректный QR-код"}, status=400)
+        except Pet.DoesNotExist:
+            return Response({"error": "Питомец не найден"}, status=404)
+
+        # Защита от самого себя
+        if pet.owner == request.user:
+            return Response({"message": "Вы уже владелец этого питомца"}, status=200)
+
+        # Выдаем доступ (или обновляем существующий)
+        PetAccess.objects.update_or_create(
+            pet=pet,
+            user=request.user,
+            defaults={
+                'access_level': 'write', # По умолчанию даем полный доступ (можно менять)
+                'is_active': True
+            }
+        )
+        
+        return Response({
+            "status": "success", 
+            "pet_id": pet.id, 
+            "pet_name": pet.name,
+            "message": "Доступ успешно получен"
+        })
+
+    # ... (Остальные методы: feed, upload_image остаются без изменений) ...
     @action(detail=False, methods=['GET'], permission_classes=[AllowAny])
     def feed(self, request):
         queryset = Pet.objects.filter(is_active=True, is_public=True)\
@@ -116,11 +191,16 @@ class PetViewSet(viewsets.ModelViewSet):
 class HealthEventViewSet(viewsets.ModelViewSet):
     serializer_class = HealthEventSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = (parsers.MultiPartParser, parsers.FormParser) # Разрешаем загрузку файлов
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser)
     
     def get_queryset(self):
-        # Показываем события питомцев, которыми владеет пользователь
-        return HealthEvent.objects.filter(pet__owner=self.request.user)\
+        # === [LOGIC UPDATE] ===
+        # Ветеринар должен видеть события питомцев, к которым у него есть доступ
+        user = self.request.user
+        return HealthEvent.objects.filter(
+            Q(pet__owner=user) | 
+            Q(pet__access_grants__user=user, pet__access_grants__is_active=True)
+        ).distinct()\
             .select_related('pet', 'created_by')\
             .prefetch_related('attachments')\
             .order_by('-date')
@@ -129,38 +209,32 @@ class HealthEventViewSet(viewsets.ModelViewSet):
         user = self.request.user
         is_trusted_source = user.is_veterinarian and getattr(user, 'is_verified', False)
         
-        # 1. Сохраняем само событие
         event = serializer.save(
             created_by=user, 
             is_verified=is_trusted_source
         )
         
-        # 2. Обрабатываем файлы (ключ 'attachments')
         files = self.request.FILES.getlist('attachments')
         for f in files:
             HealthEventAttachment.objects.create(event=event, file=f)
             
-        # Поддержка легаси ключа 'document' (если фронт шлет по-старому)
         if 'document' in self.request.FILES:
              HealthEventAttachment.objects.create(event=event, file=self.request.FILES['document'])
 
     def perform_update(self, serializer):
         event = serializer.save()
-        
-        # При редактировании добавляем НОВЫЕ файлы (старые не трогаем, они удаляются отдельно через API вложений)
         files = self.request.FILES.getlist('attachments')
         for f in files:
             HealthEventAttachment.objects.create(event=event, file=f)
 
-# Исправленная опечатка: class вместо Сlass
 class HealthEventAttachmentViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = HealthEventAttachment.objects.all()
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Разрешаем удалять только если пользователь - создатель САМОГО СОБЫТИЯ
         return HealthEventAttachment.objects.filter(event__created_by=self.request.user)
 
+# ... (Остальные ViewSets: Category, Attribute, Tag остаются без изменений) ...
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.annotate(children_count=Count('children'))\
         .prefetch_related('children')\
@@ -174,7 +248,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset.filter(children_count=0)
         return queryset
 
-    # === CTE Helpers ===
     def _get_ancestor_ids(self, category_id):
         with connection.cursor() as cursor:
             cursor.execute("""
