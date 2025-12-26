@@ -15,10 +15,10 @@ class Notification(models.Model):
     )
 
     CATEGORY_CHOICES = [
-        ('system', 'Системное'),         # "Добро пожаловать"
-        ('reminder', 'Напоминание'),     # "Завтра прививка"
-        ('medical', 'Медицина'),         # "Врач добавил запись"
-        ('action', 'Требует действия'),  # "Операция состоялась? (Да/Нет)"
+        ('system', 'Системное'),         
+        ('reminder', 'Напоминание'),     
+        ('medical', 'Медицина'),         
+        ('action', 'Требует действия'),  
     ]
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='system')
 
@@ -26,7 +26,6 @@ class Notification(models.Model):
     message = models.TextField(verbose_name="Сообщение")
     
     # ССЫЛКА НА ОБЪЕКТ (Generic Relation)
-    # Это позволяет ссылаться на HealthEvent, Pet или что угодно
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -34,11 +33,13 @@ class Notification(models.Model):
     # Статус прочтения
     is_read = models.BooleanField(default=False, verbose_name="Прочитано")
     
-    # JSON поле для мета-данных (например, ссылки на кнопки действия)
-    # Если ты используешь PostgreSQL, лучше использовать models.JSONField
-    # Если SQLite (для старта), то пока оставим текстовым или просто опустим, 
-    # но для "Actionable" уведомлений оно пригодится.
-    # Пока обойдемся без него, реализуем логику через category='action'.
+    # === НОВОЕ ПОЛЕ ===
+    metadata = models.JSONField(
+        default=dict, 
+        blank=True, 
+        null=True, 
+        verbose_name="Метаданные (кнопки, ссылки)"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

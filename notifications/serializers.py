@@ -18,7 +18,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             'is_read', 
             'created_at', 
             'created_at_formatted',
-            'linked_object'
+            'linked_object',
+            'metadata',
         ]
 
     def get_linked_object(self, obj):

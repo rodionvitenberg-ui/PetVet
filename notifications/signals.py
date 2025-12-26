@@ -1,37 +1,92 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.contenttypes.models import ContentType
-# Импортируем модель HealthEvent из другого приложения
-# Используем строковый импорт внутри функции или get_model, чтобы избежать Circular Import,
-# но сигналы обычно грузятся в ready(), так что можно попробовать прямой.
-from pets.models import HealthEvent 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+# Импорты моделей
+from pets.models import HealthEvent, PetAccess
 from .models import Notification
+from .serializers import NotificationSerializer # Пригодится для отправки чистого JSON
 
 @receiver(post_save, sender=HealthEvent)
-def notify_owner_on_new_event(sender, instance, created, **kwargs):
+def notify_event_update(sender, instance, created, **kwargs):
     """
-    Если ВРАЧ создал или обновил запись, уведомляем ВЛАДЕЛЬЦА.
+    Единый обработчик событий:
+    1. Определяет получателей (Владелец + Врачи с доступом).
+    2. Создает запись Notification в БД.
+    3. Отправляет мгновенное сообщение через WebSockets.
     """
-    # Если у записи нет автора или автор - сам владелец, не уведомляем
-    if not instance.created_by or instance.created_by == instance.pet.owner:
+    
+    # 1. Определяем список получателей
+    recipients = set()
+    
+    # Всегда добавляем владельца
+    if instance.pet.owner:
+        recipients.add(instance.pet.owner)
+    
+    # Добавляем врачей, у которых есть АКТИВНЫЙ доступ к этому питомцу
+    active_accesses = PetAccess.objects.filter(pet=instance.pet, is_active=True)
+    for access in active_accesses:
+        recipients.add(access.user)
+    
+    # ИСКЛЮЧАЕМ того, кто создал событие (чтобы не получать уведомление о своем же действии)
+    # Например, если врач создал запись, уведомлять его не надо.
+    if instance.created_by in recipients:
+        recipients.remove(instance.created_by)
+
+    # Если некому отправлять - выходим
+    if not recipients:
         return
 
-    # Если это ВРАЧ создал запись
-    if instance.created_by.is_veterinarian:
-        
-        # Сценарий 1: Новая запись
-        if created:
-            Notification.objects.create(
-                recipient=instance.pet.owner,
-                category='medical',
-                title=f"Новая запись: {instance.title}",
-                message=f"Врач {instance.created_by.username} добавил запись в карту питомца {instance.pet.name}.",
-                content_object=instance
-            )
-        
-        # Сценарий 2: Обновление статуса (например, Врач подтвердил выполнение)
-        # Тут нужна проверка "было -> стало", но для MVP просто при любом сохранении врачом:
-        elif not created:
-             # Чтобы не спамить, можно проверять изменение полей (требует dirty fields),
-             # пока пропустим, чтобы не усложнять.
-             pass
+    # 2. Формируем данные уведомления
+    # Логика текста (можно расширить для updates)
+    if created:
+        cat = 'medical'
+        title_text = f"Новое событие: {instance.title}"
+        message_text = f"Пользователь {instance.created_by.username if instance.created_by else 'System'} добавил запись для питомца {instance.pet.name}."
+    else:
+        # Если нужно уведомлять об изменениях, раскомментируй логику ниже
+        # Пока пропускаем обновления, чтобы не спамить
+        return 
+
+    # Получаем слой каналов для WebSockets
+    channel_layer = get_channel_layer()
+
+    # 3. Рассылка
+    for user in recipients:
+        # А) Сохраняем в БД (чтобы сохранилось в истории)
+        notification = Notification.objects.create(
+            recipient=user,
+            category=cat,
+            title=title_text,
+            message=message_text,
+            content_object=instance
+        )
+
+        # Б) Отправляем в WebSocket (Мгновенно)
+        # Группа пользователя формируется как "user_{id}"
+        group_name = f"user_{user.id}"
+
+        # Сериализуем уведомление, чтобы фронт получил красивый JSON
+        # Можно передать notification_data вручную, но через сериализатор надежнее
+        try:
+            serializer = NotificationSerializer(notification)
+            data_to_send = serializer.data
+        except Exception:
+            # Фолбэк, если сериализатор не сработал (например, circular imports)
+            data_to_send = {
+                "id": notification.id,
+                "title": notification.title,
+                "message": notification.message,
+                "category": notification.category,
+                "created_at_formatted": notification.created_at.strftime("%d.%m.%Y %H:%M")
+            }
+
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "send_notification",  # Это имя метода в consumers.py
+                "data": data_to_send
+            }
+        )

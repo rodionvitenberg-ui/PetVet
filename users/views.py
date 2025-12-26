@@ -4,7 +4,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from .serializers import UserRegistrationSerializer
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 
 User = get_user_model()
 

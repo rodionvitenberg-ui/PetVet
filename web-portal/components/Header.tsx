@@ -13,9 +13,9 @@ import {
   UserCircle2,
   Globe,
   Menu,
-  Stethoscope, 
-  Tractor      
+  Stethoscope,      
 } from 'lucide-react';
+import NotificationsDropdown from './dashboard/NotificationsDropdown';
 
 export default function Header() {
   const pathname = usePathname(); // Получаем текущий URL
@@ -115,12 +115,6 @@ export default function Header() {
           
           <div className="hidden sm:flex flex-col items-end justify-center mr-1">
             <Link 
-                href="/farmers" 
-                className="text-[12px] font-bold text-black hover:bg-gray-300 px-1 py-1 rounded-full transition whitespace-nowrap"
-            >
-                Для фермеров
-            </Link>
-            <Link 
                 href="/vet/register" 
                 className="text-[12px] font-bold text-black hover:bg-gray-300 px-1 py-1 rounded-full transition whitespace-nowrap"
             >
@@ -128,9 +122,13 @@ export default function Header() {
             </Link>
           </div>
 
-          <button className="hover:bg-gray-300 p-2 rounded-full transition cursor-pointer">
-            <Globe size={18} className="text-black" />
-          </button>
+          {isAuth ? (
+              <NotificationsDropdown />
+            ) : (
+              <button className="hover:bg-gray-300 p-2 rounded-full transition cursor-pointer">
+                <Globe size={18} className="text-black" />
+              </button>
+            )}
 
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -169,18 +167,6 @@ export default function Header() {
                         </div>
                       </div>
                       <Stethoscope size={28} strokeWidth={1.5} className="text-gray-500 group-hover:text-black transition flex-shrink-0" />
-                   </div>
-                </Link>
-
-                <Link href="/farmers" className="block px-4 py-3 hover:bg-gray-50 transition group">
-                   <div className="flex justify-between items-start gap-3">
-                      <div>
-                        <div className="text-sm font-bold text-gray-800 mb-0.5">Станьте фермером</div>
-                        <div className="text-xs text-gray-500 font-normal leading-snug">
-                            Управляйте хозяйством эффективно и просто.
-                        </div>
-                      </div>
-                      <Tractor size={28} strokeWidth={1.5} className="text-gray-500 group-hover:text-black transition flex-shrink-0" />
                    </div>
                 </Link>
               </div>

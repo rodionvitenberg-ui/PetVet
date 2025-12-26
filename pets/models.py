@@ -43,9 +43,6 @@ class Category(models.Model):
         return self.name
 
 class Tag(models.Model):
-    """
-    Модель для меток (Привит, Чипирован, Племенной, Кастрирован и т.д.)
-    """
     name = models.CharField(max_length=100, unique=True, verbose_name="Название метки")
     slug = models.SlugField(max_length=100, unique=True)
 
@@ -69,9 +66,6 @@ class Tag(models.Model):
         return self.name
 
 class Attribute(models.Model):
-    """
-    Справочник атрибутов (Порода, Окрас, Вес)
-    """
     name = models.CharField(max_length=100, unique=True, verbose_name="Название атрибута")
     slug = models.SlugField(max_length=100, unique=True)
     unit = models.CharField(max_length=100, blank=True, verbose_name="Единица измерения")
@@ -88,9 +82,6 @@ class Attribute(models.Model):
         return self.name
 
 class Pet(models.Model):
-    """
-    Основная модель Питомца.
-    """
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -129,6 +120,14 @@ class Pet(models.Model):
     is_public = models.BooleanField(default=False, verbose_name="Публичный профиль (В ленту)")
     is_active = models.BooleanField(default=True, verbose_name="Жив / Активен")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='pet_profile', # Чтобы от юзера получить профиль: user.pet_profile
+        null=True, 
+        blank=True
+    )
 
     class Meta:
         verbose_name = "Питомец"
