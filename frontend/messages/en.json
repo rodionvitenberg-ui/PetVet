@@ -1,0 +1,19 @@
+{
+  "HomePage": {
+    "title": "Explore the Pet World",
+    "subtitle": "Real pets from our community"
+  },
+"Navigation": {
+    "dashboard": "Petboard",
+    "calendar": "Calendar",
+    "find_doctor": "Find a Doctor",
+    "for_veterinarians": "For Veterinarians",
+    "login_signup": "Log in or Sign up",
+    "profile": "Profile",
+    "add_pet": "Add a Pet",
+    "become_vet": "Become a Veterinarian",
+    "become_vet_desc": "Accept patients and earn money.",
+    "help_center": "Help Center",
+    "logout": "Log out"
+  }
+}
