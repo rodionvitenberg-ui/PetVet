@@ -7,21 +7,11 @@ User = get_user_model()
 
 # --- ЭТОТ КЛАСС МЫ ДОБАВИЛИ ---
 class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для чтения данных текущего пользователя"""
     class Meta:
         model = User
-        # Перечисляем поля, которые нужны фронтенду для интерфейса
-        fields = [
-            'id', 
-            'username', 
-            'email', 
-            'first_name', 
-            'last_name', 
-            'is_veterinarian', 
-            'avatar',
-            'city',
-            'clinic_name'
-        ]
+        # Оставляем только те поля, которые ЖЕЛЕЗНО есть у любого юзера Django
+        # Если у тебя кастомная модель, добавь остальные поля позже по одному
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 # --- СТАРЫЙ КОД ОСТАВЛЯЕМ БЕЗ ИЗМЕНЕНИЙ ---
 class UserRegistrationSerializer(serializers.ModelSerializer):

@@ -1,4 +1,3 @@
-// frontend/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -6,10 +5,14 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { username, password } = body;
   
+  // Используем 127.0.0.1 чтобы избежать проблем с localhost
   const djangoUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+  console.log(`[Login] Попытка входа для: ${username} на ${djangoUrl}/api/token/`);
+
   try {
-    const res = await fetch(`${djangoUrl}/api/auth/token/`, {
+    // ВАЖНО: В твоем urls.py путь именно 'api/token/', без 'auth'
+    const res = await fetch(`${djangoUrl}/api/token/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -18,13 +21,17 @@ export async function POST(request: Request) {
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json({ detail: data.detail || 'Ошибка входа' }, { status: res.status });
+      console.error('[Login] Ошибка от Django:', data);
+      return NextResponse.json(
+        { detail: data.detail || 'Ошибка входа' }, 
+        { status: res.status }
+      );
     }
 
     // Устанавливаем куки
     const cookieStore = await cookies();
     
-    // Access Token
+    // Access Token (живет недолго, например 1 день)
     cookieStore.set('access_token', data.access, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -33,7 +40,7 @@ export async function POST(request: Request) {
       sameSite: 'lax',
     });
 
-    // Refresh Token
+    // Refresh Token (живет дольше, например 7 дней)
     cookieStore.set('refresh_token', data.refresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -45,6 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
 
   } catch (error) {
+    console.error('[Login] Критическая ошибка:', error);
     return NextResponse.json({ detail: 'Ошибка сервера Next.js' }, { status: 500 });
   }
 }

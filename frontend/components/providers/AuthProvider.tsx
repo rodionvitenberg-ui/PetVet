@@ -7,9 +7,11 @@ interface User {
   id: number;
   username: string;
   email: string;
+  // Делаем поля опциональными, чтобы TS не ругался, если бэкенд их не прислал
   avatar?: string;
   first_name?: string;
   last_name?: string;
+  is_veterinarian?: boolean;
 }
 
 interface AuthContextType {
@@ -41,44 +43,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const checkAuth = async () => {
-    console.log("[AuthProvider] Начало проверки...");
-    // Тайм-аут контроллер: если запрос висит больше 3 секунд -> отмена
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
     try {
-      const res = await fetch('/api/auth/me', { signal: controller.signal });
-      clearTimeout(timeoutId); // Очищаем таймер при успехе
-
-      console.log(`[AuthProvider] Ответ сервера: ${res.status}`);
-
+      // Запрашиваем данные
+      const res = await fetch('/api/auth/me'); 
+      
       if (res.ok) {
-        // Убедимся, что это JSON, а не HTML (ошибка middleware)
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            const userData = await res.json();
-            setUser(userData);
-        } else {
-            console.error("[AuthProvider] Получен HTML вместо JSON. Скорее всего, редирект Middleware.");
-            setUser(null);
-        }
+        const userData = await res.json();
+        console.log("[AuthProvider] Успех! Данные:", userData); // <--- ЛОГ УСПЕХА
+        setUser(userData);
       } else {
-        // Если 401 — чистим куки, чтобы не было петель
+        // Читаем текст ошибки, чтобы понять причину
+        const errorText = await res.text();
+        console.error(`[AuthProvider] Ошибка запроса (Status: ${res.status}):`, errorText); // <--- ЛОГ ОШИБКИ
+
+        // Если 401 (Токен протух) — выходим
         if (res.status === 401) {
              await fetch('/api/auth/logout', { method: 'POST' });
+             setUser(null);
         }
+        // Если 500 (Ошибка сервера) — НЕ разлогиниваем сразу, но юзера нет
+        // Это позволит увидеть ошибку в консоли, а не просто вылететь
         setUser(null);
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-          console.error('[AuthProvider] Проверка авторизации заняла слишком много времени (Timeout).');
-      } else {
-          console.error('[AuthProvider] Ошибка сети:', error);
-      }
+    } catch (error) {
+      console.error('[AuthProvider] Ошибка сети:', error);
       setUser(null);
     } finally {
-      // Это сработает В ЛЮБОМ СЛУЧАЕ и уберет "вечную загрузку"
-      console.log("[AuthProvider] Загрузка завершена.");
       setIsLoading(false);
     }
   };

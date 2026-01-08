@@ -91,7 +91,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
       setIsLoadingLink(true);
       try {
           const token = localStorage.getItem('access_token');
-          const res = await fetch(`${API_URL}/api/pets/${pet.id}/share_token/`, {
+          const res = await fetch(`/api/pets/${pet.id}/share_token/`, {
               method: 'GET',
               headers: {
                   'Authorization': `Bearer ${token}`,

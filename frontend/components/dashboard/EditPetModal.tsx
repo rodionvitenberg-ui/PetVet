@@ -93,9 +93,9 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
   useEffect(() => {
     if (isOpen) {
         Promise.all([
-            fetch(`${API_URL}/api/categories/`).then(r => r.json()),
-            fetch(`${API_URL}/api/tags/`).then(r => r.json()),
-            fetch(`${API_URL}/api/attributes/`).then(r => r.json())
+            fetch(`/api/categories/`).then(r => r.json()),
+            fetch(`/api/tags/`).then(r => r.json()),
+            fetch(`/api/attributes/`).then(r => r.json())
         ]).then(([cats, tgs, attrs]) => {
             setCategories(cats);
             setTags(tgs);
@@ -147,11 +147,10 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
     if (attrsToSend.length > 0) payload.attributes = attrsToSend;
 
     try {
-        const res = await fetch(`${API_URL}/api/pets/${pet.id}/`, {
+        const res = await fetch(`/api/pets/${pet.id}/`, {
             method: 'PATCH', // Используем PATCH для частичного обновления
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(payload)
         });

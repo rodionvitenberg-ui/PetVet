@@ -131,7 +131,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       setLoading(true);
       const token = localStorage.getItem('access_token');
       
-      fetch(`${API_URL}/api/pets/${displayPetId}/`, {
+      fetch(`/api/pets/${displayPetId}/`, {
           headers: { 
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -164,7 +164,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       setIsDeleting(true);
       try {
           const token = localStorage.getItem('access_token');
-          await fetch(`${API_URL}/api/pets/${pet.id}/`, {
+          await fetch(`/api/pets/${pet.id}/`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
           });
