@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface User {
   id: number;
@@ -31,37 +31,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Функция выхода (Очистка кук)
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      setUser(null);
-      router.push('/login');
-      router.refresh();
-    } catch (error) {
-      console.error('Logout error', error);
-    }
+    } catch (e) { console.error(e); }
+    setUser(null);
+    router.push('/login');
+    router.refresh();
   };
 
   const checkAuth = async () => {
+    console.log("[AuthProvider] Начало проверки...");
+    // Тайм-аут контроллер: если запрос висит больше 3 секунд -> отмена
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     try {
-      const res = await fetch('/api/auth/me'); 
+      const res = await fetch('/api/auth/me', { signal: controller.signal });
+      clearTimeout(timeoutId); // Очищаем таймер при успехе
+
+      console.log(`[AuthProvider] Ответ сервера: ${res.status}`);
+
       if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
+        // Убедимся, что это JSON, а не HTML (ошибка middleware)
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const userData = await res.json();
+            setUser(userData);
+        } else {
+            console.error("[AuthProvider] Получен HTML вместо JSON. Скорее всего, редирект Middleware.");
+            setUser(null);
+        }
       } else {
-        // === ВОТ ЗДЕСЬ БЫЛА ПРОБЛЕМА ===
-        // Если сервер ответил ошибкой (401), значит кука "тухлая".
-        // Мы ОБЯЗАНЫ её удалить, иначе Middleware будет вечно перекидывать нас.
+        // Если 401 — чистим куки, чтобы не было петель
         if (res.status === 401) {
-            await fetch('/api/auth/logout', { method: 'POST' });
+             await fetch('/api/auth/logout', { method: 'POST' });
         }
         setUser(null);
       }
-    } catch (error) {
-      console.error('Auth check failed', error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+          console.error('[AuthProvider] Проверка авторизации заняла слишком много времени (Timeout).');
+      } else {
+          console.error('[AuthProvider] Ошибка сети:', error);
+      }
       setUser(null);
     } finally {
+      // Это сработает В ЛЮБОМ СЛУЧАЕ и уберет "вечную загрузку"
+      console.log("[AuthProvider] Загрузка завершена.");
       setIsLoading(false);
     }
   };
