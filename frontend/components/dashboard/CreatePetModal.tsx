@@ -227,10 +227,11 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
       };
       
       // 1. Создаем
-      const res = await fetch('/api/pets/', {
+      const res = await fetch('http://127.0.0.1:8000/api/pets/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });

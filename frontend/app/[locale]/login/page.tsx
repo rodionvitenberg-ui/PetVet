@@ -1,9 +1,9 @@
+//web-portal/app/login.page.tsx
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-// Импортируем наш хук авторизации
-import { useAuth } from '@/components/providers/AuthProvider';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -11,23 +11,12 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // 1. Получаем состояние из AuthProvider
-  const { isAuth, isLoading } = useAuth();
-
-  // 2. Эффект для редиректа авторизованных пользователей
-  useEffect(() => {
-    // Если проверка прошла и мы авторизованы — кидаем на главную
-    if (!isLoading && isAuth) {
-      router.push('/');
-    }
-  }, [isAuth, isLoading, router]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('http://127.0.0.1:8000/api/token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,34 +25,23 @@ export default function LoginPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({})); 
-        throw new Error(data.detail || 'Неверный логин или пароль');
+        throw new Error('Неверный логин или пароль');
       }
 
-      // При успехе:
-      // router.refresh() обновляет серверные компоненты (чтобы Middleware увидел куки)
-      router.refresh(); 
+      const data = await res.json();
+      
+      // В data.access лежит наш JWT токен.
+      // Сохраняем его в LocalStorage
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+
+      // Перенаправляем в дашборд
       router.push('/');
       
-      // В редких случаях, если router.push не срабатывает мгновенно, 
-      // можно использовать window.location.href = '/'
-      
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     }
   };
-
-  // 3. Предотвращаем мелькание формы, пока проверяем статус
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500">
-        Загрузка...
-      </div>
-    );
-  }
-
-  // Если пользователя уже редиректит эффект, форму тоже можно не показывать
-  if (isAuth) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

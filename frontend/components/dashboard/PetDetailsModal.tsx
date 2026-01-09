@@ -129,10 +129,12 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
   const fetchPetData = () => {
       if (!displayPetId) return;
       setLoading(true);
+      const token = localStorage.getItem('access_token');
       
-      fetch(`/api/pets/${displayPetId}/`, {
+      fetch(`${API_URL}/api/pets/${displayPetId}/`, {
           headers: { 
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           }
       })
       .then(res => {
@@ -161,8 +163,10 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
       setIsDeleting(true);
       try {
-          const res = await fetch(`/api/pets/${pet.id}/`, {
+          const token = localStorage.getItem('access_token');
+          await fetch(`${API_URL}/api/pets/${pet.id}/`, {
               method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
           });
           onClose();
           window.location.reload();
