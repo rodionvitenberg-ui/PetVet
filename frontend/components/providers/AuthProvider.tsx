@@ -7,7 +7,6 @@ interface User {
   id: number;
   username: string;
   email: string;
-  // Делаем поля опциональными, чтобы TS не ругался, если бэкенд их не прислал
   avatar?: string;
   first_name?: string;
   last_name?: string;
@@ -18,14 +17,14 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuth: boolean;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   isAuth: false,
-  logout: async () => {},
+  logout: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -33,40 +32,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (e) { console.error(e); }
+  const logout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
     router.push('/login');
     router.refresh();
   };
 
   const checkAuth = async () => {
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Запрашиваем данные
-      const res = await fetch('/api/auth/me'); 
+      // ИСПРАВЛЕННЫЙ URL: /api/auth/me/ вместо /api/users/me/
+      const res = await fetch('http://127.0.0.1:8000/api/auth/me/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (res.ok) {
         const userData = await res.json();
-        console.log("[AuthProvider] Успех! Данные:", userData); // <--- ЛОГ УСПЕХА
+        console.log("[AuthProvider] User loaded:", userData);
         setUser(userData);
       } else {
-        // Читаем текст ошибки, чтобы понять причину
-        const errorText = await res.text();
-        console.error(`[AuthProvider] Ошибка запроса (Status: ${res.status}):`, errorText); // <--- ЛОГ ОШИБКИ
-
-        // Если 401 (Токен протух) — выходим
+        console.error("[AuthProvider] Token invalid or expired:", res.status);
         if (res.status === 401) {
-             await fetch('/api/auth/logout', { method: 'POST' });
-             setUser(null);
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
         }
-        // Если 500 (Ошибка сервера) — НЕ разлогиниваем сразу, но юзера нет
-        // Это позволит увидеть ошибку в консоли, а не просто вылететь
         setUser(null);
       }
     } catch (error) {
-      console.error('[AuthProvider] Ошибка сети:', error);
+      console.error('[AuthProvider] Network error:', error);
       setUser(null);
     } finally {
       setIsLoading(false);
