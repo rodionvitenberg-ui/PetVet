@@ -45,5 +45,5 @@ export default function middleware(request: NextRequest) {
 export const config = {
   // Матчер ловит ВСЁ, кроме системных папок Next.js
   // Внутри функции мы вручную отфильтруем api
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+  matcher: ['/((?!api|_next|.*\\..*).*)']
 };

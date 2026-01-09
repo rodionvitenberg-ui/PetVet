@@ -107,15 +107,6 @@ export default function DashboardPage() {
 
   return (
     <div className="pt-24 px-4 sm:px-6 max-w-[1920px] mx-auto min-h-screen pb-12">
-      
-      {/* Приветствие */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-           {/* Можно использовать t('greeting') или имя юзера */}
-           Привет, {user?.first_name || user?.username}!
-        </h1>
-        <p className="text-gray-500 mt-2">Вот ваши питомцы.</p>
-      </div>
 
       <PetsActionBar />
 

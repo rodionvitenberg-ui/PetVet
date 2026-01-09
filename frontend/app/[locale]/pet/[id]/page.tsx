@@ -68,12 +68,12 @@ export default function PetDetailPage() {
 
       try {
         // 2. Загружаем данные ПИТОМЦА используя чистый ID
-        const petRes = await fetch(`http://127.0.0.1:8000/api/pets/${cleanId}/`, {
+        const petRes = await fetch(`/api/pets/${cleanId}/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
         // 3. Загружаем СОБЫТИЯ
-        const eventsRes = await fetch(`http://127.0.0.1:8000/api/events/`, {
+        const eventsRes = await fetch(`/api/events/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

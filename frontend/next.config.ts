@@ -4,8 +4,8 @@ const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // === ВАЖНО: Включаем слэши, чтобы помириться с Django ===
-  trailingSlash: true, 
+  // === УБИРАЕМ ЭТУ СТРОКУ, ОНА ВЫЗЫВАЕТ ПЕТЛЮ ===
+  // trailingSlash: true, 
 
   images: {
     remotePatterns: [
@@ -30,7 +30,6 @@ const nextConfig = {
         source: '/media/:path*',
         destination: 'http://127.0.0.1:8000/media/:path*',
       },
-      // Оставляем общий прокси для категорий и прочего
       {
         source: '/api/:path*',
         destination: 'http://127.0.0.1:8000/api/:path*',
