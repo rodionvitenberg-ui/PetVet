@@ -5,9 +5,11 @@
   },
 "Navigation": {
     "dashboard": "Мои питомцы",
+    "home": "Главная",
     "calendar": "Календарь",
     "find_doctor": "Найти врача",
     "for_veterinarians": "Для ветеринаров",
+    "for_owners": "Для владельцев",
     "login_signup": "Войдите или зарегистрируйтесь",
     "profile": "Профиль",
     "add_pet": "Добавить питомца",

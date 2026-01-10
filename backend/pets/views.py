@@ -1,18 +1,21 @@
+import google.generativeai as genai
 from rest_framework import viewsets, status, parsers, permissions, mixins
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import ValidationError
+from .services import build_pet_profile_prompt
 from django.db.models import Q, Case, When, IntegerField, Count
 from django.db import connection
-# Импорты для токенов и подписей
 from django.core import signing
 from django.conf import settings
 
 
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 import re
+import json
 
 from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage, HealthEventAttachment, PetAccess
 from .serializers import (
@@ -21,6 +24,7 @@ from .serializers import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PetFilter
+from .services import build_pet_profile_prompt
 
 def normalize_search_text(text):
     if not text:
@@ -356,3 +360,88 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = [AllowAny]
+
+class AIConsultView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        pet_id = request.data.get('pet_id')
+        query = request.data.get('query')
+
+        if not pet_id or not query:
+            return Response({'error': 'pet_id and query are required'}, status=400)
+
+        # Проверка доступа
+        if not request.user.pets.filter(id=pet_id).exists():
+             return Response({'error': 'Access denied'}, status=403)
+
+        # Сборка контекста
+        pet_profile_text = build_pet_profile_prompt(pet_id)
+        if not pet_profile_text:
+            return Response({'error': 'Pet not found'}, status=404)
+
+        # Настройка Gemini
+        if not settings.GEMINI_API_KEY:
+             return Response({'error': 'Server config error: No AI Key'}, status=500)
+             
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        
+        # 2. Инициализируем модель с настройкой JSON Mode
+        # Это заставляет модель саму следить за скобками
+        model = genai.GenerativeModel(
+            'gemini-2.5-flash-lite', # Или твоя версия (gemini-2.5-flash-lite)
+            generation_config={"response_mime_type": "application/json"} 
+        )
+
+        final_prompt = f"""
+Ты — опытный ветеринарный ментор. Твоя задача — не просто отправить в клинику, а помочь владельцу понять ПРИЧИНУ поведения.
+
+=== ПАЦИЕНТ ===
+{pet_profile_text}
+
+=== ЖАЛОБА ВЛАДЕЛЬЦА ===
+"{query}"
+
+=== ИНСТРУКЦИЯ ДЛЯ AI ===
+1. Сначала проанализируй возраст, пол и СТАТУС КАСТРАЦИИ. 
+   - Если животное молодое и не кастрировано -> С высокой вероятностью рассмотри половое поведение (течка, гон), особенно если жалобы на "беспокойство", "крики", "попытки убежать".
+2. Если симптомы похожи на половую охоту, поставь urgency: "low" или "medium" (это не смертельно) и успокой владельца.
+3. Рассмотри медицинские причины (боль, инфекция), но сравни их вероятность с поведенческими.
+4. Избегай канцелярских отписок ("Обратитесь к врачу"). Дай конкретные гипотезы.
+
+=== ФОРМАТ ОТВЕТА (JSON) ===
+Ответь ТОЛЬКО валидным JSON.
+{{
+  "urgency": "low" | "medium" | "high", 
+  "title": "Короткий, но емкий заголовок (например: 'Похоже на половую охоту')",
+  "content": "Текст ответа. \n\n1. **Основная версия:** ... \n2. **Альтернатива (Болезнь):** ... \n3. **Что делать:** ..."
+}}
+"""
+
+        try:
+            response = model.generate_content(final_prompt)
+            raw_text = response.text
+
+            # 3. ХИРУРГИЧЕСКАЯ ОЧИСТКА (Regex)
+            # Находим всё, что лежит между первой { и последней }
+            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            
+            if match:
+                json_str = match.group(0)
+                ai_data = json.loads(json_str)
+                return Response(ai_data)
+            else:
+                # Если regex не нашел JSON, пробуем распарсить как есть (на всякий случай)
+                ai_data = json.loads(raw_text)
+                return Response(ai_data)
+
+        except json.JSONDecodeError:
+            print(f"JSON Parse Error. Raw text was: {raw_text}") # Лог в терминал
+            return Response({
+                'urgency': 'medium',
+                'title': 'Ошибка обработки',
+                'content': f"Нейросеть ответила, но формат нарушен. Попробуйте еще раз.\n\n(Технические детали: {raw_text[:100]}...)"
+            })
+        except Exception as e:
+            print(f"GenAI Error: {e}")
+            return Response({'error': str(e)}, status=500)

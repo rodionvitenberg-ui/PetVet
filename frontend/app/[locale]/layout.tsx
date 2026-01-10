@@ -11,6 +11,7 @@ import { routing } from '@/i18n/routing'; // Импортируем routing дл
 import { AppModeProvider } from '@/components/providers/AppModeProvider';
 import { AuthProvider } from '@/components/providers/AuthProvider'; 
 import Header from "@/components/Header";
+import { GoogleAuthWrapper } from '@/components/providers/GoogleAuthWrapper';
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -38,7 +39,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${inter.className} bg-brand-bg text-brand-text min-h-screen`}>
+      <body className={`${inter.className} bg-primary text-brand-text min-h-screen`}>
         
         {/* Провайдер переводов передает сообщения клиентским компонентам */}
         <NextIntlClientProvider messages={messages}>
@@ -48,8 +49,10 @@ export default async function RootLayout({
             
             {/* Провайдер темы/режима */}
             <AppModeProvider>
+              <GoogleAuthWrapper>
               <Header />
               {children}
+              </GoogleAuthWrapper>
             </AppModeProvider>
             
           </AuthProvider>

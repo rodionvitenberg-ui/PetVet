@@ -1,70 +1,95 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* === НАСТРОЙКИ ТЕМ === */
+/* 1. НАСТРОЙКА ТЕМЫ (Связываем Tailwind классы с CSS-переменными) */
 @theme {
-  /* Связываем Tailwind классы с CSS-переменными */
+  /* Мы говорим Tailwind: "Твой класс bg-primary должен брать значение из var(--primary)" */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-
+  
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   
-  --color-border-color: var(--border-color);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius: var(--radius);
 }
 
-/* === ЗНАЧЕНИЯ ПЕРЕМЕННЫХ === */
+/* 2. ЗНАЧЕНИЯ ПЕРЕМЕННЫХ */
+
+/* Дефолтная тема (Owner) - Кладем в :root */
 :root {
-  /* DEFAULT (Владелец) - Черно/Белый минимализм (как сейчас) */
-  --primary: #000000;
-  --primary-foreground: #ffffff;
-  
-  --secondary: #f3f4f6; /* gray-100 */
-  --secondary-foreground: #1f2937; /* gray-800 */
-  
-  --accent: #3b82f6; /* blue-500 */
-  --accent-foreground: #ffffff;
+  --primary: oklch(49.63% 0.1441 263.355); /* Синий */
+  --primary-foreground: oklch(1 0 0);
 
-  --surface: #ffffff;
-  --surface-hover: #f9fafb;
+  --secondary: oklch(0.967 0.001 264.54);
+  --secondary-foreground: oklch(0.205 0 0);
+
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.205 0 0);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0 0);
+
+  --muted: oklch(0.967 0.001 264.54);
+  --muted-foreground: oklch(0.556 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.546 0.245 262.88);
   
-  --border-color: #e5e7eb;
+  --radius: 0.625rem;
 }
 
-/* THEME: VETERINARIAN (Ветеринар) - Медицинский бирюзовый/зеленый */
-.theme-vet {
-  --primary: #059669; /* emerald-600 */
-  --primary-foreground: #ffffff;
+/* ТЕМА ВЕТЕРИНАРА (Переопределение) */
+/* ВАЖНО: Не оборачивай это в @layer base! */
+/* Оставляем на верхнем уровне, чтобы перебить дефолтные стили */
+:root:has(.theme-vet), .theme-vet {
+  --primary: oklch(0.569 0.176 148.3); /* Зеленый */
+  --secondary: oklch(0.975 0.013 148.8);
+  --secondary-foreground: oklch(0.25 0.05 148);
   
-  --secondary: #ecfdf5; /* emerald-50 */
-  --secondary-foreground: #065f46;
+  --accent: oklch(0.95 0.02 148);
+  --accent-foreground: oklch(0.25 0.05 148);
   
-  --accent: #0ea5e9; /* sky-500 */
-  
-  --surface: #ffffff;
-  --surface-hover: #f0fdf4;
+  --ring: oklch(0.569 0.176 148.3);
 }
 
-/* THEME: BREEDER (Животновод) - Теплый, премиальный коричневый/золотой */
-.theme-breeder {
-  --primary: #78350f; /* amber-900 */
-  --primary-foreground: #fffbeb;
-  
-  --secondary: #fffbeb; /* amber-50 */
-  --secondary-foreground: #92400e;
-  
-  --accent: #d97706; /* amber-600 */
-  
-  --surface: #ffffff;
-  --surface-hover: #fff8f1;
-}
-
-/* Базовые стили */
-body {
-  @apply bg-gray-50 text-gray-900;
+/* 3. БАЗОВЫЕ СТИЛИ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
+  }
 }

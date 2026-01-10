@@ -202,3 +202,6 @@ MODELTRANSLATION_DEFAULT_LANGUAGE = 'ru'
 MODELTRANSLATION_FALLBACK_LANGUAGES = ('ru', 'en') # Если нет перевода на EN, покажет RU
 USE_I18N = True
 USE_L10N = True
+
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')

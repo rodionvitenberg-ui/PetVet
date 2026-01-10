@@ -5,9 +5,11 @@
   },
 "Navigation": {
     "dashboard": "Petboard",
-    "calendar": "Calendar",
-    "find_doctor": "Find a Doctor",
+    "home": "Home",
+    "calendar": "Planboard",
+    "find_doctor": "Find a Vet",
     "for_veterinarians": "For Veterinarians",
+    "for_owners": "For Owners",
     "login_signup": "Log in or Sign up",
     "profile": "Profile",
     "add_pet": "Add a Pet",

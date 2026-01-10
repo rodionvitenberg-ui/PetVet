@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthProvider'; 
 
 type AppMode = 'owner' | 'vet';
 
@@ -13,29 +14,53 @@ interface AppModeContextType {
 const AppModeContext = createContext<AppModeContextType | undefined>(undefined);
 
 export function AppModeProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
+  // Инициализируем стейт сразу, пытаясь прочитать из localStorage (только на клиенте)
   const [mode, setMode] = useState<AppMode>('owner');
 
+  // 1. ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ ДЛЯ DOM
+  // Как только меняется переменная mode, мы обновляем класс и localStorage.
+  // Это гарантирует, что стейт и внешний вид всегда синхронны.
   useEffect(() => {
-    // 1. При загрузке читаем из localStorage
-    const savedMode = localStorage.getItem('app_mode') as AppMode;
-    if (savedMode) {
-      setMode(savedMode);
-      if (savedMode === 'vet') document.body.classList.add('theme-vet');
+    // Безопасная проверка для Next.js (чтобы не упало на сервере)
+    if (typeof window !== 'undefined') {
+        const root = document.documentElement;
+        
+        if (mode === 'vet') {
+            body.classList.add('theme-vet');
+        } else {
+            body.classList.remove('theme-vet');
+        }
+        
+        localStorage.setItem('app_mode', mode);
     }
-  }, []);
+  }, [mode]);
 
+  // 2. Логика переключения
   const toggleMode = () => {
-    const newMode = mode === 'owner' ? 'vet' : 'owner';
-    setMode(newMode);
-    localStorage.setItem('app_mode', newMode);
-
-    // 2. Управляем CSS-классом для глобальной темы
-    if (newMode === 'vet') {
-      document.body.classList.add('theme-vet');
-    } else {
-      document.body.classList.remove('theme-vet');
-    }
+    setMode((prev) => (prev === 'owner' ? 'vet' : 'owner'));
   };
+
+  // 3. Авто-определение при загрузке / входе
+  useEffect(() => {
+    // Если пользователь загрузился и он ветеринар — форсируем режим
+    if (user) {
+        if (user.is_veterinarian) {
+            setMode('vet');
+        } else {
+            // Если обычный юзер, можно оставить текущий выбор или сбросить на 'owner'
+            // Обычно лучше оставить 'owner'
+            setMode('owner');
+        }
+    } else {
+        // Если гость — восстанавливаем из localStorage
+        const savedMode = localStorage.getItem('app_mode') as AppMode;
+        if (savedMode) {
+            setMode(savedMode);
+        }
+    }
+  }, [user]);
 
   return (
     <AppModeContext.Provider value={{ mode, toggleMode, isVetMode: mode === 'vet' }}>

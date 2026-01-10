@@ -15,6 +15,7 @@ interface Category {
   slug: string;
   icon?: string | null;
   sort_order?: number;
+  parent?: number | null;
 }
 
 interface Tag {
@@ -60,6 +61,13 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | ''>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedBreedId, setSelectedBreedId] = useState<number | null>(null);
+  const handleSelectCategory = (id: number) => {
+    if (selectedCategoryId !== id) {
+        setSelectedBreedId(null); // Сброс породы
+    }
+    setSelectedCategoryId(id);
+  };
   const [birthDate, setBirthDate] = useState('');
   
   // Новое поле: Публичный профиль
@@ -107,7 +115,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
   const fetchCategories = async () => {
     setIsLoadingCategories(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/categories/?leafs=true');
+      const res = await fetch('http://127.0.0.1:8000/api/categories/');
       if (res.ok) {
         setCategories(await res.json());
       }
@@ -204,6 +212,14 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
 
     try {
       const token = localStorage.getItem('access_token');
+
+      const categoriesToSend = [];
+      if (selectedCategoryId) {
+          categoriesToSend.push(selectedCategoryId);
+      }
+      if (selectedBreedId) {
+          categoriesToSend.push(selectedBreedId);
+      }
       
       const attributesPayload = Object.entries(attributeValues)
         .filter(([_, value]) => value.trim() !== '')
@@ -220,7 +236,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
         name,
         gender,
         birth_date: birthDate || null,
-        categories: [selectedCategoryId],
+        categories: categoriesToSend,
         tags: selectedTagSlugs,
         attributes: attributesPayload,
         is_public: isPublic
@@ -291,7 +307,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step === 4 ? onClose : undefined}/>
 
-      <div className="relative bg-surface rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative bg-secondary rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-color flex-shrink-0">
@@ -315,52 +331,83 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
         {step === 1 && (
           <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
             
-            {/* КАТЕГОРИИ */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Кто у вас?</label>
+{/* КАТЕГОРИИ */}
+            <div className="space-y-6">
               
-              {isLoadingCategories ? (
-                 <div className="h-24 bg-secondary animate-pulse rounded-2xl"></div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3 transition-all">
-                  {visibleCategories.map((cat) => {
-                    const isActive = selectedCategoryId === cat.id;
-                    return (
-                      <button 
-                        key={cat.id} 
-                        onClick={() => setSelectedCategoryId(cat.id)}
-                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition active:scale-95 ${
-                          isActive 
-                            ? 'border-primary bg-primary text-primary-foreground' 
-                            : 'border-border-color bg-surface hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="mb-1 w-8 h-8 flex items-center justify-center">
-                            {cat.icon ? (
-                                <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
-                            ) : (
-                                <HelpCircle className={isActive ? 'text-white' : 'text-gray-400'} />
-                            )}
-                        </div>
-                        <span className="text-xs font-bold capitalize text-center leading-tight">
-                            {cat.name}
-                        </span>
-                      </button>
-                    );
-                  })}
+              {/* УРОВЕНЬ 1: ВИД ЖИВОТНОГО (Родительские категории) */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Кто у вас?</label>
+                
+                {isLoadingCategories ? (
+                   <div className="h-24 bg-secondary animate-pulse rounded-2xl"></div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {categories
+                      .filter(cat => !cat.parent) // Показываем только тех, у кого нет родителя
+                      .map((cat) => {
+                        const isActive = selectedCategoryId === cat.id;
+                        return (
+                          <button 
+                            key={cat.id} 
+                            onClick={() => handleSelectCategory(cat.id)}
+                            className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition active:scale-95 ${
+                              isActive 
+                                ? 'border-primary bg-primary text-primary-foreground shadow-md' 
+                                : 'border-border-color bg-surface hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="mb-1 w-8 h-8 flex items-center justify-center">
+                                {cat.icon ? (
+                                    <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                                ) : (
+                                    <HelpCircle className={isActive ? 'text-white' : 'text-gray-400'} />
+                                )}
+                            </div>
+                            <span className="text-xs font-bold capitalize text-center leading-tight">
+                                {cat.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
 
-                  {!showAllCategories && hasHiddenCategories && (
-                      <button 
-                        onClick={() => setShowAllCategories(true)}
-                        className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-border-color bg-secondary/50 text-gray-500 hover:bg-secondary hover:border-gray-400 transition"
-                      >
-                        <div className="mb-1 w-8 h-8 flex items-center justify-center">
-                            <MoreHorizontal />
-                        </div>
-                        <span className="text-xs font-bold">Другие</span>
-                      </button>
-                  )}
-                </div>
+              {/* УРОВЕНЬ 2: ПОРОДА (Дочерние категории) */}
+              {/* Показываем блок только если выбран Вид и для него есть Породы в базе */}
+              {selectedCategoryId && categories.some(c => c.parent === selectedCategoryId) && (
+                  <div className="animate-fade-in-up">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Порода</label>
+                    
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-200">
+                      {categories
+                        .filter(cat => cat.parent === selectedCategoryId) // Фильтр по родителю
+                        .map((breed) => {
+                          const isBreedActive = selectedBreedId === breed.id;
+                          return (
+                            <button 
+                              key={breed.id} 
+                              onClick={() => setSelectedBreedId(breed.id)}
+                              className={`px-3 py-2 text-sm rounded-xl border text-left transition truncate ${
+                                isBreedActive 
+                                  ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary' 
+                                  : 'border-border-color bg-surface hover:border-gray-400 text-gray-700'
+                              }`}
+                            >
+                              {breed.name}
+                            </button>
+                          );
+                        })}
+                        
+                        {/* Кнопка "Другое / Метис" - можно добавить вручную, если в базе нет */}
+                         <button 
+                              onClick={() => setSelectedBreedId(null)} // Или логика для "Другое"
+                              className={`px-3 py-2 text-sm rounded-xl border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 text-left transition ${selectedBreedId === null && selectedCategoryId ? '' : ''}`}
+                            >
+                              Другая / Не знаю
+                        </button>
+                    </div>
+                  </div>
               )}
             </div>
 
@@ -370,7 +417,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
               <div className="flex gap-4">
                 <button onClick={() => setGender('M')}
                   className={`flex-1 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-medium transition ${
-                    gender === 'M' ? 'border-accent bg-accent/10 text-accent' : 'border-border-color bg-surface hover:border-gray-300'
+                    gender === 'M' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-border-color bg-surface hover:border-gray-300'
                   }`}
                 >Мальчик {gender === 'M' && <Check size={16} />}</button>
                 <button onClick={() => setGender('F')}

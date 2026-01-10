@@ -56,12 +56,12 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
     return (
       <div 
         onClick={onClick}
-        className="aspect-[4/5] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition group gap-4 bg-white/50 min-h-[300px]"
+        className="aspect-[4/5] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition group gap-4 bg-white/50 min-h-[300px]"
       >
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-500 transition shadow-sm">
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-primary transition shadow-sm">
             <Plus size={32} />
         </div>
-        <span className="font-bold text-gray-500 group-hover:text-blue-600 transition">Добавить питомца</span>
+        <span className="font-bold text-gray-500 group-hover:text-primary transition">Добавить питомца</span>
       </div>
     );
   }

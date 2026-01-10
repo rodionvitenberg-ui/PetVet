@@ -377,11 +377,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             <div>
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Характеристики</h3>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <InfoCard 
-                                        icon={<Activity className="text-red-500" size={18} />} 
-                                        label="Клиника" 
-                                        value={pet.clinic_name || 'Не прикреплен'} 
-                                    />
                                     {pet.attributes?.map((attr, idx) => (
                                         <InfoCard 
                                             key={idx}

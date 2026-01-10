@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
   id: number;
@@ -18,6 +18,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuth: boolean;
   logout: () => void;
+  loginSuccess: (userData: User, accessToken: string, refreshToken: string) => void;
+  updateUser: (userData: User) => void; // <-- Новая функция
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,6 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isAuth: false,
   logout: () => {},
+  loginSuccess: () => {},
+  updateUser: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -40,6 +44,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.refresh();
   };
 
+  // Используем ТОЛЬКО при входе (с редиректом)
+  const loginSuccess = (userData: User, accessToken: string, refreshToken: string) => {
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    setUser(userData);
+    router.push('/'); 
+    router.refresh();
+  };
+
+  // Используем при обновлении профиля (БЕЗ редиректа)
+  const updateUser = (userData: User) => {
+    setUser(userData);
+    router.refresh(); // Обновляем серверные компоненты (например, аватарку в шапке)
+  };
+
   const checkAuth = async () => {
     const token = localStorage.getItem('access_token');
 
@@ -49,8 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      // ИСПРАВЛЕННЫЙ URL: /api/auth/me/ вместо /api/users/me/
-      const res = await fetch('http://127.0.0.1:8000/api/auth/me/', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/auth/me/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -60,10 +78,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (res.ok) {
         const userData = await res.json();
-        console.log("[AuthProvider] User loaded:", userData);
         setUser(userData);
       } else {
-        console.error("[AuthProvider] Token invalid or expired:", res.status);
         if (res.status === 401) {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
@@ -83,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuth: !!user, isLoading, logout }}>
+    <AuthContext.Provider value={{ user, isAuth: !!user, isLoading, logout, loginSuccess, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

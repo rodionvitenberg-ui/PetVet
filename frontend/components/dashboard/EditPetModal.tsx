@@ -12,6 +12,7 @@ interface Category {
   name: string;
   slug: string;
   icon?: string | null;
+  parent?: number | null;
 }
 
 interface Tag {
@@ -56,7 +57,8 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
       description: '',
       is_public: false,
       is_active: true,
-      categoryIds: [] as number[],
+      selectedCategoryId: null as number | null,
+      selectedBreedId: null as number | null,
       tagSlugs: [] as string[],
       attributeValues: {} as Record<string, string>,
   });
@@ -69,6 +71,10 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
         pet.attributes?.forEach((pa: any) => {
             attrValues[pa.attribute.slug] = pa.value;
         });
+        const petCategories = pet.categories || [];
+        const parentCat = petCategories.find((c: any) => !c.parent);
+        const childCat = petCategories.find((c: any) => c.parent);
+        
 
         setFormData({
             name: pet.name || '',
@@ -79,7 +85,8 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
             is_active: pet.is_active ?? true,
             
             // Маппинг сложных полей
-            categoryIds: pet.categories?.map((c: any) => c.id) || [],
+            selectedCategoryId: parentCat ? parentCat.id : null,
+            selectedBreedId: childCat ? childCat.id : null,
             tagSlugs: pet.tags?.map((t: any) => t.slug) || [],
             attributeValues: attrValues
         });
@@ -125,6 +132,9 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
     setError('');
 
     const token = localStorage.getItem('access_token');
+    const categoriesToSend = [];
+    if (formData.selectedCategoryId) categoriesToSend.push(formData.selectedCategoryId);
+    if (formData.selectedBreedId) categoriesToSend.push(formData.selectedBreedId);
     
     // Формируем payload
     const payload: any = {
@@ -133,7 +143,7 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
         description: formData.description,
         is_public: formData.is_public,
         is_active: formData.is_active,
-        categories: formData.categoryIds,
+        categories: categoriesToSend,
         tags: formData.tagSlugs,
     };
 
@@ -173,16 +183,19 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
   };
 
   // === RENDER HELPERS ===
-  const toggleCategory = (id: number) => {
-      setFormData(prev => {
-          const exists = prev.categoryIds.includes(id);
-          return {
-              ...prev,
-              categoryIds: exists 
-                 ? prev.categoryIds.filter(c => c !== id)
-                 : [...prev.categoryIds, id]
-          };
-      });
+  const handleSelectCategory = (id: number) => {
+    if (formData.selectedCategoryId !== id) {
+        // Если сменили вид - сбрасываем породу
+        setFormData(prev => ({ ...prev, selectedCategoryId: id, selectedBreedId: null }));
+    } else {
+        // Если кликнули на тот же вид - ничего не меняем
+        setFormData(prev => ({ ...prev, selectedCategoryId: id }));
+    }
+  };
+
+  // Хендлер выбора Породы
+  const handleSelectBreed = (id: number | null) => {
+      setFormData(prev => ({ ...prev, selectedBreedId: id }));
   };
 
   const toggleTag = (slug: string) => {
@@ -233,7 +246,7 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
         {/* CONTENT */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             
-            {/* STEP 1: BASIC INFO */}
+            {/* === STEP 1: BASIC INFO === */}
             {step === 1 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                     <div className="space-y-4">
@@ -304,31 +317,82 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
             {step === 2 && (
                 <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                     
-                    {/* Категории */}
+                    {/* --- ЗАМЕНЯЕМ ЭТОТ БЛОК (Категории) --- */}
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <MoreHorizontal size={16} className="text-blue-500" />
-                            Вид животного
+                            Вид и Порода
                         </h3>
-                        <div className="flex flex-wrap gap-2">
-                            {categories.filter(c => !c.parent).map(cat => { // Показываем только корневые или все, по желанию
-                                const isSelected = formData.categoryIds.includes(cat.id);
+                        
+                        {/* УРОВЕНЬ 1: ВИД */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            {categories
+                              .filter(c => !c.parent) // Только родители (Собаки, Кошки...)
+                              .map(cat => {
+                                // Теперь проверяем через selectedCategoryId, а не массив
+                                const isSelected = formData.selectedCategoryId === cat.id;
                                 return (
                                     <button
                                         key={cat.id}
-                                        onClick={() => toggleCategory(cat.id)}
-                                        className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                        onClick={() => handleSelectCategory(cat.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition active:scale-95 ${
                                             isSelected 
-                                            ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                            ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                                            : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
                                         }`}
                                     >
-                                        {cat.name}
+                                        <div className="mb-1 w-8 h-8 flex items-center justify-center">
+                                            {cat.icon ? (
+                                                <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                                            ) : (
+                                                <HelpCircle size={24} className={isSelected ? 'text-white' : 'text-gray-400'} />
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-bold text-center leading-tight">
+                                            {cat.name}
+                                        </span>
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {/* УРОВЕНЬ 2: ПОРОДА (Показываем только если выбран Вид) */}
+                        {formData.selectedCategoryId && categories.some(c => c.parent === formData.selectedCategoryId) && (
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Выберите породу</label>
+                            
+                            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                              {categories
+                                .filter(cat => cat.parent === formData.selectedCategoryId)
+                                .map((breed) => {
+                                  // Проверяем через selectedBreedId
+                                  const isBreedActive = formData.selectedBreedId === breed.id;
+                                  return (
+                                    <button 
+                                      key={breed.id} 
+                                      onClick={() => handleSelectBreed(breed.id)}
+                                      className={`px-3 py-2.5 text-sm rounded-xl border text-left transition truncate ${
+                                        isBreedActive 
+                                          ? 'border-blue-500 bg-blue-100 text-blue-700 font-bold ring-1 ring-blue-500' 
+                                          : 'border-gray-200 bg-white hover:border-gray-400 text-gray-700'
+                                      }`}
+                                    >
+                                      {breed.name}
+                                    </button>
+                                  );
+                                })}
+                                
+                                <button 
+                                      onClick={() => handleSelectBreed(null)} 
+                                      className={`px-3 py-2.5 text-sm rounded-xl border border-dashed border-gray-300 text-gray-500 hover:bg-white hover:text-gray-700 text-left transition ${!formData.selectedBreedId ? 'bg-white ring-1 ring-gray-300' : ''}`}
+                                    >
+                                      Другая / Не знаю
+                                </button>
+                            </div>
+                          </div>
+                        )}
                     </div>
+                    {/* --- КОНЕЦ БЛОКА КАТЕГОРИЙ --- */}
 
                     {/* Атрибуты */}
                     <div>

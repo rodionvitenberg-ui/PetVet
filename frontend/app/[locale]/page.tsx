@@ -57,7 +57,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     <div className="min-h-screen bg-brand-bg text-brand-text font-sans pt-24 pb-20">
       
       {/* Фильтр категорий */}
-      <CategoryFilter />
 
       <main className="max-w-[1920px] mx-auto px-4 sm:px-8 py-6">
         
