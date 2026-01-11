@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
     """
@@ -53,3 +55,31 @@ class UserContact(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()}: {self.value} ({self.user.username})"
+    
+class VetVerificationRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'На проверке'),
+        ('approved', 'Одобрено'),
+        ('rejected', 'Отклонено'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='verification_requests'
+    )
+    # Фото документа. Важно: в реальном проде эту папку надо закрывать от публичного доступа через Nginx!
+    document_image = models.ImageField(upload_to='vet_docs/%Y/%m/')
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    rejection_reason = models.TextField(blank=True, null=True, help_text="Причина отказа (видна пользователю)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Заявка на ветеринара"
+        verbose_name_plural = "Заявки на ветеринаров"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_status_display()}"

@@ -4,7 +4,7 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import AuthenticationFailed
 from django.utils.crypto import get_random_string 
-from .models import User, UserContact # Импортируем обе модели
+from .models import User, UserContact, VetVerificationRequest
 # Импорты для Google
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -161,3 +161,9 @@ class PublicProfileSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
+    
+class VetVerificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VetVerificationRequest
+        fields = ['id', 'document_image', 'status', 'rejection_reason', 'created_at']
+        read_only_fields = ['status', 'rejection_reason', 'created_at']

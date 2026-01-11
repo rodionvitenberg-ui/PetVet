@@ -1,16 +1,18 @@
-from rest_framework import generics, status, viewsets, permissions
+from rest_framework import generics, status, viewsets, permissions, mixins
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserContact
+from .models import UserContact, VetVerificationRequest
 from django.contrib.auth import get_user_model
 from .serializers import (
     UserRegistrationSerializer, 
     UserSerializer, 
     GoogleAuthSerializer,
-    UserContactSerializer
+    UserContactSerializer, 
+    VetVerificationSerializer
 )
 
 User = get_user_model()
@@ -112,3 +114,22 @@ class UserContactViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class VerificationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.ListModelMixin):
+    serializer_class = VetVerificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Юзер видит только свои заявки
+        return VetVerificationRequest.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    # Удобный метод получить последнюю актуальную заявку
+    @action(detail=False, methods=['get'])
+    def current_status(self, request):
+        latest = self.get_queryset().first() # Благодаря ordering=['-created_at'] это последняя
+        if latest:
+            return Response(self.get_serializer(latest).data)
+        return Response(None)

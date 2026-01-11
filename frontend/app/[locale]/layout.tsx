@@ -11,6 +11,7 @@ import { routing } from '@/i18n/routing';
 import { AppModeProvider } from '@/components/providers/AppModeProvider';
 // AuthProvider нам тут больше не нужен напрямую, он внутри Providers
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { GoogleAuthWrapper } from '@/components/providers/GoogleAuthWrapper';
 import { Providers } from "./providers"; // <--- ВОТ НАШ ГЕРОЙ
 import NotificationListener from "@/components/providers/NotificationListener";
@@ -51,7 +52,10 @@ export default async function RootLayout({
               <GoogleAuthWrapper>
                 <NotificationListener />
                 <Header />
+                <main className="flex-grow">
                 {children}
+                </main>
+                <Footer />
               </GoogleAuthWrapper>
             </AppModeProvider>
             

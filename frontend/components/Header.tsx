@@ -223,7 +223,7 @@ export default function Header() {
               )}
 
               <div className="py-2">
-                <Link href="/vet/register" className="block px-4 py-3 hover:bg-gray-100 transition group">
+                <Link href="/become-vet" className="block px-4 py-3 hover:bg-gray-100 transition group">
                    <div className="flex justify-between items-start gap-3">
                       <div>
                         <div className="text-sm font-bold text-gray-800 mb-0.5">{t('become_vet')}</div>
