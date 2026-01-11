@@ -106,10 +106,10 @@ export default function Header() {
 
           {/* CALENDAR */}
           <Link 
-            href="/calendar"
+            href="/planboard"
             className={`
               h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
-              ${isActive('/calendar') 
+              ${isActive('/planboard') 
                 ? 'text-black opacity-100 border-b-2 border-black' 
                 : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
@@ -123,10 +123,10 @@ export default function Header() {
 
           {/* SERVICES (FIND DOCTOR) */}
           <Link 
-            href="/services"
+            href="/find-vet"
             className={`
               h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
-              ${isActive('/services') 
+              ${isActive('/find-vet') 
                 ? 'text-black opacity-100 border-b-2 border-black' 
                 : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
@@ -149,8 +149,8 @@ export default function Header() {
                 className={`
                     text-xs font-bold transition-colors duration-200 outline-none
                     ${isVetMode 
-                        ? 'text-emerald-600 hover:text-emerald-800' 
-                        : 'text-blue-600 hover:text-blue-800'
+                        ? 'text-blue-600 hover:text-blue-800'  
+                        : 'text-emerald-600 hover:text-emerald-800'
                     }
                 `}
             >
@@ -252,13 +252,13 @@ export default function Header() {
                     </div>
                     <span>{t('dashboard')}</span>
                  </Link>
-                 <Link href="/calendar" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                 <Link href="/planboard" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <BookTextIcon size={24} />
                     </div>
                     <span>{t('calendar')}</span>
                  </Link>
-                 <Link href="/services" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                 <Link href="/find-vet" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <MapPinIcon size={24} />
                     </div>

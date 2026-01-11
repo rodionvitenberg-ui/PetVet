@@ -22,11 +22,14 @@ export function AppModeProvider({ children }: { children: React.ReactNode }) {
   // 1. ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ ДЛЯ DOM
   // Как только меняется переменная mode, мы обновляем класс и localStorage.
   // Это гарантирует, что стейт и внешний вид всегда синхронны.
-  useEffect(() => {
-    // Безопасная проверка для Next.js (чтобы не упало на сервере)
+useEffect(() => {
+    // Проверка 1: Мы точно в браузере?
     if (typeof window !== 'undefined') {
-        const root = document.documentElement;
+        const body = document.body;
         
+        // Проверка 2: А body вообще существует? (Вот тут у тебя падало)
+        if (!body) return;
+
         if (mode === 'vet') {
             body.classList.add('theme-vet');
         } else {

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from datetime import date
+from users.serializers import PublicProfileSerializer
 from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent, HealthEventAttachment
 
 class TagSerializer(serializers.ModelSerializer):
@@ -30,7 +31,6 @@ class PetImageSerializer(serializers.ModelSerializer):
         model = PetImage
         fields = ['id', 'image', 'is_main']
 
-# === [NEW] Сериализатор для вложений ===
 class HealthEventAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthEventAttachment
@@ -44,10 +44,8 @@ class HealthEventSerializer(serializers.ModelSerializer):
     created_by_clinic = serializers.ReadOnlyField(source='created_by.clinic_name')
     created_by_is_vet = serializers.ReadOnlyField(source='created_by.is_veterinarian')
     
-    # Вложения (файлы) - только для чтения в этом сериализаторе
     attachments = HealthEventAttachmentSerializer(many=True, read_only=True)
 
-    # Форматирование даты и времени
     date = serializers.DateTimeField(format="%Y-%m-%d %H:%M", input_formats=["%Y-%m-%d %H:%M", "iso-8601"])
     next_date = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M", 
@@ -62,11 +60,38 @@ class HealthEventSerializer(serializers.ModelSerializer):
             'id', 'pet', 'event_type', 'event_type_display',
             'status', 'status_display',
             'title', 'date', 'next_date', 'description', 
-            'attachments',  # <-- Вместо document
+            'attachments',
             'created_by_name', 'created_by_clinic', 'created_by_is_vet',
             'is_verified'
         ]
         read_only_fields = ['is_verified', 'created_by']
+
+    def to_representation(self, instance):
+        """
+        Превращаем pet_id в полноценный объект pet для удобства фронтенда.
+        """
+        response = super().to_representation(instance)
+        
+        # Вручную формируем объект питомца
+        response['pet'] = {
+            "id": instance.pet.id,
+            "name": instance.pet.name,
+            # Добавляем фото на случай, если понадобятся в карточках
+            "images": PetImageSerializer(instance.pet.images.all(), many=True).data
+        }
+        return response
+    
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        
+        # Вручную формируем объект питомца + добавляем ID владельца
+        response['pet'] = {
+            "id": instance.pet.id,
+            "name": instance.pet.name,
+            "owner_id": instance.pet.owner_id, # <--- ВАЖНО для фильтрации в Канбане
+            "images": PetImageSerializer(instance.pet.images.all(), many=True).data
+        }
+        return response
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -82,10 +107,13 @@ class PetSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
     recent_events = serializers.SerializerMethodField()
 
+    owner_info = serializers.SerializerMethodField()
+    active_vets = serializers.SerializerMethodField()
+
     class Meta:
         model = Pet
         fields = [
-            'id', 'owner', 'name', 'slug', 'description', 
+            'id', 'owner', 'owner_info', 'name', 'slug', 'description', 'active_vets',
             'gender', 'birth_date', 'age',
             'mother', 'father',
             'categories', 'attributes', 'tags',
@@ -93,7 +121,19 @@ class PetSerializer(serializers.ModelSerializer):
             'is_active', 'images', 'recent_events', 'created_at',
             'clinic_name',
         ]
-
+    
+    def get_owner_info(self, obj):
+        # [UPDATED] Теперь возвращаем больше инфы для карточки владельца
+        return {
+            "id": obj.owner.id,
+            "name": f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username,
+            "email": obj.owner.email,
+            "phone": obj.owner.phone,   # Личный телефон владельца
+            "telegram": obj.owner.telegram,
+            "avatar": obj.owner.avatar.url if obj.owner.avatar else None,
+            "about": obj.owner.about
+        }
+    
     def get_age(self, obj):
         if not obj.birth_date:
             return None
@@ -105,7 +145,6 @@ class PetSerializer(serializers.ModelSerializer):
         return f"{years} лет"
 
     def get_recent_events(self, obj):
-        # Используем prefetch из viewset
         events = obj.events.all()[:5]
         return HealthEventSerializer(events, many=True, context=self.context).data
 
@@ -187,3 +226,13 @@ class PetSerializer(serializers.ModelSerializer):
                 except Attribute.DoesNotExist:
                     pass
         return instance
+    
+    def get_active_vets(self, obj):
+        """
+        Возвращает список врачей, у которых есть активный доступ к этому питомцу.
+        """
+        # Берем всех юзеров из AccessGrants, где is_active=True
+        grants = obj.access_grants.filter(is_active=True).select_related('user')
+        vets = [grant.user for grant in grants]
+        from users.serializers import PublicProfileSerializer
+        return PublicProfileSerializer(vets, many=True, context=self.context).data

@@ -1,92 +1,106 @@
+# notifications/signals.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.contenttypes.models import ContentType
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 # Импорты моделей
 from pets.models import HealthEvent, PetAccess
 from .models import Notification
-from .serializers import NotificationSerializer # Пригодится для отправки чистого JSON
+from .serializers import NotificationSerializer
 
+# === СИГНАЛ 1: БИЗНЕС-ЛОГИКА ===
 @receiver(post_save, sender=HealthEvent)
-def notify_event_update(sender, instance, created, **kwargs):
-    """
-    Единый обработчик событий:
-    1. Определяет получателей (Владелец + Врачи с доступом).
-    2. Создает запись Notification в БД.
-    3. Отправляет мгновенное сообщение через WebSockets.
-    """
-    
+def create_notification_on_event(sender, instance, created, **kwargs):
+    if not created:
+        return
+
     # 1. Определяем список получателей
     recipients = set()
-    
-    # Всегда добавляем владельца
     if instance.pet.owner:
         recipients.add(instance.pet.owner)
     
-    # Добавляем врачей, у которых есть АКТИВНЫЙ доступ к этому питомцу
     active_accesses = PetAccess.objects.filter(pet=instance.pet, is_active=True)
     for access in active_accesses:
         recipients.add(access.user)
     
-    # ИСКЛЮЧАЕМ того, кто создал событие (чтобы не получать уведомление о своем же действии)
-    # Например, если врач создал запись, уведомлять его не надо.
+    # Исключаем автора события, чтобы не спамить ему самому
     if instance.created_by in recipients:
         recipients.remove(instance.created_by)
 
-    # Если некому отправлять - выходим
     if not recipients:
         return
 
-    # 2. Формируем данные уведомления
-    # Логика текста (можно расширить для updates)
-    if created:
-        cat = 'medical'
-        title_text = f"Новое событие: {instance.title}"
-        message_text = f"Пользователь {instance.created_by.username if instance.created_by else 'System'} добавил запись для питомца {instance.pet.name}."
-    else:
-        # Если нужно уведомлять об изменениях, раскомментируй логику ниже
-        # Пока пропускаем обновления, чтобы не спамить
-        return 
+    # 2. Готовим данные
+    title_text = f"Новое событие: {instance.title}"
+    
+    # Определяем имя автора
+    author_name = 'System'
+    if instance.created_by:
+        # Если есть профиль врача/пользователя, берем имя оттуда, иначе username
+        author_name = getattr(instance.created_by, 'first_name', instance.created_by.username)
 
-    # Получаем слой каналов для WebSockets
-    channel_layer = get_channel_layer()
+    message_text = f"{author_name} добавил запись «{instance.get_event_type_display()}» для питомца {instance.pet.name}."
 
-    # 3. Рассылка
+    # --- ГЕНЕРАЦИЯ ССЫЛКИ ---
+    # Ссылка ведет на страницу питомца и сразу открывает вкладку 'medical'
+    target_link = f"/pets/{instance.pet.id}?tab=medical"
+
+    notifications_to_create = []
     for user in recipients:
-        # А) Сохраняем в БД (чтобы сохранилось в истории)
-        notification = Notification.objects.create(
+        notifications_to_create.append(Notification(
             recipient=user,
-            category=cat,
+            category='medical',
             title=title_text,
             message=message_text,
-            content_object=instance
-        )
-
-        # Б) Отправляем в WebSocket (Мгновенно)
-        # Группа пользователя формируется как "user_{id}"
-        group_name = f"user_{user.id}"
-
-        # Сериализуем уведомление, чтобы фронт получил красивый JSON
-        # Можно передать notification_data вручную, но через сериализатор надежнее
-        try:
-            serializer = NotificationSerializer(notification)
-            data_to_send = serializer.data
-        except Exception:
-            # Фолбэк, если сериализатор не сработал (например, circular imports)
-            data_to_send = {
-                "id": notification.id,
-                "title": notification.title,
-                "message": notification.message,
-                "category": notification.category,
-                "created_at_formatted": notification.created_at.strftime("%d.%m.%Y %H:%M")
+            content_object=instance,
+            # Сохраняем ссылку в metadata (предполагаем, что в модели Notification есть JSONField metadata)
+            metadata={
+                "link": target_link,
+                "pet_id": instance.pet.id,
+                "event_id": instance.id
             }
+        ))
+    
+    # Сохраняем по одному, чтобы сработал сигнал отправки (Сигнал 2)
+    for n in notifications_to_create:
+        n.save()
 
-        async_to_sync(channel_layer.group_send)(
-            group_name,
-            {
-                "type": "send_notification",  # Это имя метода в consumers.py
-                "data": data_to_send
-            }
-        )
+
+# === СИГНАЛ 2: ЛОГИКА ДОСТАВКИ (WebSockets) ===
+@receiver(post_save, sender=Notification)
+def send_delivery_ws(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    channel_layer = get_channel_layer()
+    group_name = f"user_{instance.recipient.id}"
+
+    # Сериализация
+    try:
+        serializer = NotificationSerializer(instance)
+        data_to_send = serializer.data
+    except Exception:
+        # Fallback, если сериализатор упал
+        data_to_send = {
+            "id": instance.id,
+            "title": instance.title,
+            "message": instance.message,
+            "category": instance.category,
+            "metadata": instance.metadata or {}
+        }
+
+    # --- ВАЖНЫЙ МОМЕНТ ДЛЯ ФРОНТЕНДА ---
+    # Фронтенд ищет data.link.
+    # Если ссылка лежит внутри metadata, вытащим её на верхний уровень для удобства
+    if instance.metadata and 'link' in instance.metadata:
+        data_to_send['link'] = instance.metadata['link']
+
+    # Отправка
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            "type": "send_notification",
+            "data": data_to_send
+        }
+    )

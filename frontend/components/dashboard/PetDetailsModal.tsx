@@ -6,90 +6,17 @@ import {
 } from 'lucide-react';
 import EditPetModal from './EditPetModal'; 
 import UpdateGalleryModal from './UpdateGalleryModal'; 
-import CreateHealthEventModal from './CreateHealthEventModal'; 
+import CreateHealthEventModal from './CreateHealthEventModal';
+import { useAuth } from '@/components/providers/AuthProvider';
+import UserProfileModal from './UserProfileModal';
 
-// === ИНТЕРФЕЙСЫ ===
-
-interface AttributeType {
-    name: string;
-    slug: string;
-    icon: string | null;
-}
-
-interface PetAttribute {
-  attribute: AttributeType;
-  value: string;
-}
-
-interface PetTag {
-    id: number;
-    slug: string;
-    name: string;
-    icon: string | null;
-}
-
-interface ParentInfo {
-    id: number;
-    name: string;
-    gender: 'M' | 'F';
-    image?: string | null;
-}
-
-interface HealthStatus {
-    status: 'healthy' | 'sick' | 'attention';
-    label: string;
-    color: string;
-}
-
-// Интерфейс вложения
-interface HealthEventAttachment {
-    id: number;
-    file: string; // URL файла
-    created_at: string;
-}
-
-// Интерфейс события
-interface HealthEvent {
-    id: number;
-    title: string;
-    event_type: string; // technical name (vaccine)
-    event_type_display: string; // readable (Вакцинация)
-    date: string; // ISO String "2025-12-15 14:30"
-    next_date?: string;
-    description?: string;
-    status: string;
-    status_display: string;
-    created_by_name?: string;
-    created_by_clinic?: string;
-    created_by_is_vet?: boolean;
-    attachments: HealthEventAttachment[];
-}
-
-interface PetDetail {
-  id: number;
-  name: string;
-  gender: 'M' | 'F';
-  birth_date?: string;
-  age?: string;
-  images: { id: number; image: string; is_main: boolean }[];
-  attributes: PetAttribute[];
-  tags: PetTag[];
-  clinic_name?: string;
-  description?: string;
-  is_public: boolean;
-  is_active?: boolean;
-  owner_id: number;
-  categories?: any[];
-  
-  mother_info?: ParentInfo;
-  father_info?: ParentInfo;
-  health_status?: HealthStatus;
-  recent_events?: HealthEvent[];
-}
+// === ИМПОРТ ТИПОВ (Вместо локальных портянок) ===
+import { PetDetail, UserProfile } from '@/types/pet'; 
+import { HealthEvent } from '@/types/event';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-const getMediaUrl = (url: string | null) => {
+const getMediaUrl = (url: string | undefined | null) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
     return `${API_URL}${url}`;
@@ -105,6 +32,10 @@ const formatDateTime = (isoString: string) => {
 };
 
 export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: number | null, isOpen: boolean, onClose: () => void }) {
+  // === ХУКИ ДОЛЖНЫ БЫТЬ ВНУТРИ КОМПОНЕНТА ===
+  const { user: currentUser } = useAuth(); 
+  const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
+
   const [pet, setPet] = useState<PetDetail | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'medical'>('info');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -115,7 +46,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   
-  // === [NEW] Событие, которое редактируем ===
   const [editingEvent, setEditingEvent] = useState<HealthEvent | null>(null);
   
   const [displayPetId, setDisplayPetId] = useState<number | null>(null);
@@ -177,14 +107,13 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       }
   };
 
-  // === [NEW] Обработчики для редактирования записи ===
   const openCreateHealthEvent = () => {
-      setEditingEvent(null); // Сбрасываем (режим создания)
+      setEditingEvent(null); 
       setIsHealthModalOpen(true);
   };
 
   const openEditHealthEvent = (event: HealthEvent) => {
-      setEditingEvent(event); // Устанавливаем (режим редактирования)
+      setEditingEvent(event); 
       setIsHealthModalOpen(true);
   };
 
@@ -228,7 +157,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                     isOpen={isGalleryOpen} 
                     onClose={() => setIsGalleryOpen(false)}
                     petId={pet.id}
-                    images={pet.images}
+                    images={pet.images || []} // Добавил fallback
                     onSuccess={fetchPetData} 
                 />
                 <CreateHealthEventModal
@@ -236,7 +165,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                     onClose={() => setIsHealthModalOpen(false)}
                     petId={pet.id}
                     onSuccess={fetchPetData}
-                    initialData={editingEvent} // Передаем событие на редактирование
+                    initialData={editingEvent} 
                 />
             </>
         )}
@@ -318,6 +247,24 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             : <span className="w-6 h-6 rounded-full bg-blue-500/80 flex items-center justify-center text-white text-xs border border-white/20">♂</span>
                         }
                     </h2>
+                    
+                    {/* КНОПКА ВЛАДЕЛЬЦА (для врачей) */}
+                    {pet?.owner_info && currentUser?.id !== pet.owner_info.id && (
+                        <div 
+                         onClick={() => setSelectedUserProfile(pet.owner_info!)}
+                         className="mt-2 inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-colors border border-white/10"
+                         >
+                          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                           {pet.owner_info.avatar ? (
+                          <img src={getMediaUrl(pet.owner_info.avatar)!} className="w-full h-full object-cover" />
+                           ) : (
+                           <User size={12} className="text-white" />
+                           )}
+                         </div>
+                         <span className="text-white text-xs font-medium">Владелец: {pet.owner_info.name}</span>
+                        </div>
+                     )}
+
                     <div className="flex items-center gap-3 text-white/90 text-sm mt-1 font-medium">
                         <span className="bg-white/10 px-2 py-0.5 rounded backdrop-blur-sm">{pet?.age || 'Возраст скрыт'}</span>
                         <span className="flex items-center gap-1 opacity-80">
@@ -464,14 +411,53 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                     {pet && activeTab === 'medical' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                              
-                             <div>
+                            {/* БЛОК КЛИНИКИ / ВРАЧЕЙ */}
+                            <div className="mb-4">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Прикрепление</h3>
-                                <InfoCard 
-                                    icon={<Activity className="text-red-500" size={18} />} 
-                                    label="Ветеринарная клиника" 
-                                    value={pet.clinic_name || 'Не прикреплен'} 
-                                />
-                             </div>
+
+                                {pet.active_vets && pet.active_vets.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {pet.active_vets.map(vet => (
+                                            <div 
+                                                key={vet.id}
+                                                onClick={() => setSelectedUserProfile(vet)}
+                                                className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3 cursor-pointer hover:bg-emerald-100 transition-colors group"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200">
+                                                    {vet.avatar ? (
+                                                        <img src={getMediaUrl(vet.avatar)!} className="w-full h-full rounded-full object-cover" />
+                                                    ) : (
+                                                        <Stethoscope size={18} />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] uppercase font-bold text-emerald-600/70 tracking-wider">Лечащий врач</p>
+                                                    <p className="font-bold text-gray-900 text-sm">{vet.name}</p>
+                                                    {vet.clinic_name && <p className="text-xs text-gray-500">{vet.clinic_name}</p>}
+                                                </div>
+
+                                                {!currentUser?.is_veterinarian && (
+                                                    <button 
+                                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            alert('Функция отзыва в разработке');
+                                                        }}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <InfoCard 
+                                        icon={<Activity className="text-red-500" size={18} />} 
+                                        label="Ветеринарная клиника" 
+                                        value={pet.clinic_name || 'Не прикреплен'} 
+                                    />
+                                )}
+                            </div>
 
                              <div className={`p-4 rounded-xl border flex items-start gap-3 ${getStatusColor(pet.health_status?.color)}`}>
                                  <div className="mt-0.5 shrink-0"><Activity size={20} /></div>
@@ -486,7 +472,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">История событий</h3>
-                                    {/* [UPDATED] Открывает модалку в режиме создания */}
                                     <button 
                                         onClick={openCreateHealthEvent}
                                         className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
@@ -508,7 +493,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                         {pet.recent_events?.map((event) => (
                                             <div key={event.id} className="group relative flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all">
                                                 
-                                                {/* [UPDATED] Кнопка редактирования (вызывает openEditHealthEvent) */}
                                                 <button 
                                                     onClick={() => openEditHealthEvent(event)}
                                                     className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10"
@@ -573,7 +557,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                         </p>
                                                     )}
 
-                                                    {/* Вложения */}
                                                     {event.attachments && event.attachments.length > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-100/50">
                                                             {event.attachments.map(att => (
@@ -602,6 +585,11 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
             </div>
           </div>
         </div>
+        <UserProfileModal 
+             isOpen={!!selectedUserProfile}
+             onClose={() => setSelectedUserProfile(null)}
+             user={selectedUserProfile}
+         />
     </>
   );
 }

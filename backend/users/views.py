@@ -1,14 +1,16 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
+from .models import UserContact
 from django.contrib.auth import get_user_model
 from .serializers import (
     UserRegistrationSerializer, 
     UserSerializer, 
-    GoogleAuthSerializer
+    GoogleAuthSerializer,
+    UserContactSerializer
 )
 
 User = get_user_model()
@@ -99,3 +101,14 @@ class RegisterView(generics.CreateAPIView):
                 "access": str(refresh.access_token),
             }
         }, status=status.HTTP_201_CREATED)
+    
+class UserContactViewSet(viewsets.ModelViewSet):
+    serializer_class = UserContactSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Пользователь видит и правит только свои контакты
+        return UserContact.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

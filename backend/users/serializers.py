@@ -3,27 +3,39 @@ from django.contrib.auth import get_user_model
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import AuthenticationFailed
-from django.utils.crypto import get_random_string # <-- Важный импорт
-
+from django.utils.crypto import get_random_string 
+from .models import User, UserContact # Импортируем обе модели
 # Импорты для Google
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.conf import settings
 
 User = get_user_model()
+# СТРОКУ UserContact = get_user_model() УДАЛИЛИ — она ломала логику
+
+class UserContactSerializer(serializers.ModelSerializer):
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+    
+    class Meta:
+        model = UserContact
+        fields = ['id', 'type', 'type_display', 'value', 'label']
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
-    # Добавляем поле пароля, чтобы его можно было прислать при обновлении (write_only)
     password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    
+    # [FIX] Добавили явное определение поля contacts
+    contacts = UserContactSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'is_veterinarian', 'role',  
-            'phone', 'city', 'clinic_name', 'avatar',
-            'is_verified', 'password' # <-- Добавили password
+            'is_veterinarian', 'role',
+            'phone', 'work_phone', 'telegram', 'about', 
+            'contacts', # Поле включено в список
+            'city', 'clinic_name', 'avatar',
+            'is_verified', 'password'
         ]
         read_only_fields = ['id', 'email', 'username', 'is_verified']
 
@@ -31,7 +43,6 @@ class UserSerializer(serializers.ModelSerializer):
         return "vet" if obj.is_veterinarian else "owner"
     
     def update(self, instance, validated_data):
-        # Если прислали пароль — хешируем и сохраняем
         password = validated_data.pop('password', None)
         if password:
             instance.set_password(password)
@@ -70,13 +81,12 @@ class GoogleAuthSerializer(serializers.Serializer):
                 username = f"{username_base}{counter}"
                 counter += 1
             
-            # ИСПРАВЛЕНИЕ: используем get_random_string вместо make_random_password
             random_password = get_random_string(length=32)
             
             user = User.objects.create_user(
                 username=username,
                 email=email,
-                password=random_password, # Временный пароль, пользователь сменит его на онбординге
+                password=random_password, 
                 first_name=id_info.get('given_name', ''),
                 last_name=id_info.get('family_name', ''),
                 is_veterinarian=False
@@ -134,3 +144,20 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             is_veterinarian=is_vet,
         )
         return user
+    
+class PublicProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    contacts = UserContactSerializer(many=True, read_only=True) 
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'full_name', 'email', 
+            'contacts', 
+            'clinic_name', 'city', 'avatar', 'about',
+            'is_veterinarian', 'is_verified'
+        ]
+    
+    def get_full_name(self, obj):
+        name = f"{obj.first_name} {obj.last_name}".strip()
+        return name if name else obj.username

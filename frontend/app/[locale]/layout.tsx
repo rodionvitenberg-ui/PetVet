@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "../globals.css"; // Путь правильный, так как файл лежит в папке [locale]
+import "../globals.css";
 
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { routing } from '@/i18n/routing'; // Импортируем routing для проверки локалей
+import { routing } from '@/i18n/routing';
 
 // Импортируем провайдеры
 import { AppModeProvider } from '@/components/providers/AppModeProvider';
-import { AuthProvider } from '@/components/providers/AuthProvider'; 
+// AuthProvider нам тут больше не нужен напрямую, он внутри Providers
 import Header from "@/components/Header";
 import { GoogleAuthWrapper } from '@/components/providers/GoogleAuthWrapper';
+import { Providers } from "./providers"; // <--- ВОТ НАШ ГЕРОЙ
+import NotificationListener from "@/components/providers/NotificationListener";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -25,37 +27,37 @@ export default async function RootLayout({
   params
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>; // В Next.js 15 params — это Promise
+  params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
 
-  // Проверяем, поддерживается ли локаль
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }
 
-  // Загружаем сообщения для текущей локали на сервере
   const messages = await getMessages();
 
   return (
     <html lang={locale}>
       <body className={`${inter.className} bg-primary text-brand-text min-h-screen`}>
         
-        {/* Провайдер переводов передает сообщения клиентским компонентам */}
         <NextIntlClientProvider messages={messages}>
           
-          {/* Оборачиваем все приложение в AuthProvider (для авторизации) */}
-          <AuthProvider> 
+          {/* БЫЛО: <AuthProvider> */}
+          {/* СТАЛО: Используем наш Providers, внутри которого живет Toaster */}
+          <Providers> 
             
-            {/* Провайдер темы/режима */}
             <AppModeProvider>
               <GoogleAuthWrapper>
-              <Header />
-              {children}
+                <NotificationListener />
+                <Header />
+                {children}
               </GoogleAuthWrapper>
             </AppModeProvider>
             
-          </AuthProvider>
+          </Providers>
+          {/* БЫЛО: </AuthProvider> */}
+
         </NextIntlClientProvider>
 
       </body>

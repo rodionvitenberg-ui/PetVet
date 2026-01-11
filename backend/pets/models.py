@@ -150,11 +150,26 @@ class Pet(models.Model):
              raise ValidationError("Питомец не может быть своим собственным родителем.")
 
     def save(self, *args, **kwargs):
+        # Если слага еще нет (создание нового питомца)
         if not self.slug:
-            self.slug = pytils.translit.slugify(self.name)
+            # 1. Сначала транслитерируем имя (Барсик -> barsik)
+            base_slug = pytils.translit.slugify(self.name)
             
-            if not self.slug:
-                self.slug = str(uuid.uuid4())[:8]
+            # Если имя состояло из смайликов или спецсимволов и слаг пустой - берем 'pet'
+            if not base_slug:
+                base_slug = 'pet'
+            
+            # 2. Генерируем короткий уникальный хвост (4 символа)
+            unique_tail = str(uuid.uuid4())[:4]
+            
+            # 3. Собираем итоговый слаг: barsik-a1b2
+            self.slug = f"{base_slug}-{unique_tail}"
+            
+            # 4. (Параноидальная проверка) На случай, если хвост совпал (шанс 1 на миллион)
+            # Если такой слаг уже есть в БД — перегенерируем хвост подлиннее
+            while Pet.objects.filter(slug=self.slug).exists():
+                unique_tail = str(uuid.uuid4())[:6]
+                self.slug = f"{base_slug}-{unique_tail}"
         
         super().save(*args, **kwargs)
 

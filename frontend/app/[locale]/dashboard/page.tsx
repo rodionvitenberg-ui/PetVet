@@ -1,160 +1,182 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PetsActionBar from '@/components/dashboard/PetsActionBar';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Plus, Users, PawPrint } from 'lucide-react';
 import PetCard from '@/components/dashboard/PetCard';
 import CreatePetModal from '@/components/dashboard/CreatePetModal';
-import PetDetailsModal from '@/components/dashboard/PetDetailsModal'; // <--- 1. Убедись, что импорт есть
+import PetDetailsModal from '@/components/dashboard/PetDetailsModal';
+import { PetBasic } from '@/types/pet';
 
-// === ИНТЕРФЕЙСЫ ===
-interface PetAttribute {
-  attribute: {
-    slug: string;
-    name: string;
-  };
-  value: string;
-}
-
-interface Pet {
-  id: number;
-  name: string;
-  attributes: PetAttribute[];
-  age: string;
-  gender: 'M' | 'F';
-  is_public: boolean;
-  owner_id: number; // <--- 2. Добавили owner_id, чтобы модалка знала, чье это
-  images: { image: string; is_main: boolean }[];
-  status?: string;
-  tags?: { slug: string; name: string }[];
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [myPets, setMyPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
-  
-  // Состояния для Модалки СОЗДАНИЯ
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-
-  // Состояния для Модалки ПРОСМОТРА (ДЕТАЛЕЙ) <--- 3. НОВЫЕ СТЕЙТЫ
-  const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
-
-  // TODO: В будущем здесь мы будем получать ID текущего юзера из токена/профиля
-  // Пока для теста можно передавать заглушку или проверять на бэке
-  const currentUserId = 1; 
-
-  const fetchMyPets = useCallback(async () => {
-    const token = localStorage.getItem('access_token');
+    const { user } = useAuth();
+    const router = useRouter();
+    const [pets, setPets] = useState<PetBasic[]>([]);
+    const [loading, setLoading] = useState(true);
     
-    if (!token) {
-      setIsAuth(false);
-      setLoading(false);
-      return; 
-    }
+    // UI States
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-    setIsAuth(true);
+    // Режим просмотра: 'my' (свои) или 'patients' (чужие)
+    const [viewMode, setViewMode] = useState<'my' | 'patients'>('my');
 
-    try {
-      const res = await fetch('http://127.0.0.1:8000/api/pets/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+    const fetchPets = async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            
+            const res = await fetch(`${API_URL}/api/pets/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                setPets(data);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
-      });
+    };
 
-      if (res.ok) {
-        const data = await res.json();
-        setMyPets(data);
-      } else if (res.status === 401) {
-        setIsAuth(false);
-      }
-    } catch (error) {
-      console.error("Ошибка при загрузке питомцев:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    useEffect(() => {
+        fetchPets();
+    }, []);
 
-  useEffect(() => {
-    fetchMyPets();
-  }, [fetchMyPets]);
+    // === ЛОГИКА КЛИКА ПО КАРТОЧКЕ ПИТОМЦА ===
+    const handlePetClick = (petId: number) => {
+        const isMobile = window.innerWidth < 768;
 
-  // Обработчик клика по карточке
-  const handleCardClick = (petId: number) => {
-    setSelectedPetId(petId);     // Запоминаем, кого кликнули
-    setDetailsModalOpen(true);   // Открываем модалку
-  };
+        if (isMobile) {
+            router.push(`/pets/${petId}`);
+        } else {
+            setSelectedPetId(petId);
+            setIsDetailsOpen(true);
+        }
+    };
 
-  if (!loading && !isAuth) {
+    // === ФИЛЬТРАЦИЯ ===
+    const myPets = pets.filter(p => p.owner === user?.id);
+    const patients = pets.filter(p => p.owner !== user?.id);
+
+    useEffect(() => {
+        if (!loading && user?.is_veterinarian && myPets.length === 0 && patients.length > 0) {
+            setViewMode('patients');
+        }
+    }, [loading, user, myPets.length, patients.length]);
+
+    const displayedPets = viewMode === 'my' ? myPets : patients;
+
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 pt-24">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Войдите в систему</h1>
-        <button 
-          onClick={() => router.push('/login')}
-          className="bg-primary text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition shadow-lg"
-        >
-          Войти в аккаунт
-        </button>
-      </div>
-    );
-  }
+        <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
+            <div className="max-w-7xl mx-auto">
+                
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">
+                            {viewMode === 'my' ? 'Мои питомцы' : 'Мои пациенты'}
+                        </h1>
+                        <p className="text-gray-500 mt-1">
+                            {viewMode === 'my' 
+                                ? 'Управляйте профилями ваших любимцев' 
+                                : 'Медицинские карты животных, доступные вам'}
+                        </p>
+                    </div>
 
-  return (
-    <div className="pt-24 min-h-screen pb-20 px-4 sm:px-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
+                    {user?.is_veterinarian && (
+                        <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                            <button
+                                onClick={() => setViewMode('my')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                                    viewMode === 'my' 
+                                    ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <PawPrint size={16} /> Личные
+                            </button>
+                            <button
+                                onClick={() => setViewMode('patients')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                                    viewMode === 'patients' 
+                                    ? 'bg-emerald-50 text-emerald-600 shadow-sm' 
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <Users size={16} /> Пациенты
+                                {patients.length > 0 && (
+                                    <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1.5 rounded-full">
+                                        {patients.length}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </header>
 
-      <PetsActionBar />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    
+                    {viewMode === 'my' && (
+                        <PetCard 
+                            isAddButton 
+                            onClick={() => {
+                                // === ВОТ ТУТ ГЛАВНОЕ ИЗМЕНЕНИЕ ===
+                                const isMobile = window.innerWidth < 768;
+                                if (isMobile) {
+                                    router.push('/pets/create'); // На страницу (для мобилок)
+                                } else {
+                                    setIsCreateModalOpen(true); // В модалку (для десктопа)
+                                }
+                            }} 
+                        />
+                    )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        
-        {/* Кнопка "Добавить" */}
-        <PetCard 
-            isAddButton 
-            onClick={() => setCreateModalOpen(true)} 
-        />
+                    {displayedPets.map(pet => (
+                        <div key={pet.id} className="relative">
+                            <PetCard 
+                                pet={pet} 
+                                onClick={() => handlePetClick(pet.id)} 
+                            />
+                            
+                            {viewMode === 'patients' && pet.owner_info && (
+                                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-medium z-20 flex items-center gap-1">
+                                    <Users size={10} className="text-emerald-400" />
+                                    <span>Вл: {pet.owner_info.name}</span>
+                                </div>
+                            )}
+                        </div>
+                    ))}
 
-        {/* Список питомцев */}
-        {loading ? (
-           <div className="col-span-1 flex items-center justify-center h-64 text-gray-400">
-             Загрузка...
-           </div>
-        ) : (
-            myPets.map((pet) => (
-                <PetCard 
-                    key={pet.id} 
-                    pet={pet} 
-                    // <--- 4. ВОТ ЗДЕСЬ БЫЛА ОШИБКА. УБРАЛИ router.push
-                    onClick={() => handleCardClick(pet.id)}
+                    {displayedPets.length === 0 && viewMode === 'patients' && (
+                        <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                            <Users size={48} className="mx-auto mb-3 opacity-50" />
+                            <p>У вас пока нет пациентов.</p>
+                            <p className="text-sm mt-1">Попросите владельца отправить вам ссылку доступа.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* МОДАЛКИ */}
+                <CreatePetModal 
+                    isOpen={isCreateModalOpen} 
+                    onClose={() => setIsCreateModalOpen(false)} 
+                    onSuccess={fetchPets}
                 />
-            ))
-        )}
-      </div>
-
-      {!loading && myPets.length === 0 && (
-          <div className="mt-12 text-center col-span-full">
-              <p className="text-gray-400 text-lg">У вас пока нет добавленных питомцев.</p>
-          </div>
-      )}
-
-      {/* Модалка СОЗДАНИЯ */}
-      <CreatePetModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSuccess={() => fetchMyPets()}
-      />
-
-      {/* Модалка ДЕТАЛЕЙ (ПРОСМОТРА) <--- 5. ДОБАВИЛИ РЕНДЕР МОДАЛКИ */}
-      <PetDetailsModal 
-        isOpen={isDetailsModalOpen}
-        petId={selectedPetId}
-        currentUserId={currentUserId}
-        onClose={() => {
-            setDetailsModalOpen(false);
-            setSelectedPetId(null);
-        }}
-      />
-
-    </div>
-  );
+                
+                {selectedPetId && (
+                    <PetDetailsModal 
+                        petId={selectedPetId} 
+                        isOpen={isDetailsOpen} 
+                        onClose={() => setIsDetailsOpen(false)} 
+                    />
+                )}
+            </div>
+        </div>
+    );
 }

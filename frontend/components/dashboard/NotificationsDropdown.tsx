@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // <--- 1. Импорт роутера
 import { 
     Bell, 
     Info, 
@@ -27,18 +28,19 @@ interface Notification {
   created_at_formatted: string;
   linked_object?: { type: string; id: number };
   metadata?: { 
-      actions?: NotificationAction[] 
+      actions?: NotificationAction[];
+      link?: string; // <--- 2. Добавили поле ссылки
   };
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export default function NotificationsDropdown() {
+  const router = useRouter(); // <--- Инициализация
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // --- 1. Загрузка данных ---
   const fetchNotifications = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
@@ -57,24 +59,24 @@ export default function NotificationsDropdown() {
     }
   };
 
-  // Загружаем при маунте (когда компонент отрисовывается в Header)
   useEffect(() => {
     fetchNotifications();
-    // Поллинг пока меню открыто
+    // Поллинг (обновление списка раз в минуту)
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- 2. Действия ---
   const markAsRead = async (id: number) => {
     const token = localStorage.getItem('access_token');
+    // Оптимистичное обновление UI
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
     try {
       await fetch(`${API_URL}/api/notifications/${id}/mark_read/`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
       console.error(e);
     }
@@ -94,7 +96,19 @@ export default function NotificationsDropdown() {
       }
   };
 
-  // Иконка в зависимости от категории
+  // --- 3. Обработчик клика по уведомлению ---
+  const handleItemClick = (note: Notification) => {
+      // Сразу помечаем прочитанным
+      if (!note.is_read) {
+          markAsRead(note.id);
+      }
+
+      // Если есть ссылка - переходим
+      if (note.metadata?.link) {
+          router.push(note.metadata.link);
+      }
+  };
+
   const getIcon = (cat: string) => {
     switch (cat) {
       case 'medical': return <Stethoscope className="text-blue-500" size={20} />;
@@ -105,11 +119,8 @@ export default function NotificationsDropdown() {
   };
 
   return (
-    // Убрали абсолютное позиционирование и кнопку. Теперь это просто "карточка".
-    // Ширину задаем, чтобы она вписывалась в контейнер хедера.
     <div className="w-[300px] sm:w-[360px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
       
-      {/* Шапка дропдауна */}
       <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 backdrop-blur-sm">
         <h3 className="font-bold text-gray-700 text-sm">Уведомления</h3>
         {unreadCount > 0 && (
@@ -124,7 +135,6 @@ export default function NotificationsDropdown() {
         )}
       </div>
 
-      {/* Список */}
       <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
         {notifications.length === 0 ? (
             <div className="py-12 px-6 text-center text-gray-400">
@@ -132,60 +142,79 @@ export default function NotificationsDropdown() {
                 <p className="text-sm">Нет новых уведомлений</p>
             </div>
         ) : (
-            notifications.map((note) => (
-              <div 
-                key={note.id} 
-                className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition flex gap-3 group relative ${!note.is_read ? 'bg-blue-50/40' : ''}`}
-              >
-                <div className="mt-1 flex-shrink-0 bg-white p-2 rounded-full shadow-sm border border-gray-100 h-fit">
-                    {getIcon(note.category)}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-0.5">
-                        <p className={`text-sm ${!note.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                            {note.title}
-                        </p>
-                        {!note.is_read && (
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); markAsRead(note.id); }}
-                                className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
-                                title="Пометить как прочитанное"
-                            >
-                                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                            </button>
-                        )}
-                    </div>
-                    
-                    <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-3">
-                        {note.message}
-                    </p>
-                    
-                    {/* Кнопки действий */}
-                    {note.metadata?.actions && note.metadata.actions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2 mb-1">
-                            {note.metadata.actions.map((act, idx) => (
-                                <button 
-                                    key={idx}
-                                    onClick={() => console.log('Action clicked:', act.api_call)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm
-                                        ${act.style === 'danger' 
-                                            ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100' 
-                                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
-                                        }`}
-                                >
-                                    {act.label}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+            notifications.map((note) => {
+              // Проверяем, кликабельно ли уведомление (есть ли ссылка)
+              const isClickable = !!note.metadata?.link;
 
-                    <p className="text-[10px] text-gray-400 font-medium">
-                        {note.created_at_formatted}
-                    </p>
+              return (
+                <div 
+                  key={note.id} 
+                  onClick={() => handleItemClick(note)} // Вешаем обработчик на весь блок
+                  className={`
+                    p-4 border-b border-gray-50 flex gap-3 group relative transition
+                    ${!note.is_read ? 'bg-blue-50/40' : 'hover:bg-gray-50'}
+                    ${isClickable ? 'cursor-pointer active:bg-blue-50' : ''} 
+                  `}
+                >
+                  <div className="mt-1 flex-shrink-0 bg-white p-2 rounded-full shadow-sm border border-gray-100 h-fit">
+                      {getIcon(note.category)}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-0.5">
+                          <p className={`text-sm ${!note.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                              {note.title}
+                          </p>
+                          
+                          {/* Кнопка "прочитать" (кружочек) */}
+                          {!note.is_read && (
+                              <button 
+                                  onClick={(e) => { 
+                                      e.stopPropagation(); // Чтобы не сработал переход по ссылке
+                                      markAsRead(note.id); 
+                                  }}
+                                  className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
+                                  title="Пометить как прочитанное"
+                              >
+                                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                              </button>
+                          )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-3">
+                          {note.message}
+                      </p>
+                      
+                      {/* Если есть кнопки действий (пока редкость, но оставим) */}
+                      {note.metadata?.actions && note.metadata.actions.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2 mb-1">
+                              {note.metadata.actions.map((act, idx) => (
+                                  <button 
+                                      key={idx}
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log('Action clicked:', act.api_call);
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm
+                                          ${act.style === 'danger' 
+                                              ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100' 
+                                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
+                                          }`}
+                                  >
+                                      {act.label}
+                                  </button>
+                              ))}
+                          </div>
+                      )}
+
+                      <p className="text-[10px] text-gray-400 font-medium flex items-center gap-2">
+                          {note.created_at_formatted}
+                          {isClickable && <span className="text-blue-400 opacity-0 group-hover:opacity-100 transition">➔</span>}
+                      </p>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
         )}
       </div>
     </div>
