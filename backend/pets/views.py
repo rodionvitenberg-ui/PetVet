@@ -77,7 +77,8 @@ class PetViewSet(viewsets.ModelViewSet):
         # Показываем питомцев, где пользователь Владелец ИЛИ имеет Активный Доступ
         return Pet.objects.filter(
             Q(owner=user) | 
-            Q(access_grants__user=user, access_grants__is_active=True)
+            Q(access_grants__user=user, access_grants__is_active=True) |
+            Q(created_by=user, owner__isnull=True) # <--- Теневые карты врача
         ).filter(is_active=True).distinct()\
             .select_related('owner', 'mother', 'father') \
             .prefetch_related(
@@ -91,7 +92,28 @@ class PetViewSet(viewsets.ModelViewSet):
             )
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        user = self.request.user
+        
+        # === [NEW] Логика создания Теневой Карты ===
+        # Если пользователь - Врач, И он передал телефон клиента (temp_owner_phone),
+        # но НЕ передал owner (или мы его игнорируем) -> создаем карту без владельца.
+        
+        is_shadow_create = False
+        
+        if user.is_veterinarian:
+            # Проверяем, прислал ли фронт временные данные
+            temp_phone = serializer.validated_data.get('temp_owner_phone')
+            if temp_phone:
+                is_shadow_create = True
+        
+        if is_shadow_create:
+            serializer.save(
+                owner=None,       # Владельца нет
+                created_by=user   # Запоминаем врача
+            )
+        else:
+            # Стандартный сценарий: владелец = текущий юзер
+            serializer.save(owner=user)
 
     # === [NEW FEATURE] 1. Генерация QR-токена ===
     @action(detail=True, methods=['get'])

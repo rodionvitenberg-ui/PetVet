@@ -120,19 +120,34 @@ class PetSerializer(serializers.ModelSerializer):
             'is_public', 
             'is_active', 'images', 'recent_events', 'created_at',
             'clinic_name',
+            'temp_owner_name', 'temp_owner_phone', 'created_by',
         ]
+        read_only_fields = ['created_by']
     
     def get_owner_info(self, obj):
-        # [UPDATED] Теперь возвращаем больше инфы для карточки владельца
-        return {
-            "id": obj.owner.id,
-            "name": f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username,
-            "email": obj.owner.email,
-            "phone": obj.owner.phone,   # Личный телефон владельца
-            "telegram": obj.owner.telegram,
-            "avatar": obj.owner.avatar.url if obj.owner.avatar else None,
-            "about": obj.owner.about
-        }
+       if obj.owner:
+            return {
+                "id": obj.owner.id,
+                "name": f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username,
+                "email": obj.owner.email,
+                "phone": obj.owner.phone,
+                "telegram": obj.owner.telegram,
+                "avatar": obj.owner.avatar.url if obj.owner.avatar else None,
+                "about": obj.owner.about,
+                "is_temporary": False 
+            }
+       elif obj.temp_owner_name or obj.temp_owner_phone:
+            return {
+                "id": None,
+                "name": obj.temp_owner_name or "Клиент (Без имени)",
+                "email": None,
+                "phone": obj.temp_owner_phone,
+                "telegram": None,
+                "avatar": None, 
+                "about": "Профиль еще не создан",
+                "is_temporary": True
+            }
+       return None
     
     def get_age(self, obj):
         if not obj.birth_date:

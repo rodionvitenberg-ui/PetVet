@@ -86,7 +86,9 @@ class Pet(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='pets',
-        verbose_name="Владелец"
+        verbose_name="Владелец",
+        null=True,
+        blank=True
     )
     name = models.CharField(max_length=255, verbose_name="Кличка / Инвентарный номер")
     slug = models.SlugField(max_length=255, unique=True, verbose_name="URL-слаг", blank=True)
@@ -117,6 +119,30 @@ class Pet(models.Model):
         limit_choices_to={'gender': 'M'}
     )
     
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='created_pets',
+        verbose_name="Кем создана карточка (Врач)",
+        null=True, 
+        blank=True
+    )
+
+    temp_owner_name = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Имя владельца (Временное)"
+    )
+
+    temp_owner_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name="Телефон владельца (для связи)",
+        db_index=True 
+    )
+
     is_public = models.BooleanField(default=False, verbose_name="Публичный профиль (В ленту)")
     is_active = models.BooleanField(default=True, verbose_name="Жив / Активен")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
