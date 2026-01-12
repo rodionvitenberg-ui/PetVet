@@ -274,87 +274,6 @@ export default function ProfilePage() {
 
         {/* === ПРАВАЯ КОЛОНКА (Формы) === */}
         <div className="lg:col-span-2 space-y-8">
-            
-            {/* 1. Блок Контактов (Новый) */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Phone size={20} className="text-blue-500" /> Каналы связи
-                </h3>
-                <p className="text-sm text-gray-500 mb-6">Добавьте способы связи, чтобы {user.is_veterinarian ? 'владельцы' : 'врачи'} могли связаться с вами.</p>
-
-                {/* Список контактов */}
-                <div className="space-y-3 mb-6">
-                    {contactsLoading ? (
-                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-300" /></div>
-                    ) : contacts.length === 0 ? (
-                        <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-sm">
-                            Нет дополнительных контактов
-                        </div>
-                    ) : (
-                        contacts.map(c => {
-                            const config = CONTACT_CONFIG[c.type] || CONTACT_CONFIG['other'];
-                            return (
-                                <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border ${config.color} bg-opacity-30`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm`}>
-                                            {config.icon}
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-bold opacity-70 uppercase tracking-wide">{c.label || config.label}</p>
-                                            <p className="font-medium text-gray-900 text-sm">{c.value}</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => handleDeleteContact(c.id)}
-                                        className="p-2 text-gray-400 hover:text-red-500 transition"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-
-                {/* Форма добавления контакта */}
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                        <select 
-                            className="p-2.5 rounded-xl border border-gray-300 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                            value={newContact.type}
-                            onChange={e => setNewContact({...newContact, type: e.target.value as ContactType})}
-                        >
-                            {Object.entries(CONTACT_CONFIG).map(([key, conf]) => (
-                                <option key={key} value={key}>{conf.label}</option>
-                            ))}
-                        </select>
-                        <input 
-                            type="text" 
-                            placeholder="Номер или никнейм"
-                            className="p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm sm:col-span-2"
-                            value={newContact.value}
-                            onChange={e => setNewContact({...newContact, value: e.target.value})}
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                         <input 
-                            type="text" 
-                            placeholder="Метка (например: Рабочий)"
-                            className="flex-1 p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm"
-                            value={newContact.label}
-                            onChange={e => setNewContact({...newContact, label: e.target.value})}
-                        />
-                        <button 
-                            onClick={handleAddContact}
-                            disabled={!newContact.value || isAddingContact}
-                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-black transition flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {isAddingContact ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                            Добавить
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* 2. Личные данные */}
             <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
@@ -478,6 +397,88 @@ export default function ProfilePage() {
                     </button>
                 </div>
             </form>
+
+
+            {/* 1. Блок Контактов (Новый) */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Phone size={20} className="text-blue-500" /> Каналы связи
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">Добавьте способы связи, чтобы {user.is_veterinarian ? 'владельцы' : 'врачи'} могли связаться с вами.</p>
+
+                {/* Список контактов */}
+                <div className="space-y-3 mb-6">
+                    {contactsLoading ? (
+                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-300" /></div>
+                    ) : contacts.length === 0 ? (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-sm">
+                            Нет дополнительных контактов
+                        </div>
+                    ) : (
+                        contacts.map(c => {
+                            const config = CONTACT_CONFIG[c.type] || CONTACT_CONFIG['other'];
+                            return (
+                                <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border ${config.color} bg-opacity-30`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm`}>
+                                            {config.icon}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold opacity-70 uppercase tracking-wide">{c.label || config.label}</p>
+                                            <p className="font-medium text-gray-900 text-sm">{c.value}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteContact(c.id)}
+                                        className="p-2 text-gray-400 hover:text-red-500 transition"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Форма добавления контакта */}
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                        <select 
+                            className="p-2.5 rounded-xl border border-gray-300 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            value={newContact.type}
+                            onChange={e => setNewContact({...newContact, type: e.target.value as ContactType})}
+                        >
+                            {Object.entries(CONTACT_CONFIG).map(([key, conf]) => (
+                                <option key={key} value={key}>{conf.label}</option>
+                            ))}
+                        </select>
+                        <input 
+                            type="text" 
+                            placeholder="Номер или никнейм"
+                            className="p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm sm:col-span-2"
+                            value={newContact.value}
+                            onChange={e => setNewContact({...newContact, value: e.target.value})}
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                         <input 
+                            type="text" 
+                            placeholder="Метка (например: Рабочий)"
+                            className="flex-1 p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm"
+                            value={newContact.label}
+                            onChange={e => setNewContact({...newContact, label: e.target.value})}
+                        />
+                        <button 
+                            onClick={handleAddContact}
+                            disabled={!newContact.value || isAddingContact}
+                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-black transition flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {isAddingContact ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                            Добавить
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
     </div>

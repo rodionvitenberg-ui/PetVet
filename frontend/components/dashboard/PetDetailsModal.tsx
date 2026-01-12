@@ -559,7 +559,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
                                                     {event.attachments && event.attachments.length > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-100/50">
-                                                            {event.attachments.map(att => (
+                                                            {event.attachments?.map(att => (
                                                                 <a 
                                                                     key={att.id} 
                                                                     href={getMediaUrl(att.file)!} 

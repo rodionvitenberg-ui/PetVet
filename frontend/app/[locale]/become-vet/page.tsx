@@ -16,7 +16,7 @@ interface VerificationRequest {
 
 export default function BecomeVetPage() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     
     const [request, setRequest] = useState<VerificationRequest | null>(null);
     const [isLoading, setIsLoading] = useState(true);

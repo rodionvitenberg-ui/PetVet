@@ -601,7 +601,7 @@ export default function PetDetailsPage() {
 
                                                     {event.attachments && event.attachments.length > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-4">
-                                                            {event.attachments.map(att => (
+                                                            {event.attachments?.map(att => (
                                                                 <a 
                                                                     key={att.id} 
                                                                     href={getMediaUrl(att.file)!} 

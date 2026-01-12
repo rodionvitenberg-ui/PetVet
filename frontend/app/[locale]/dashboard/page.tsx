@@ -7,6 +7,7 @@ import { Plus, Users, PawPrint } from 'lucide-react';
 import PetCard from '@/components/dashboard/PetCard';
 import CreatePetModal from '@/components/dashboard/CreatePetModal';
 import PetDetailsModal from '@/components/dashboard/PetDetailsModal';
+import PetsActionBar from '@/components/dashboard/PetsActionBar'; // <--- Импорт панели
 import { PetBasic } from '@/types/pet';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -49,7 +50,6 @@ export default function DashboardPage() {
         fetchPets();
     }, []);
 
-    // === ЛОГИКА КЛИКА ПО КАРТОЧКЕ ПИТОМЦА ===
     const handlePetClick = (petId: number) => {
         const isMobile = window.innerWidth < 768;
 
@@ -61,7 +61,6 @@ export default function DashboardPage() {
         }
     };
 
-    // === ФИЛЬТРАЦИЯ ===
     const myPets = pets.filter(p => p.owner === user?.id);
     const patients = pets.filter(p => p.owner !== user?.id);
 
@@ -77,6 +76,12 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto">
                 
+                {/* 1. ПАНЕЛЬ ДЕЙСТВИЙ (ПОИСК / ИИ) — ТЕПЕРЬ В САМОМ ВЕРХУ */}
+                <div className="mb-8">
+                    <PetsActionBar />
+                </div>
+                
+                {/* 2. ЗАГОЛОВОК И ПЕРЕКЛЮЧАТЕЛИ */}
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
@@ -120,18 +125,18 @@ export default function DashboardPage() {
                     )}
                 </header>
 
+                {/* 3. СПИСОК ПИТОМЦЕВ */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     
                     {viewMode === 'my' && (
                         <PetCard 
                             isAddButton 
                             onClick={() => {
-                                // === ВОТ ТУТ ГЛАВНОЕ ИЗМЕНЕНИЕ ===
                                 const isMobile = window.innerWidth < 768;
                                 if (isMobile) {
-                                    router.push('/pets/create'); // На страницу (для мобилок)
+                                    router.push('/pets/create');
                                 } else {
-                                    setIsCreateModalOpen(true); // В модалку (для десктопа)
+                                    setIsCreateModalOpen(true);
                                 }
                             }} 
                         />

@@ -1,4 +1,4 @@
-// types/pet.ts
+import { HealthEvent } from './event';
 
 export interface PetImage {
     id: number;
@@ -44,6 +44,7 @@ export interface PetBasic {
     age?: string;
     is_public: boolean;
     clinic_name?: string; // Текстовое поле (старое)
+    attributes?: { attribute: { name: string }; value: string }[];
 }
 
 // === ТИПЫ ДЛЯ ДЕТАЛЬНОЙ АНКЕТЫ (PetDetails) ===
@@ -97,5 +98,5 @@ export interface PetDetail extends PetBasic {
     // События (нужны импорт из event.ts, но чтобы избежать циклической зависимости,
     // в компоненте часто используют any или отдельный тип. 
     // Пока оставим опциональным any или подключим позже).
-    recent_events?: any[]; 
+    recent_events?: HealthEvent[]; 
 }

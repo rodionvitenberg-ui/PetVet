@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.3", "172.17.0.1"]
 
 
 # Application definition
@@ -148,7 +148,10 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://192.168.3:8081",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 # DRF Config
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

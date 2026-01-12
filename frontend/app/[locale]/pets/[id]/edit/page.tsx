@@ -72,7 +72,7 @@ export default function EditPetPage() {
     const loadData = async () => {
       setIsLoading(true);
       const token = localStorage.getItem('access_token');
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
       try {
         // 1. Грузим справочники

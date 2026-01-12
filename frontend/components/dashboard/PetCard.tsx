@@ -11,37 +11,20 @@ import {
     Check,
     Globe 
 } from 'lucide-react';
+// Импортируем общий тип
+import { PetBasic } from '@/types/pet'; 
 
-// === ТИПЫ ДАННЫХ ===
-interface PetAttribute {
-  attribute: {
-    slug: string;
-    name: string;
-  };
-  value: string;
-}
-
-interface Pet {
-  id: number;
-  name: string;
-  attributes: PetAttribute[];
-  age: string;    
-  gender: 'M' | 'F';
-  is_public: boolean;
-  images: { image: string; is_main: boolean }[]; 
-  status?: string;
-  birth_date?: string; // Добавил на случай использования
-}
+// Локальные интерфейсы удаляем, используем PetBasic
 
 interface PetCardProps {
   isAddButton?: boolean;
-  pet?: Pet;
+  pet?: PetBasic; // <--- Используем PetBasic
   onClick?: () => void;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-const getMainImageUrl = (images: Pet['images']) => {
+const getMainImageUrl = (images: PetBasic['images']) => {
     if (!images || images.length === 0) return null;
     const mainImage = images.find(img => img.is_main) || images[0];
     if (!mainImage.image) return null;
@@ -51,25 +34,23 @@ const getMainImageUrl = (images: Pet['images']) => {
 
 export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
   
-  // === 1. ВАРИАНТ: Кнопка "Добавить питомца" ===
+  // Кнопка добавления
   if (isAddButton) {
     return (
       <div 
         onClick={onClick}
-        className="aspect-[4/5] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition group gap-4 bg-white/50 min-h-[300px]"
+        className="aspect-[4/5] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition group gap-4 bg-white/50 min-h-[300px]"
       >
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-primary transition shadow-sm">
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-500 transition shadow-sm">
             <Plus size={32} />
         </div>
-        <span className="font-bold text-gray-500 group-hover:text-primary transition">Добавить питомца</span>
+        <span className="font-bold text-gray-500 group-hover:text-blue-500 transition">Добавить питомца</span>
       </div>
     );
   }
 
-  // Защита: если это не кнопка добавления, pet должен быть
   if (!pet) return null;
 
-  // === 2. ВАРИАНТ: Карточка питомца ===
   const mainImageUrl = getMainImageUrl(pet.images);
 
   // Стейты для модалки "Поделиться"
@@ -83,7 +64,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleShareClick = async (e: React.MouseEvent) => {
-      e.stopPropagation(); // Не открывать детальную карточку
+      e.stopPropagation(); 
       setIsShareModalOpen(true);
       
       if (shareLink) return;
@@ -102,7 +83,6 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
           if (!res.ok) throw new Error('Ошибка получения токена');
           const data = await res.json();
           
-          // Генерируем ссылку (замените /share на ваш реальный роут приема доступа)
           const fullLink = `${window.location.origin}/share?token=${data.token}`;
           setShareLink(fullLink);
 
@@ -141,7 +121,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
                alt={pet.name} 
              />
           ) : (
-             <div className="w-full h-full flex items-center justify-center text-gray-400">
+             <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
                 Нет фото
              </div>
           )}
@@ -165,15 +145,12 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
         <div className="absolute bottom-0 left-0 w-full p-5 text-white z-10">
           
           <div className="flex justify-between items-end">
-              {/* Имя и Возраст */}
               <div>
                   <h3 className="text-2xl font-bold leading-tight mb-1">{pet.name}</h3>
-                  <p className="text-sm text-white/80 font-medium">{pet.age}</p>
+                  <p className="text-sm text-white/80 font-medium">{pet.age || 'Возраст не указан'}</p>
               </div>
               
-              {/* Пол и Публичность (Справа) */}
               <div className="flex flex-col items-end gap-2 mb-1">
-                  {/* Пол */}
                   <div>
                       {pet.gender === 'M' ? (
                          <Mars className="text-blue-300" size={24} />
@@ -182,7 +159,6 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
                       )}
                   </div>
 
-                  {/* Метка "Публичный" (Под полом) */}
                   {pet.is_public && (
                       <div className="flex items-center gap-1 bg-green-500/20 px-2 py-0.5 rounded-md backdrop-blur-md border border-green-500/30">
                           <Globe size={10} className="text-green-300" />
@@ -192,18 +168,24 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
               </div>
           </div>
 
-          {/* Характеристики (если есть) */}
-          <div className="flex items-center gap-2 mt-3 overflow-hidden">
-             {pet.attributes?.slice(0, 3).map((attr, idx) => (
-                 <span key={idx} className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[80px]">
-                    {attr.value}
-                 </span>
-             ))}
-          </div>
+          {/* Характеристики (Показываем, только если они есть в PetBasic) 
+              В PetBasic атрибутов пока нет, но если добавишь в будущем - этот код не упадет
+          */}
+          {/* @ts-ignore: Временно игнорируем, если в PetBasic еще нет attributes */}
+          {pet.attributes && pet.attributes.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 overflow-hidden">
+                 {/* @ts-ignore */}
+                 {pet.attributes.slice(0, 3).map((attr, idx) => (
+                     <span key={idx} className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[80px]">
+                        {attr.value}
+                     </span>
+                 ))}
+              </div>
+          )}
         </div>
       </div>
 
-      {/* === МОДАЛЬНОЕ ОКНО "ПОДЕЛИТЬСЯ" === */}
+      {/* МОДАЛКА ПОДЕЛИТЬСЯ */}
       {isShareModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(false); }}>
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
