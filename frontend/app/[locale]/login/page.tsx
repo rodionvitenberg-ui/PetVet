@@ -29,15 +29,6 @@ export default function LoginPage() {
 
       if (!res.ok) throw new Error('Неверный логин или пароль');
       const data = await res.json();
-
-      // Вместо localStorage.setItem и router.push вручную, мы:
-      // 1. Делаем запрос за данными юзера (потому что /api/token/ возвращает только токены, а не профиль)
-      // Либо, если ты уверен, что хочешь быстрее - можно просто обновить токены и вызвать checkAuth.
-      // Но самый надежный способ - сразу загрузить юзера.
-      
-      // В твоем старом коде RegisterView возвращал объект { user: {...}, tokens: {...} }
-      // Но стандартный SimpleJWT /api/token/ возвращает ТОЛЬКО токены.
-      // Поэтому нам нужно сделать еще один запрос, чтобы получить User для обновления контекста.
       
       const userRes = await fetch(`${API_URL}/api/auth/me/`, {
           headers: { 'Authorization': `Bearer ${data.access}` }
@@ -53,7 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="bg-white p-8 rounded-xl shadow-md w-96">
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Вход в PetVet</h1>
         {error && (

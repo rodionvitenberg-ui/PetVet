@@ -40,7 +40,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${inter.className} bg-primary text-brand-text min-h-screen`}>
+      <body className={`${inter.className} bg-primary-foreground text-brand-text min-h-screen`}>
         
         <NextIntlClientProvider messages={messages}>
           

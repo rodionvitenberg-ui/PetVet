@@ -85,13 +85,8 @@ export default function DashboardPage() {
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
-                            {viewMode === 'my' ? 'Мои питомцы' : 'Мои пациенты'}
+                            {viewMode === 'my' ? 'Профили ваших любимых питомцев' : 'Профили ваших пациентов'}
                         </h1>
-                        <p className="text-gray-500 mt-1">
-                            {viewMode === 'my' 
-                                ? 'Управляйте профилями ваших любимцев' 
-                                : 'Медицинские карты животных, доступные вам'}
-                        </p>
                     </div>
 
                     {user?.is_veterinarian && (

@@ -206,13 +206,8 @@ export default function PlanboardPage() {
                     <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {viewMode === 'my' ? 'Медицинский план' : 'План лечения пациентов'}
+                                {viewMode === 'my' ? 'График процедур и назначений' : 'Контроль назначений и процедур пациентов'}
                             </h1>
-                            <p className="text-gray-500 mt-1">
-                                {viewMode === 'my' 
-                                    ? 'График процедур и назначений' 
-                                    : 'Контроль назначений и процедур пациентов'}
-                            </p>
                         </div>
 
                         {user?.is_veterinarian && (

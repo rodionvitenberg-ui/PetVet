@@ -2,19 +2,10 @@ import React from 'react';
 import CategoryFilter from '@/components/CategoryFilter';
 import PetCard from '@/components/dashboard/PetCard';
 import { getTranslations } from 'next-intl/server';
-
-interface Pet {
-  id: number;
-  name: string;
-  breed: string;
-  image?: string;
-  status?: string;
-  gender?: string;
-  birth_date?: string;
-}
+import { PetBasic } from '@/types/pet';
 
 // Функция получения данных (выполняется на сервере)
-async function getPets(locale: string): Promise<Pet[]> {
+async function getPets(locale: string): Promise<PetBasic[]> {
   // Если переменная окружения не задана, используем локалхост
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   

@@ -30,7 +30,7 @@ export default function BecomeVetPage() {
             const token = localStorage.getItem('access_token');
             if (!token) return;
             try {
-                const res = await fetch(`${API_URL}/api/verification/current_status/`, {
+                const res = await fetch(`${API_URL}/api/auth/verification/current_status/`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -63,7 +63,7 @@ export default function BecomeVetPage() {
             const formData = new FormData();
             formData.append('document_image', file);
 
-            const res = await fetch(`${API_URL}/api/verification/`, {
+            const res = await fetch(`${API_URL}/api/auth/verification/`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -88,14 +88,14 @@ export default function BecomeVetPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-24 pb-10 px-4">
+        <div className="min-h-screen bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed pt-24 pb-10 px-4">
             <div className="max-w-2xl mx-auto">
                 <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 transition">
                     <ChevronLeft size={20} /> Назад
                 </button>
 
                 <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Стать ветеринаром</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Пройти верификацию</h1>
                     <p className="text-gray-500 mb-8">
                         Для доступа к функциям врача нам необходимо подтвердить вашу квалификацию.
                     </p>
