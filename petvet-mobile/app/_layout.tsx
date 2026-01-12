@@ -3,9 +3,9 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
-import "../global.css"; // Твои стили
+import { initDatabase } from '../database/init';
+import "../global.css";
 
-// Отдельный компонент для логики защиты роутов
 const InitialLayout = () => {
   const { userToken, isLoading } = useAuth();
   const segments = useSegments();
@@ -14,13 +14,14 @@ const InitialLayout = () => {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === 'login'; // Мы сейчас на экране логина?
+    const inAuthGroup = segments[0] === 'login';
 
-    if (!userToken && !inAuthGroup) {
-      // Если нет токена и мы не на логине — гони на логин
-      router.replace('/login');
-    } else if (userToken && inAuthGroup) {
-      // Если есть токен, а мы на логине — гони домой
+    // ЛОГИКА ИЗМЕНЕНА:
+    // Мы больше НЕ выкидываем на логин, если токена нет.
+    // Пускаем всех (Slot отрендерит то, что запросили).
+    
+    // Единственное правило: если юзер УЖЕ залогинен, нечего ему делать на экране входа
+    if (userToken && inAuthGroup) {
       router.replace('/(tabs)');
     }
   }, [userToken, isLoading, segments]);
@@ -33,10 +34,14 @@ const InitialLayout = () => {
     );
   }
 
-  return <Slot />; // Slot — это место, куда подставляется текущий экран
+  return <Slot />;
 };
 
 export default function RootLayout() {
+  useEffect(() => {
+    initDatabase();
+  }, []);
+
   return (
     <AuthProvider>
       <InitialLayout />

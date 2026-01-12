@@ -11,14 +11,13 @@ import {
     Check,
     Globe 
 } from 'lucide-react';
-// Импортируем общий тип
+import { useAuth } from '@/components/providers/AuthProvider'; // <--- [1] Импорт
 import { PetBasic } from '@/types/pet'; 
-
-// Локальные интерфейсы удаляем, используем PetBasic
 
 interface PetCardProps {
   isAddButton?: boolean;
-  pet?: PetBasic; // <--- Используем PetBasic
+  addButtonText?: string;
+  pet?: PetBasic; 
   onClick?: () => void;
 }
 
@@ -32,9 +31,10 @@ const getMainImageUrl = (images: PetBasic['images']) => {
     return `${API_URL}${mainImage.image}`;
 };
 
-export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
-  
-  // Кнопка добавления
+export default function PetCard({ isAddButton, addButtonText, pet, onClick }: PetCardProps) {
+  const { user } = useAuth(); // <--- [2] Получаем текущего юзера
+
+  // Логика кнопки "Добавить"
   if (isAddButton) {
     return (
       <div 
@@ -44,7 +44,9 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-500 transition shadow-sm">
             <Plus size={32} />
         </div>
-        <span className="font-bold text-gray-500 group-hover:text-blue-500 transition">Добавить питомца</span>
+        <span className="font-bold text-gray-500 group-hover:text-blue-500 transition">
+            {addButtonText || 'Добавить питомца'}
+        </span>
       </div>
     );
   }
@@ -53,7 +55,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
 
   const mainImageUrl = getMainImageUrl(pet.images);
 
-  // Стейты для модалки "Поделиться"
+  // Стейты модалки
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -62,6 +64,12 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
   const [isLoadingLink, setIsLoadingLink] = useState(false);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [isCopied, setIsCopied] = useState(false);
+
+  // === [3] ПРОВЕРКА ДОСТУПА ===
+  // Кнопку видит: 
+  // 1. Владелец (pet.owner === user.id)
+  // 2. Врач, который создал карту (pet.created_by === user.id)
+  const canShare = user && (user.id === pet.owner || user.id === pet.created_by);
 
   const handleShareClick = async (e: React.MouseEvent) => {
       e.stopPropagation(); 
@@ -130,16 +138,18 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
         {/* Градиент */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 transition-opacity duration-300" />
 
-        {/* ВЕРХНИЙ ПРАВЫЙ УГОЛ: Кнопка "Поделиться" */}
-        <div className="absolute top-4 right-4 z-10">
-           <button 
-             onClick={handleShareClick}
-             className="bg-white/20 hover:bg-white/40 backdrop-blur-md p-2 rounded-full text-white transition-all shadow-sm group-hover:scale-110"
-             title="Поделиться профилем"
-           >
-             <Share2 size={18} />
-           </button>
-        </div>
+        {/* === [4] КНОПКА ПОДЕЛИТЬСЯ (Только для своих) === */}
+        {canShare && (
+            <div className="absolute top-4 right-4 z-10">
+            <button 
+                onClick={handleShareClick}
+                className="bg-white p-2.5 rounded-full text-blue-600 shadow-md hover:bg-blue-50 hover:scale-110 transition-all duration-300 group/btn"
+                title="Поделиться профилем"
+            >
+                <Share2 size={18} className="transition-transform group-hover/btn:-rotate-12" />
+            </button>
+            </div>
+        )}
 
         {/* НИЖНЯЯ ЧАСТЬ: Информация */}
         <div className="absolute bottom-0 left-0 w-full p-5 text-white z-10">
@@ -168,13 +178,9 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
               </div>
           </div>
 
-          {/* Характеристики (Показываем, только если они есть в PetBasic) 
-              В PetBasic атрибутов пока нет, но если добавишь в будущем - этот код не упадет
-          */}
-          {/* @ts-ignore: Временно игнорируем, если в PetBasic еще нет attributes */}
+          {/* Характеристики */}
           {pet.attributes && pet.attributes.length > 0 && (
               <div className="flex items-center gap-2 mt-3 overflow-hidden">
-                 {/* @ts-ignore */}
                  {pet.attributes.slice(0, 3).map((attr, idx) => (
                      <span key={idx} className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[80px]">
                         {attr.value}
@@ -185,7 +191,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
         </div>
       </div>
 
-      {/* МОДАЛКА ПОДЕЛИТЬСЯ */}
+      {/* МОДАЛКА ПОДЕЛИТЬСЯ (Оставляем как есть, она работает отлично) */}
       {isShareModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(false); }}>
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -212,7 +218,7 @@ export default function PetCard({ isAddButton, pet, onClick }: PetCardProps) {
                   ) : shareLink ? (
                       <div className="space-y-4">
                           <p className="text-sm text-gray-600 leading-relaxed">
-                              Отправьте эту ссылку ветеринару, чтобы предоставить ему доступ к медкарте.
+                              Отправьте эту ссылку ветеринару (или другому врачу), чтобы предоставить доступ к медкарте.
                           </p>
                           
                           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 break-all text-sm text-gray-800 font-mono select-all relative group">

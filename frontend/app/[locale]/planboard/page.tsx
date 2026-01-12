@@ -5,7 +5,8 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import PlanboardCard from '@/components/planboard/PlanboardCard';
 import CreateHealthEventModal from '@/components/dashboard/CreateHealthEventModal';
 import { HealthEvent } from '@/types/event';
-import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon } from 'lucide-react';
+import { PetBasic } from '@/types/pet'; // Импортируем готовый тип
+import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon, Users, PawPrint } from 'lucide-react';
 
 // === Импорты DnD ===
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -19,12 +20,6 @@ const getMediaUrl = (url: string | undefined | null) => {
     return `${API_URL}${url}`;
 };
 
-interface PetBasic {
-    id: number;
-    name: string;
-    images?: { id: number; image: string; is_main: boolean }[];
-}
-
 export default function PlanboardPage() {
     const { user } = useAuth();
     const [pets, setPets] = useState<PetBasic[]>([]);
@@ -34,6 +29,23 @@ export default function PlanboardPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
     const [editingEvent, setEditingEvent] = useState<HealthEvent | null>(null);
+
+    // === ЛОГИКА ПЕРЕКЛЮЧЕНИЯ (MY vs PATIENTS) ===
+    const [viewMode, setViewMode] = useState<'my' | 'patients'>('my');
+
+    // Фильтрация списков
+    // Используем user?.id для определения владельца
+    const myPets = pets.filter(p => p.owner === user?.id);
+    const patients = pets.filter(p => p.owner !== user?.id);
+
+    // Авто-переключение на пациентов, если своих питомцев нет (UX как на дашборде)
+    useEffect(() => {
+        if (!loading && user?.is_veterinarian && myPets.length === 0 && patients.length > 0) {
+            setViewMode('patients');
+        }
+    }, [loading, user, myPets.length, patients.length]);
+
+    const displayedPets = viewMode === 'my' ? myPets : patients;
 
     // Сенсоры для DnD (Мышь и Тач)
     const sensors = useSensors(
@@ -99,9 +111,8 @@ export default function PlanboardPage() {
         const currentEvent = events.find(e => e.id === eventId);
         if (!currentEvent) return;
 
-        // Не даем перетаскивать чужие ивенты к другому питомцу (опционально)
+        // Не даем перетаскивать чужие ивенты к другому питомцу
         if (currentEvent.pet.id.toString() !== petIdStr) {
-             // Можно добавить алерт, но лучше просто игнорировать
              return; 
         }
 
@@ -115,17 +126,14 @@ export default function PlanboardPage() {
         if (targetType === 'history') {
             newStatus = 'completed';
             isCompleted = true;
-            // Дату не меняем, пусть остается когда было сделано
         } else if (targetType === 'urgent') {
-            newStatus = 'planned'; // Как просили в промпте
+            newStatus = 'planned'; 
             isCompleted = false;
-            // Чтобы карточка попала в фильтр "Urgent" (<= 3 дня), ставим дату "Сегодня"
             newDate = now.toISOString(); 
         } else if (targetType === 'plans') {
-            newStatus = 'planned'; // Как просили в промпте
+            newStatus = 'planned'; 
             isCompleted = false;
-            // Чтобы карточка попала в фильтр "Plans" (> 3 дня), ставим дату "Через 4 дня"
-            // (Только если текущая дата ивента уже не в будущем)
+            
             const eventDate = new Date(currentEvent.date);
             const urgentThreshold = new Date();
             urgentThreshold.setDate(now.getDate() + 3);
@@ -149,7 +157,7 @@ export default function PlanboardPage() {
         updateEventApi(eventId, {
             status: newStatus,
             is_completed: isCompleted,
-            date: newDate.replace('T', ' ').slice(0, 16) // Формат для Django
+            date: newDate.replace('T', ' ').slice(0, 16) 
         });
     };
 
@@ -194,12 +202,51 @@ export default function PlanboardPage() {
             <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
                 <div className="max-w-[1600px] mx-auto">
                     
-                    <header className="mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Медицинский план</h1>
-                        <p className="text-gray-500 mt-1">График процедур и назначений</p>
+                    {/* ХЕДЕР С ПЕРЕКЛЮЧАТЕЛЕМ */}
+                    <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                {viewMode === 'my' ? 'Медицинский план' : 'План лечения пациентов'}
+                            </h1>
+                            <p className="text-gray-500 mt-1">
+                                {viewMode === 'my' 
+                                    ? 'График процедур и назначений' 
+                                    : 'Контроль назначений и процедур пациентов'}
+                            </p>
+                        </div>
+
+                        {user?.is_veterinarian && (
+                            <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm self-start md:self-auto">
+                                <button
+                                    onClick={() => setViewMode('my')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                                        viewMode === 'my' 
+                                        ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <PawPrint size={16} /> Личные
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('patients')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                                        viewMode === 'patients' 
+                                        ? 'bg-emerald-50 text-emerald-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Users size={16} /> Пациенты
+                                    {patients.length > 0 && (
+                                        <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1.5 rounded-full">
+                                            {patients.length}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </header>
 
-                    {/* Заголовки (Desktop) */}
+                    {/* Заголовки таблицы (Desktop) */}
                     <div className="hidden md:grid grid-cols-[180px_1fr_1fr_1fr] gap-6 mb-4 px-4">
                         <div></div> 
                         <div className="flex items-center gap-2 text-red-600 font-bold text-sm uppercase tracking-wider pl-1">
@@ -214,11 +261,11 @@ export default function PlanboardPage() {
                     </div>
 
                     <div className="space-y-12 md:space-y-8">
-                        {pets.map(pet => {
+                        {displayedPets.map(pet => {
                             const petEvents = events.filter(e => e.pet.id === pet.id);
                             const mainImage = pet.images?.find(img => img.is_main)?.image || pet.images?.[0]?.image;
 
-                            // Фильтрация
+                            // Фильтрация событий
                             const historyEvents = petEvents.filter(e => 
                                 e.is_completed || e.status === 'completed' || e.status === 'cancelled'
                             ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
@@ -245,6 +292,14 @@ export default function PlanboardPage() {
                                                     <img src={getMediaUrl(mainImage)!} alt={pet.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gray-50"><ImageIcon size={32} /></div>
+                                                )}
+                                                
+                                                {/* Бейдж владельца для режима пациентов */}
+                                                {viewMode === 'patients' && (
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-2 py-1 truncate">
+                                                        {pet.owner_info?.is_temporary ? "Врем: " : "Вл: "}
+                                                        {pet.owner_info?.name || pet.temp_owner_name}
+                                                    </div>
                                                 )}
                                             </div>
                                             <div className="w-full">
@@ -313,8 +368,6 @@ export default function PlanboardPage() {
                                             </div>
                                             <div className="space-y-3 min-h-[50px]">
                                                 {historyEvents.map(ev => (
-                                                    // Отмененные ивенты можно тоже таскать, если нужно.
-                                                    // Если не нужно - добавить disabled={true}
                                                     <DraggableCard key={ev.id} id={ev.id}>
                                                         <div onClick={() => handleEditClick(ev)}>
                                                             <PlanboardCard event={ev} onToggle={handleToggleStatus} variant="completed" />
@@ -333,6 +386,12 @@ export default function PlanboardPage() {
                                 </div>
                             );
                         })}
+                        
+                        {displayedPets.length === 0 && (
+                            <div className="text-center py-12">
+                                <p className="text-gray-400">В этом списке пока нет животных</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

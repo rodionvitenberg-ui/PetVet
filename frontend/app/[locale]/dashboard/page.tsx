@@ -6,8 +6,9 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Plus, Users, PawPrint } from 'lucide-react';
 import PetCard from '@/components/dashboard/PetCard';
 import CreatePetModal from '@/components/dashboard/CreatePetModal';
+import CreatePatientModal from '@/components/dashboard/CreatePatientModal'; // <--- 1. Импорт
 import PetDetailsModal from '@/components/dashboard/PetDetailsModal';
-import PetsActionBar from '@/components/dashboard/PetsActionBar'; // <--- Импорт панели
+import PetsActionBar from '@/components/dashboard/PetsActionBar';
 import { PetBasic } from '@/types/pet';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -20,6 +21,7 @@ export default function DashboardPage() {
     
     // UI States
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreatePatientModalOpen, setIsCreatePatientModalOpen] = useState(false); // <--- 2. Новое состояние
     const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -76,12 +78,10 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto">
                 
-                {/* 1. ПАНЕЛЬ ДЕЙСТВИЙ (ПОИСК / ИИ) — ТЕПЕРЬ В САМОМ ВЕРХУ */}
                 <div className="mb-8">
                     <PetsActionBar />
                 </div>
                 
-                {/* 2. ЗАГОЛОВОК И ПЕРЕКЛЮЧАТЕЛИ */}
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
@@ -125,18 +125,36 @@ export default function DashboardPage() {
                     )}
                 </header>
 
-                {/* 3. СПИСОК ПИТОМЦЕВ */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     
+                    {/* Кнопка создания СВОЕГО питомца */}
                     {viewMode === 'my' && (
                         <PetCard 
                             isAddButton 
+                            addButtonText="Добавить питомца"
                             onClick={() => {
                                 const isMobile = window.innerWidth < 768;
                                 if (isMobile) {
                                     router.push('/pets/create');
                                 } else {
                                     setIsCreateModalOpen(true);
+                                }
+                            }} 
+                        />
+                    )}
+
+                    {/* Кнопка создания ПАЦИЕНТА (для ветеринара) */}
+                    {viewMode === 'patients' && user?.is_veterinarian && (
+                        <PetCard 
+                            isAddButton
+                            addButtonText="Новый пациент"
+                            onClick={() => {
+                                const isMobile = window.innerWidth < 768;
+                                // 3. Логика переключения: Страница (моб) или Модалка (десктоп)
+                                if (isMobile) {
+                                    router.push('/pets/create-client');
+                                } else {
+                                    setIsCreatePatientModalOpen(true);
                                 }
                             }} 
                         />
@@ -149,16 +167,19 @@ export default function DashboardPage() {
                                 onClick={() => handlePetClick(pet.id)} 
                             />
                             
-                            {viewMode === 'patients' && pet.owner_info && (
+                            {viewMode === 'patients' && (
                                 <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-medium z-20 flex items-center gap-1">
-                                    <Users size={10} className="text-emerald-400" />
-                                    <span>Вл: {pet.owner_info.name}</span>
+                                    <Users size={10} className={pet.owner_info?.is_temporary ? "text-yellow-400" : "text-emerald-400"} />
+                                    <span>
+                                        {pet.owner_info?.is_temporary ? "Вл (Врем): " : "Вл: "}
+                                        {pet.owner_info?.name || pet.temp_owner_name}
+                                    </span>
                                 </div>
                             )}
                         </div>
                     ))}
 
-                    {displayedPets.length === 0 && viewMode === 'patients' && (
+                    {displayedPets.length === 0 && viewMode === 'patients' && !user?.is_veterinarian && (
                         <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
                             <Users size={48} className="mx-auto mb-3 opacity-50" />
                             <p>У вас пока нет пациентов.</p>
@@ -171,6 +192,13 @@ export default function DashboardPage() {
                 <CreatePetModal 
                     isOpen={isCreateModalOpen} 
                     onClose={() => setIsCreateModalOpen(false)} 
+                    onSuccess={fetchPets}
+                />
+                
+                {/* 4. Модалка создания пациента */}
+                <CreatePatientModal
+                    isOpen={isCreatePatientModalOpen}
+                    onClose={() => setIsCreatePatientModalOpen(false)}
                     onSuccess={fetchPets}
                 />
                 

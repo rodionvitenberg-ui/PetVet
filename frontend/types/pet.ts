@@ -1,3 +1,5 @@
+// types/pet.ts
+
 import { HealthEvent } from './event';
 
 export interface PetImage {
@@ -10,9 +12,9 @@ export type ContactType = 'phone' | 'whatsapp' | 'telegram' | 'instagram' | 'ema
 export interface UserContact {
     id: number;
     type: ContactType;
-    type_display: string; // "WhatsApp" (с бэка)
+    type_display: string;
     value: string;
-    label?: string; // "Рабочий"
+    label?: string;
 }
 
 export interface UserProfile {
@@ -24,31 +26,23 @@ export interface UserProfile {
     clinic_name?: string;
     city?: string;
     is_veterinarian: boolean;
-    
-    // [NEW] Заменяем жесткие поля на массив
-    contacts: UserContact[]; 
-    
-    // Старые поля можно оставить как опциональные fallback, если база еще не мигрирована полностью
-    phone?: string; 
+    contacts: UserContact[];
+    phone?: string;
+    is_temporary?: boolean; // <--- Поле, о котором ругался TS в page.tsx
 }
 
-// Базовый питомец (для списков Dashboard)
-export interface PetBasic {
-    id: number;
+// Интерфейс для временного владельца
+export interface TemporaryOwnerProfile {
+    id: null;
     name: string;
-    owner: number; // ID владельца
-    owner_info?: UserProfile; // <-- Используем UserProfile вместо обрезанного OwnerInfo
-    images?: PetImage[];
-    is_active: boolean;
-    gender: 'M' | 'F';
-    age?: string;
-    is_public: boolean;
-    clinic_name?: string; // Текстовое поле (старое)
-    attributes?: { attribute: { name: string }; value: string }[];
+    phone?: string | null;
+    avatar?: string | null;
+    about?: string;
+    is_temporary: boolean;
 }
 
-// === ТИПЫ ДЛЯ ДЕТАЛЬНОЙ АНКЕТЫ (PetDetails) ===
-
+// === ТИПЫ АТРИБУТОВ ===
+// Выносим их наверх, чтобы использовать и в Basic, и в Detail
 export interface AttributeType {
     name: string;
     slug: string;
@@ -58,6 +52,28 @@ export interface AttributeType {
 export interface PetAttribute {
     attribute: AttributeType;
     value: string;
+}
+
+// Базовый питомец
+export interface PetBasic {
+    id: number;
+    name: string;
+    owner: number | null;
+    owner_info?: UserProfile | TemporaryOwnerProfile;
+    images?: PetImage[];
+    is_active: boolean;
+    gender: 'M' | 'F';
+    age?: string;
+    is_public: boolean;
+    clinic_name?: string;
+    
+    // Новые поля
+    temp_owner_name?: string;
+    temp_owner_phone?: string;
+    created_by?: number; // <--- [NEW] ID врача-создателя (для прав доступа)
+
+    // [FIX] Теперь строго типизируем атрибуты, чтобы TS не ругался
+    attributes?: PetAttribute[]; 
 }
 
 export interface PetTag {
@@ -80,23 +96,13 @@ export interface HealthStatus {
     color: string;
 }
 
-// Полная анкета питомца
-// Наследуем от PetBasic, чтобы не дублировать общие поля
 export interface PetDetail extends PetBasic {
     birth_date?: string;
-    attributes: PetAttribute[];
     tags: PetTag[];
     description?: string;
-    
     mother_info?: ParentInfo;
     father_info?: ParentInfo;
     health_status?: HealthStatus;
-    
-    // [NEW] Список врачей, имеющих доступ (для кликабельной клиники)
     active_vets: UserProfile[]; 
-    
-    // События (нужны импорт из event.ts, но чтобы избежать циклической зависимости,
-    // в компоненте часто используют any или отдельный тип. 
-    // Пока оставим опциональным any или подключим позже).
-    recent_events?: HealthEvent[]; 
+    recent_events?: any[]; 
 }

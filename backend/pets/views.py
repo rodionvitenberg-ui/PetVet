@@ -93,26 +93,19 @@ class PetViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        
-        # === [NEW] Логика создания Теневой Карты ===
-        # Если пользователь - Врач, И он передал телефон клиента (temp_owner_phone),
-        # но НЕ передал owner (или мы его игнорируем) -> создаем карту без владельца.
-        
         is_shadow_create = False
         
         if user.is_veterinarian:
-            # Проверяем, прислал ли фронт временные данные
             temp_phone = serializer.validated_data.get('temp_owner_phone')
             if temp_phone:
                 is_shadow_create = True
         
         if is_shadow_create:
             serializer.save(
-                owner=None,       # Владельца нет
-                created_by=user   # Запоминаем врача
+                owner=None,   
+                created_by=user 
             )
         else:
-            # Стандартный сценарий: владелец = текущий юзер
             serializer.save(owner=user)
 
     # === [NEW FEATURE] 1. Генерация QR-токена ===
@@ -124,7 +117,7 @@ class PetViewSet(viewsets.ModelViewSet):
         """
         pet = self.get_object()
         
-        if pet.owner != request.user:
+        if pet.owner != request.user and pet.created_by != request.user:
             return Response({"error": "Только владелец может делиться доступом"}, status=403)
         
         # Подписываем ID питомца. Токен будет валиден, пока мы его проверяем (например, 1 час).
