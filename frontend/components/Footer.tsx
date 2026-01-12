@@ -25,7 +25,7 @@ export default function Footer() {
                 {/* 2. ЗАМЕНЯЕМ ИКОНКУ НА ЛОГОТИП */}
                 {/* Убедись, что имя файла совпадает (например, logo.png, logo.svg) */}
                 <Image 
-                    src="/logo.png" 
+                    src="/logo1.png" 
                     alt="PetVet Logo" 
                     width={40} 
                     height={40} 
@@ -35,7 +35,6 @@ export default function Footer() {
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">
                 Современная платформа для заботы о здоровье ваших питомцев. 
-                Цифровая медкарта, поиск врачей и история событий в одном месте.
             </p>
         </div>
 
@@ -80,10 +79,6 @@ export default function Footer() {
                     <Mail size={18} className="shrink-0 mt-0.5" />
                     <a href="mailto:support@petvet.app" className="hover:text-white transition">support@petvet.app</a>
                 </li>
-                <li className="flex items-start gap-3">
-                    <MapPin size={18} className="shrink-0 mt-0.5" />
-                    <span>Бишкек, Кыргызстан</span>
-                </li>
             </ul>
             
             <div className="flex gap-4 mt-6">
@@ -99,7 +94,7 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-8 border-t border-gray-800 text-sm text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
         <p>&copy; {currentYear} PetVet. Все права защищены.</p>
-        <p className="opacity-50">Designed for Pets & Vets</p>
+        <p className="opacity-50">Powered by Debell</p>
       </div>
     </footer>
   );

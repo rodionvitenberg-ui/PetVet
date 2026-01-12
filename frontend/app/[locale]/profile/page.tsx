@@ -5,8 +5,9 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { 
     Camera, Save, Lock, Trash2, Plus, 
     Phone, Mail, MessageCircle, Send, Instagram, Globe, 
-    Loader2, Briefcase, MapPin, User
+    Loader2, Briefcase, MapPin, User, AlertTriangle // <--- 1. Добавлена иконка
 } from 'lucide-react';
+import DeleteAccountModal from '@/components/DeleteAccountModal';
 
 // === ТИПЫ ===
 type ContactType = 'phone' | 'whatsapp' | 'telegram' | 'instagram' | 'email' | 'site' | 'vk' | 'other';
@@ -47,7 +48,7 @@ export default function ProfilePage() {
     phone: '',     // Основной (личный) телефон
     city: '',
     clinic_name: '',
-    about: '',     // [NEW] О себе
+    about: '',     // О себе
     email: '', 
   });
 
@@ -66,6 +67,11 @@ export default function ProfilePage() {
       label: ''
   });
   const [isAddingContact, setIsAddingContact] = useState(false);
+
+  // === STATE: УДАЛЕНИЕ АККАУНТА (NEW) ===
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
 
   // === ЗАГРУЗКА ДАННЫХ ===
   useEffect(() => {
@@ -212,6 +218,41 @@ export default function ProfilePage() {
           alert("Ошибка удаления");
       }
   };
+
+  // === ЛОГИКА УДАЛЕНИЯ АККАУНТА (NEW) ===
+// 1. Просто открываем модалку при клике на кнопку в "Опасной зоне"
+const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+};
+
+// 2. Эта функция вызывается уже внутри модалки при подтверждении
+const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(`${API_URL}/api/auth/me/`, {
+            method: 'DELETE',
+            headers: { 
+                'Authorization': `Bearer ${token}` 
+            }
+        });
+
+        if (res.ok) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login'; 
+        } else {
+            alert("Не удалось удалить аккаунт. Попробуйте позже.");
+            setIsDeleting(false); // Снимаем лоадер только если ошибка
+            setIsDeleteModalOpen(false); // Закрываем модалку
+        }
+    } catch (e) {
+        console.error("Delete error", e);
+        alert("Произошла ошибка соединения");
+        setIsDeleting(false);
+        setIsDeleteModalOpen(false);
+    }
+};
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
@@ -399,7 +440,7 @@ export default function ProfilePage() {
             </form>
 
 
-            {/* 1. Блок Контактов (Новый) */}
+            {/* 1. Блок Контактов */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Phone size={20} className="text-blue-500" /> Каналы связи
@@ -479,8 +520,40 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* 3. ОПАСНАЯ ЗОНА (NEW) */}
+            <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
+                <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
+                    <AlertTriangle size={20} /> Опасная зона
+                </h3>
+                <p className="text-sm text-red-700/80 mb-6 leading-relaxed">
+                    Удаление аккаунта приведет к полному стиранию всех ваших личных данных, 
+                    профилей питомцев и истории медицинских записей. <br/>
+                    <span className="font-bold">Отменить это действие будет невозможно.</span>
+                </p>
+
+                <div className="flex justify-end">
+{/* Внутри "Опасной зоны" меняем onClick */}
+<button 
+    onClick={handleDeleteClick} // <-- Теперь просто открываем модалку
+    // disabled={isDeleting} <-- Можно убрать disabled, так как лоадер теперь в модалке
+    className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition shadow-sm flex items-center gap-2"
+>
+    <Trash2 size={18} />
+    Удалить аккаунт
+</button>
+                </div>
+            </div>
+
         </div>
       </div>
+      {/* МОДАЛЬНОЕ ОКНО */}
+    <DeleteAccountModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+    />
     </div>
   );
 }
