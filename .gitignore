@@ -1,0 +1,26 @@
+# === Общие настройки для всех папок ===
+# Игнорировать все .env файлы в любой вложенности
+.env
+.env.*
+!.env.example
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Python / Django (для папки backend)
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+db.sqlite3
+
+# Node / JS (для frontend и mobile)
+node_modules/
+npm-debug.log
+yarn-error.log
+.next/
+dist/
+build/
+.expo/

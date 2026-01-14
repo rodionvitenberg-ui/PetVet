@@ -386,8 +386,18 @@ class AIConsultView(APIView):
         if not pet_id or not query:
             return Response({'error': 'pet_id and query are required'}, status=400)
 
-        # Проверка доступа
-        if not request.user.pets.filter(id=pet_id).exists():
+        # === [FIX] ИСПРАВЛЕННАЯ ПРОВЕРКА ДОСТУПА ===
+        # Проверяем права так же, как в PetViewSet:
+        # 1. Владелец
+        # 2. Есть активный доступ (shared access)
+        # 3. Создатель "теневой" карты (без владельца)
+        has_access = Pet.objects.filter(id=pet_id).filter(
+            Q(owner=request.user) | 
+            Q(access_grants__user=request.user, access_grants__is_active=True) |
+            Q(created_by=request.user, owner__isnull=True)
+        ).exists()
+
+        if not has_access:
              return Response({'error': 'Access denied'}, status=403)
 
         # Сборка контекста
@@ -401,10 +411,9 @@ class AIConsultView(APIView):
              
         genai.configure(api_key=settings.GEMINI_API_KEY)
         
-        # 2. Инициализируем модель с настройкой JSON Mode
-        # Это заставляет модель саму следить за скобками
+        # Инициализируем модель с настройкой JSON Mode
         model = genai.GenerativeModel(
-            'gemini-2.5-flash-lite', # Или твоя версия (gemini-2.5-flash-lite)
+            'gemini-2.0-flash', # Рекомендую 2.0-flash, она быстрее и стабильнее с JSON
             generation_config={"response_mime_type": "application/json"} 
         )
 
@@ -428,8 +437,8 @@ class AIConsultView(APIView):
 Ответь ТОЛЬКО валидным JSON.
 {{
   "urgency": "low" | "medium" | "high", 
-  "title": "Короткий, но емкий заголовок (например: 'Похоже на половую охоту')",
-  "content": "Текст ответа. \n\n1. **Основная версия:** ... \n2. **Альтернатива (Болезнь):** ... \n3. **Что делать:** ..."
+  "title": "Короткий заголовок",
+  "content": "Текст ответа. Использйте переносы строки \\n для форматирования."
 }}
 """
 
@@ -437,8 +446,7 @@ class AIConsultView(APIView):
             response = model.generate_content(final_prompt)
             raw_text = response.text
 
-            # 3. ХИРУРГИЧЕСКАЯ ОЧИСТКА (Regex)
-            # Находим всё, что лежит между первой { и последней }
+            # Regex поиск JSON на случай, если модель добавит markdown ```json ... ```
             match = re.search(r'\{.*\}', raw_text, re.DOTALL)
             
             if match:
@@ -446,16 +454,15 @@ class AIConsultView(APIView):
                 ai_data = json.loads(json_str)
                 return Response(ai_data)
             else:
-                # Если regex не нашел JSON, пробуем распарсить как есть (на всякий случай)
                 ai_data = json.loads(raw_text)
                 return Response(ai_data)
 
         except json.JSONDecodeError:
-            print(f"JSON Parse Error. Raw text was: {raw_text}") # Лог в терминал
+            print(f"JSON Parse Error. Raw text was: {raw_text}") 
             return Response({
                 'urgency': 'medium',
                 'title': 'Ошибка обработки',
-                'content': f"Нейросеть ответила, но формат нарушен. Попробуйте еще раз.\n\n(Технические детали: {raw_text[:100]}...)"
+                'content': "Нейросеть ответила, но формат нарушен. Попробуйте еще раз."
             })
         except Exception as e:
             print(f"GenAI Error: {e}")
