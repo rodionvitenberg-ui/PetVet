@@ -1,8 +1,10 @@
 import React from 'react';
-import CategoryFilter from '@/components/CategoryFilter';
-import PetCard from '@/components/dashboard/PetCard';
 import { getTranslations } from 'next-intl/server';
 import { PetBasic } from '@/types/pet';
+import { HeroSection } from '@/components/home/HeroSection';
+import { PetsGrid } from '@/components/home/PetsGrid';
+import { AboutProject } from '@/components/home/AboutProject';
+import { ForVeterinarians } from '@/components/home/ForVeterinarians';
 
 // Функция получения данных (выполняется на сервере)
 async function getPets(locale: string): Promise<PetBasic[]> {
@@ -50,27 +52,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* Фильтр категорий */}
 
       <main className="max-w-[1920px] mx-auto px-4 sm:px-8 py-6">
-        
-        {/* Заголовок секции (берется из JSON-файлов переводов) */}
-        <div className="mb-8 mt-4">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">{t('title')}</h1>
-            <p className="text-gray-500 mt-2 dark:text-gray-400">{t('subtitle')}</p>
-        </div>
-
-        {/* Сетка питомцев */}
-        {publicPets.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {publicPets.map((pet) => (
-               <PetCard key={pet.id} pet={pet} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 text-gray-400">
-             {/* Можно также добавить перевод для "Ничего не найдено" */}
-             <p>{t('noPetsFound') || 'Пока нет питомцев'}</p>
-          </div>
-        )}
-
+        <HeroSection />
+        <PetsGrid />
+        <AboutProject />
+        <ForVeterinarians />
       </main>
     </div>
   );

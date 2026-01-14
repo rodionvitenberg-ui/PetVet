@@ -1,0 +1,227 @@
+import React from 'react';
+import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { PetDetail, UserProfile, TemporaryOwnerProfile, PetAttribute } from '@/types/pet';
+
+// 1. Регистрируем шрифты (Roboto)
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
+  ],
+});
+
+const styles = StyleSheet.create({
+  page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 30, fontFamily: 'Roboto' },
+  
+  // Header
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#3B82F6', paddingBottom: 10 },
+  headerLeft: { flexDirection: 'column' },
+  title: { fontSize: 24, color: '#111827', fontWeight: 700 },
+  subtitle: { fontSize: 10, color: '#6B7280', marginTop: 2 },
+  headerId: { fontSize: 10, color: '#3B82F6' },
+
+  // Identity Section
+  identitySection: { flexDirection: 'row', marginBottom: 20 },
+  imageContainer: { width: 120, height: 120, marginRight: 20, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F3F4F6' },
+  petImage: { width: '100%', height: '100%', objectFit: 'cover' },
+  
+  infoGrid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
+  infoItem: { width: '50%', marginBottom: 10 },
+  label: { fontSize: 8, color: '#9CA3AF', marginBottom: 2, textTransform: 'uppercase' },
+  value: { fontSize: 11, color: '#1F2937', fontWeight: 700 },
+  
+  // Owner Section
+  ownerSection: { backgroundColor: '#EFF6FF', padding: 10, borderRadius: 5, marginBottom: 20 },
+  ownerTitle: { fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 5 },
+  ownerRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  ownerText: { fontSize: 10, color: '#1F2937' },
+  
+  // History Table
+  tableTitle: { fontSize: 14, fontWeight: 700, marginBottom: 10, color: '#111827' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#F3F4F6', padding: 6, borderRadius: 4 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', padding: 6 },
+  colDate: { width: '20%', fontSize: 9 },
+  colType: { width: '25%', fontSize: 9 },
+  colEvent: { width: '55%', fontSize: 9 },
+  
+  // Footer
+  footer: { position: 'absolute', bottom: 30, left: 30, right: 30, fontSize: 8, textAlign: 'center', color: '#9CA3AF' },
+});
+
+// === ХЕЛПЕРЫ ===
+
+const formatDate = (dateString: string | undefined | null, locale: string) => {
+    if (!dateString) return '-';
+    // Пытаемся распарсить дату
+    try {
+        return new Date(dateString).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+        return dateString;
+    }
+};
+
+const getAbsoluteImageUrl = (url: string | undefined | null) => {
+    if (!url) return undefined; // react-pdf игнорирует undefined src
+    if (url.startsWith('http')) return url;
+    
+    // API URL из переменных окружения или хардкод для локалки
+    // ВАЖНО: При генерации PDF на клиенте process.env.NEXT_PUBLIC_API_URL должен быть доступен
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    // Убираем слеш в конце apiUrl и в начале url чтобы избежать двойных слешей
+    const cleanApi = apiUrl.replace(/\/$/, '');
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    
+    return `${cleanApi}${cleanUrl}`;
+};
+
+// Хелпер для получения телефона/контакта владельца
+const getOwnerContact = (ownerInfo: UserProfile | TemporaryOwnerProfile | undefined): string => {
+    if (!ownerInfo) return '';
+    
+    // Проверяем, есть ли поле is_temporary (Type Guard)
+    if ('is_temporary' in ownerInfo && ownerInfo.is_temporary) {
+        return (ownerInfo as TemporaryOwnerProfile).phone || '';
+    }
+    
+    // Если это зарегистрированный юзер
+    const user = ownerInfo as UserProfile;
+    if (user.phone) return user.phone;
+    // Если нет телефона, ищем в контактах первый попавшийся
+    if (user.contacts && user.contacts.length > 0) {
+        return `${user.contacts[0].type_display}: ${user.contacts[0].value}`;
+    }
+    return user.email;
+};
+
+// Хелпер для поиска атрибута (например, Породы)
+const getAttributeValue = (attributes: PetAttribute[] | undefined, searchSlug: string): string | null => {
+    if (!attributes) return null;
+    const found = attributes.find(a => a.attribute.slug.includes(searchSlug) || a.attribute.name.toLowerCase().includes(searchSlug));
+    return found ? found.value : null;
+};
+
+// === КОМПОНЕНТ ===
+
+interface PassportProps {
+    pet: PetDetail;
+    t: (key: string) => string;
+    locale: string;
+}
+
+export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
+    // Получаем главную картинку
+    const mainImageObj = pet.images?.find(img => img.is_main) || pet.images?.[0];
+    const imageUrl = getAbsoluteImageUrl(mainImageObj?.image);
+
+    // Пытаемся найти породу в атрибутах (так как в PetBasic нет поля breed)
+    // Ищем по ключевым словам 'breed' или 'порода'
+    const breedValue = getAttributeValue(pet.attributes, 'breed') || getAttributeValue(pet.attributes, 'пород') || '-';
+
+    return (
+        <Document>
+            <Page size="A4" style={styles.page}>
+            
+            {/* HEADER */}
+            <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                    <Text style={styles.title}>{t('title')}</Text> 
+                    <Text style={styles.subtitle}>CareYour.Pet Digital Record</Text>
+                </View>
+                <Text style={styles.headerId}>ID: {pet.id}</Text>
+            </View>
+
+            {/* IDENTITY SECTION */}
+            <View style={styles.identitySection}>
+                <View style={styles.imageContainer}>
+                    {imageUrl && (
+                        <Image src={imageUrl} style={styles.petImage} />
+                    )}
+                </View>
+                
+                <View style={styles.infoGrid}>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.label}>{t('name')}</Text>
+                        <Text style={styles.value}>{pet.name}</Text>
+                    </View>
+                    
+                    {/* Вывод породы из атрибутов */}
+                    <View style={styles.infoItem}>
+                        <Text style={styles.label}>{t('breed')}</Text>
+                        <Text style={styles.value}>{breedValue}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                        <Text style={styles.label}>{t('gender')}</Text>
+                        <Text style={styles.value}>
+                            {pet.gender === 'M' ? t('male') : t('female')}
+                        </Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.label}>{t('dob')}</Text>
+                        <Text style={styles.value}>{formatDate(pet.birth_date, locale)}</Text>
+                    </View>
+
+                    {/* Вывод доп. атрибутов (первые 2, кроме породы) */}
+                    {pet.attributes?.slice(0, 4).map((attr, idx) => {
+                         // Пропускаем породу, если уже вывели
+                         if (attr.attribute.slug.includes('breed') || attr.attribute.slug.includes('пород')) return null;
+                         return (
+                            <View key={idx} style={styles.infoItem}>
+                                <Text style={styles.label}>{attr.attribute.name}</Text>
+                                <Text style={styles.value}>
+                                    {attr.value} {attr.attribute.name === 'Вес' ? 'kg' : ''}
+                                </Text>
+                            </View>
+                         );
+                    })}
+                </View>
+            </View>
+
+            {/* OWNER SECTION */}
+            <View style={styles.ownerSection}>
+                <Text style={styles.ownerTitle}>{t('owner')}</Text>
+                <View style={styles.ownerRow}>
+                    <Text style={styles.ownerText}>
+                        {pet.owner_info?.name || pet.temp_owner_name || t('unknown')}
+                    </Text>
+                    <Text style={styles.ownerText}>
+                        {getOwnerContact(pet.owner_info as UserProfile | TemporaryOwnerProfile) || pet.temp_owner_phone}
+                    </Text>
+                </View>
+            </View>
+
+            {/* MEDICAL HISTORY TABLE */}
+            <Text style={styles.tableTitle}>{t('history_title')}</Text>
+            
+            <View style={styles.tableHeader}>
+                <Text style={styles.colDate}>{t('col_date')}</Text>
+                <Text style={styles.colType}>{t('col_type')}</Text>
+                <Text style={styles.colEvent}>{t('col_event')}</Text>
+            </View>
+
+            {pet.recent_events && pet.recent_events.length > 0 ? (
+                pet.recent_events.slice(0, 15).map((event, i) => (
+                    <View key={i} style={styles.tableRow}>
+                        <Text style={styles.colDate}>{formatDate(event.date, locale)}</Text>
+                        <Text style={styles.colType}>{event.event_type_display}</Text>
+                        <Text style={styles.colEvent}>
+                            {event.title || (event.description ? event.description.substring(0, 40) : '-')}
+                        </Text>
+                    </View>
+                ))
+            ) : (
+                <View style={{ marginTop: 10 }}>
+                    <Text style={{ fontSize: 10, color: '#9CA3AF', textAlign: 'center' }}>{t('no_records')}</Text>
+                </View>
+            )}
+
+            {/* FOOTER */}
+            <Text style={styles.footer}>
+                {t('footer_text')}
+            </Text>
+
+            </Page>
+        </Document>
+    );
+};
