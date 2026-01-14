@@ -38,6 +38,8 @@ interface CreatePetModalProps {
   onSuccess: () => void;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
 export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePetModalProps) {
   const router = useRouter();
 
@@ -115,7 +117,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
   const fetchCategories = async () => {
     setIsLoadingCategories(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/categories/');
+      const res = await fetch(`${API_URL}/api/categories/`);
       if (res.ok) {
         setCategories(await res.json());
       }
@@ -134,8 +136,8 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
 
     try {
       const [tagsRes, attrsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/api/categories/${categoryId}/tags/`, { headers }),
-        fetch(`http://127.0.0.1:8000/api/categories/${categoryId}/attributes/`, { headers })
+        fetch(`${API_URL}/api/categories/${categoryId}/tags/`, { headers }),
+        fetch(`${API_URL}/api/categories/${categoryId}/attributes/`, { headers })
       ]);
 
       if (tagsRes.ok) setAvailableTags(await tagsRes.json());
@@ -243,7 +245,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
       };
       
       // 1. Создаем
-      const res = await fetch('http://127.0.0.1:8000/api/pets/', {
+      const res = await fetch(`${API_URL}/api/pets/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +269,7 @@ export default function CreatePetModal({ isOpen, onClose, onSuccess }: CreatePet
             formData.append('image', file);
             if (file === files[0]) formData.append('is_main', 'true');
 
-            await fetch(`http://127.0.0.1:8000/api/pets/${petData.id}/upload_image/`, {
+            await fetch(`${API_URL}/api/pets/${petData.id}/upload_image/`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // 1. Импорт Image
+import Image from 'next/image';
 import { usePathname } from 'next/navigation'; 
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -27,7 +27,9 @@ export default function Header() {
   const t = useTranslations('Navigation');
   const pathname = usePathname();
   const { isAuth, logout } = useAuth();
-  const { toggleMode, isVetMode } = useAppMode();
+  
+  // toggleMode больше не нужен, берем только статус
+  const { isVetMode } = useAppMode(); 
   
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -36,6 +38,10 @@ export default function Header() {
 
   const toggleMenu = (menu: ActiveMenu) => {
     setActiveMenu(prev => prev === menu ? null : menu);
+  };
+
+  const closeMenu = () => {
+    setActiveMenu(null);
   };
 
   useEffect(() => {
@@ -54,7 +60,6 @@ export default function Header() {
         
         {/* 1. ЛЕВАЯ ЧАСТЬ (Логотип + Текст снизу) */}
         <div className="flex items-center flex-1 select-none">
-           {/* Контейнер для вертикального выравнивания */}
            <div className="flex flex-col items-center justify-center leading-none">
               <Image 
                 src="/logo1.png" 
@@ -142,21 +147,7 @@ export default function Header() {
         {/* 3. ПРАВАЯ ЧАСТЬ */}
         <div className="flex items-center justify-end gap-2 flex-1 relative" ref={menuRef}>
           
-          {/* Кнопка переключения режимов */}
-          <div className="hidden sm:flex flex-col items-end justify-center mr-2">
-             <button 
-                onClick={toggleMode}
-                className={`
-                    text-xs font-bold transition-colors duration-200 outline-none
-                    ${isVetMode 
-                        ? 'text-blue-600 hover:text-blue-800'  
-                        : 'text-emerald-600 hover:text-emerald-800'
-                    }
-                `}
-            >
-                {isVetMode ? t('for_owners') : t('for_veterinarians')}
-            </button>
-          </div>
+          {/* Кнопка переключения режимов УДАЛЕНА */}
 
           {isAuth ? (
               <div className="relative">
@@ -207,23 +198,39 @@ export default function Header() {
               
               {!isAuth ? (
                 <>
-                  <Link href="/login" className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition">
+                  <Link 
+                    href="/login" 
+                    onClick={closeMenu}
+                    className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition"
+                  >
                     {t('login_signup')}
                   </Link>
                 </>
               ) : (
                 <>
-                   <Link href="/profile" className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition">
+                   <Link 
+                    href="/profile" 
+                    onClick={closeMenu}
+                    className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition"
+                   >
                     {t('profile')}
                   </Link>
-                  <Link href="/pets/create" className="block px-4 py-3 text-sm font-normal text-gray-600 hover:bg-gray-100 transition border-b border-gray-100">
+                  <Link 
+                    href="/pets/create" 
+                    onClick={closeMenu}
+                    className="block px-4 py-3 text-sm font-normal text-gray-600 hover:bg-gray-100 transition border-b border-gray-100"
+                  >
                     {t('add_pet')}
                   </Link>
                 </>
               )}
 
               <div className="py-2">
-                <Link href="/become-vet" className="block px-4 py-3 hover:bg-gray-100 transition group">
+                <Link 
+                    href="/become-vet" 
+                    onClick={closeMenu}
+                    className="block px-4 py-3 hover:bg-gray-100 transition group"
+                >
                    <div className="flex justify-between items-start gap-3">
                       <div>
                         <div className="text-sm font-bold text-gray-800 mb-0.5">{t('become_vet')}</div>
@@ -240,25 +247,41 @@ export default function Header() {
 
               {/* Мобильное меню */}
               <div className="md:hidden border-t border-gray-100 py-2">
-                  <Link href="/home" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                  <Link 
+                    href="/" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                  >
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <HomeIcon size={24} />
                     </div>
                     <span>{t('home')}</span>
                  </Link>
-                 <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                 <Link 
+                    href="/dashboard" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                 >
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <BoneIcon size={24} />
                     </div>
                     <span>{t('dashboard')}</span>
                  </Link>
-                 <Link href="/planboard" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                 <Link 
+                    href="/planboard" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                 >
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <BookTextIcon size={24} />
                     </div>
                     <span>{t('calendar')}</span>
                  </Link>
-                 <Link href="/find-vet" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group">
+                 <Link 
+                    href="/find-vet" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                 >
                     <div className="text-gray-500 group-hover:text-primary transition">
                         <MapPinIcon size={24} />
                     </div>
@@ -267,13 +290,17 @@ export default function Header() {
               </div>
 
               <div className="border-t border-gray-100 py-2">
-                <Link href="/help" className="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 transition">
+                <Link 
+                    href="/help" 
+                    onClick={closeMenu}
+                    className="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 transition"
+                >
                   {t('help_center')}
                 </Link>
                 {isAuth && (
                     <button 
                         onClick={() => {
-                            setActiveMenu(null);
+                            closeMenu();
                             logout();
                         }}
                         className="block w-full text-left px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 transition"

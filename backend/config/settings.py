@@ -28,12 +28,19 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.3", "172.17.0.1"]
+ALLOWED_HOSTS = [
+    "localhost", 
+    "127.0.0.1", 
+    "careyour.pet", 
+    "www.careyour.pet", 
+    "193.180.213.143"
+]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'modeltranslation',
     'daphne',
     'django.contrib.admin',
@@ -136,19 +143,27 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Указываем Django использовать нашу модель пользователя
 AUTH_USER_MODEL = 'users.User'
 
 # CORS (Для разработки разрешаем всё, для продакшена ограничим)
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+
+CORS_ALLOWED_ORIGINS = [
+    "https://careyour.pet",
+    "https://www.careyour.pet",
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+]
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://careyour.pet",
+    "https://www.careyour.pet",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.3:8081",
+    "http://127.0.0.1:8000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -181,9 +196,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+
 # === CELERY SETTINGS ===
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Адрес Redis
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:6379/0'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:6379/0'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -195,7 +212,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(REDIS_HOST, 6379)],
         },
     },
 }
@@ -213,3 +230,43 @@ USE_L10N = True
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+# Позволяет кукам ходить между поддоменами (если нужно) и при POST запросах
+CSRF_COOKIE_SAMESITE = 'None'  # Иногда нужно 'Lax', но для кросс-домена часто 'None'
+SESSION_COOKIE_SAMESITE = 'None'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "careyour.pet Admin",
+    "site_header": "careyour.pet",
+    "site_brand": "CareYourPet",
+    "welcome_sign": "Добро пожаловать в панель управления careyour.pet",
+    "copyright": "CareYourPet Ltd",
+    "search_model": ["users.User", "pets.Category"], # Поиск по этим моделям в шапке
+    
+    # Меню сбоку (True) или сверху (False)
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    
+    # Иконки для меню (используются FontAwesome)
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "users.User": "fas fa-user",
+        "pets.Category": "fas fa-paw",
+        "pets.Tag": "fas fa-tags",
+        # Добавь свои модели по вкусу
+    },
+}
+
+# Твики интерфейса (цвета)
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly",   # Попробуй: 'pulse', 'flatly', 'darkly', 'simplex'
+    #"dark_mode_theme": "darkly", # Если нужна темная тема
+}

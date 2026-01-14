@@ -249,9 +249,9 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                     </h2>
                     
                     {/* КНОПКА ВЛАДЕЛЬЦА (для врачей) */}
-                    {pet?.owner_info && currentUser?.id !== pet.owner_info.id && (
+                    {pet?.owner_info && !pet.owner_info.is_temporary && (
                         <div 
-                         onClick={() => setSelectedUserProfile(pet.owner_info!)}
+                         onClick={() => setSelectedUserProfile(pet?.owner_info as UserProfile)}
                          className="mt-2 inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-colors border border-white/10"
                          >
                           <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">

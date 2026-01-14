@@ -104,5 +104,5 @@ export interface PetDetail extends PetBasic {
     father_info?: ParentInfo;
     health_status?: HealthStatus;
     active_vets: UserProfile[]; 
-    recent_events?: any[]; 
+    recent_events?: HealthEvent[]; 
 }

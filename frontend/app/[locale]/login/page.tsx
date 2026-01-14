@@ -1,20 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-// import { useRouter } from 'next/navigation'; <-- Убираем router отсюда, он теперь внутри loginSuccess
+import { useState, Suspense } from 'react'; // Suspense нужен для useSearchParams в Next 13+
 import Link from 'next/link';
-import { useAuth } from '@/components/providers/AuthProvider'; // <-- Импортируем хук
+import { useSearchParams } from 'next/navigation'; // <--- 1. Импорт для чтения URL
+// import { useAuth } from '@/components/providers/AuthProvider'; // Можно убрать, если делаем хард-рефреш
 import { GoogleLogin } from '@react-oauth/google';
 
-export default function LoginPage() {
+// Выносим контент формы в отдельный компонент, чтобы обернуть его в Suspense
+// (Это требование Next.js при использовании useSearchParams)
+function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
-  // Достаем функцию из контекста
-  const { loginSuccess } = useAuth(); 
-  
+  const searchParams = useSearchParams(); // <--- 2. Хук для параметров
+  const returnUrl = searchParams.get('returnUrl'); // <--- 3. Ловим "хвост"
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+  // Функция для жесткого редиректа
+  const handleHardRedirect = () => {
+      // Куда идем? Если был хвост - туда, иначе в дашборд
+      const target = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+      // БРУТФОРС: Полная перезагрузка страницы
+      window.location.href = target; 
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +40,14 @@ export default function LoginPage() {
       if (!res.ok) throw new Error('Неверный логин или пароль');
       const data = await res.json();
       
-      const userRes = await fetch(`${API_URL}/api/auth/me/`, {
-          headers: { 'Authorization': `Bearer ${data.access}` }
-      });
-      const userData = await userRes.json();
-      
-      // Вызываем обновление контекста
-      loginSuccess(userData, data.access, data.refresh);
+      // Мы НЕ вызываем loginSuccess, чтобы избежать гонки состояний.
+      // Сначала сохраняем токены физически:
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+
+      // Теперь делаем хард-рефреш. 
+      // При перезагрузке AuthProvider сам найдет токены и обновит стейт.
+      handleHardRedirect();
       
     } catch (err: any) {
       setError(err.message);
@@ -44,7 +55,6 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="bg-white p-8 rounded-xl shadow-md w-96">
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Вход в PetVet</h1>
         {error && (
@@ -93,18 +103,16 @@ export default function LoginPage() {
                         const data = await res.json();
                         if (!res.ok) throw new Error("Google auth failed");
                         
-                        // Если это НОВЫЙ юзер, у него еще может не быть роли.
-                        // Но наш бэкенд GoogleLoginView возвращает сразу { user, tokens, is_new_user }
-                        // Так что тут удобно!
-                        
+                        // Сохраняем токены
+                        localStorage.setItem('access_token', data.tokens.access);
+                        localStorage.setItem('refresh_token', data.tokens.refresh);
+
                         if (data.is_new_user) {
-                           // Для онбординга можно просто сохранить токены и редиректнуть
-                           localStorage.setItem('access_token', data.tokens.access);
-                           localStorage.setItem('refresh_token', data.tokens.refresh);
-                           window.location.href = '/onboarding'; // Тут можно жесткий редирект
+                           // Для новых - всегда на онбординг
+                           window.location.href = '/onboarding';
                         } else {
-                           // А тут обновляем контекст
-                           loginSuccess(data.user, data.tokens.access, data.tokens.refresh);
+                           // Для старых - туда, откуда пришли
+                           handleHardRedirect();
                         }
                     } catch (e) {
                         setError("Ошибка авторизации через Google");
@@ -120,6 +128,16 @@ export default function LoginPage() {
           <Link href="/register" className="text-blue-600 hover:underline">Зарегистрироваться</Link>
         </div>
       </div>
-    </div>
   );
+}
+
+// Оборачиваем в Suspense, чтобы Next.js не ругался при билде на useSearchParams
+export default function LoginPage() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
+            <Suspense fallback={<div className="bg-white p-8 rounded-xl shadow-md">Загрузка...</div>}>
+                <LoginForm />
+            </Suspense>
+        </div>
+    );
 }
