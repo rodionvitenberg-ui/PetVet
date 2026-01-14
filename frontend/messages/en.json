@@ -3,6 +3,23 @@
     "title": "Test",
     "subtitle": "Test"
   },
+  "Passport": {
+  "title": "PET HEALTH PASSPORT",
+  "name": "NAME",
+  "breed": "BREED",
+  "gender": "SEX",
+  "male": "Male",
+  "female": "Female",
+  "dob": "DATE OF BIRTH",
+  "owner": "OWNER",
+  "unknown": "Unknown",
+  "history_title": "MEDICAL HISTORY",
+  "col_date": "DATE",
+  "col_type": "TYPE",
+  "col_event": "EVENT",
+  "no_records": "No records found",
+  "footer_text": "Automatically generated on careyour.pet. Not an official legal document without a vet clinic stamp."
+},
 "Navigation": {
     "dashboard": "Petboard",
     "home": "Home",

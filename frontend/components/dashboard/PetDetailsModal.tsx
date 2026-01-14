@@ -1,5 +1,8 @@
 'use client';
-
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PetPassportDocument } from '@/components/pdf/PetPassportDocument';
+import { useTranslations, useLocale } from 'next-intl';
+import { FileDown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { 
   X, Activity, FileText, ChevronLeft, ChevronRight, ImageIcon, Calendar, Trash2, Edit2, Plus, Paperclip, User, Stethoscope
@@ -49,6 +52,13 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
   const [editingEvent, setEditingEvent] = useState<HealthEvent | null>(null);
   
   const [displayPetId, setDisplayPetId] = useState<number | null>(null);
+  const t = useTranslations('Passport');
+  const locale = useLocale();
+
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
       if (isOpen && petId) {
@@ -404,6 +414,19 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                 <button onClick={handleDelete} disabled={isDeleting} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
                                     {isDeleting ? "Удаление..." : <><Trash2 size={18} /> УДАЛИТЬ ПРОФИЛЬ ПИТОМЦА</>}
                                 </button>
+                            {isClient && pet && (
+                              <PDFDownloadLink
+                                 document={<PetPassportDocument pet={pet} t={t} locale={locale} />}
+                                 fileName={`Passport_${pet.name}.pdf`}
+                                 className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                                 >
+                                 {({ loading }) => (
+                                 loading 
+                                 ? 'Генерация документа...' 
+                                 : <><FileDown size={18} /> СКАЧАТЬ PDF-ПАСПОРТ ({locale.toUpperCase()})</>
+                                 )}
+                              </PDFDownloadLink>
+                            )}
                             </div>
                         </div>
                     )}
