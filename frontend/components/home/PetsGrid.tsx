@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { PetDetail, UserProfile, TemporaryOwnerProfile, PetAttribute } from '@/types/pet'; // Импортируем типы, если они нужны, или оставляем локальные
 
-// 1. Правильный интерфейс, соответствующий твоему API
+// Локальный интерфейс (если не импортируешь из types)
 interface PetImage {
   id: number;
   image: string;
@@ -12,26 +13,18 @@ interface PetImage {
 interface PetBasic {
   id: number;
   name: string;
-  // Вместо avatar используем массив images
   images: PetImage[]; 
   slug?: string;
 }
 
-// 2. Хелпер для извлечения главной картинки (копия логики из PetCard)
-const getMainImageUrl = (images: PetImage[] | undefined) => {
-  if (!images || images.length === 0) return null;
+// Хелпер для URL
+const getAbsoluteImageUrl = (url: string | undefined) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
   
-  // Ищем главную, или берем первую попавшуюся
-  const mainImage = images.find(img => img.is_main) || images[0];
-  if (!mainImage.image) return null;
-
-  // Если ссылка уже полная — возвращаем
-  if (mainImage.image.startsWith('http')) return mainImage.image;
-  
-  // Если относительная — клеим домен API
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const cleanApiUrl = apiUrl.replace(/\/$/, '');
-  const cleanUrl = mainImage.image.startsWith('/') ? mainImage.image : `/${mainImage.image}`;
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
   
   return `${cleanApiUrl}${cleanUrl}`;
 };
@@ -52,7 +45,6 @@ export const PetsGrid = () => {
         const data = await response.json();
         const results = Array.isArray(data) ? data : data.results || [];
 
-        // Перемешиваем и режем
         const shuffled = results
           .map((value: PetBasic) => ({ value, sort: Math.random() }))
           .sort((a: any, b: any) => a.sort - b.sort)
@@ -74,7 +66,8 @@ export const PetsGrid = () => {
 
   if (loading) {
     return (
-      <section className="py-12 bg-gray-50 dark:bg-gray-900/50">
+      // [FIX] Убрал bg-gray-50 и dark:bg-gray-900/50
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
             {Array.from({ length: 14 }).map((_, i) => (
@@ -90,7 +83,8 @@ export const PetsGrid = () => {
 
   return (
     <>
-      <section className="py-12 bg-gray-50 dark:bg-gray-900/50">
+      {/* [FIX] Убрал bg-gray-50 и dark:bg-gray-900/50. Теперь фон прозрачный. */}
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -100,8 +94,9 @@ export const PetsGrid = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
             {pets.map((pet) => {
-              // 3. Используем новую функцию получения URL
-              const fullAvatarUrl = getMainImageUrl(pet.images);
+              // Логика выбора картинки
+              const mainImage = pet.images?.find(img => img.is_main) || pet.images?.[0];
+              const fullAvatarUrl = getAbsoluteImageUrl(mainImage?.image);
 
               return (
                 <div 
@@ -125,7 +120,6 @@ export const PetsGrid = () => {
                       </div>
                     )}
                     
-                    {/* Тень и имя при наведении (показываем только если есть фото) */}
                     {fullAvatarUrl && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
                         <span className="text-white font-medium truncate w-full text-sm">

@@ -51,7 +51,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       
       {/* Фильтр категорий */}
 
-      <main className="max-w-[1920px] mx-auto px-4 sm:px-8 py-6">
+      <main className="w-full space-y-20 pb-20">
         <HeroSection />
         <PetsGrid />
         <AboutProject />
