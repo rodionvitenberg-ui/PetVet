@@ -1,6 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
-import { PetDetail, UserProfile, TemporaryOwnerProfile, PetAttribute } from '@/types/pet';
+import { PetDetail, UserProfile, TemporaryOwnerProfile } from '@/types/pet';
 
 // 1. Регистрируем шрифты (Roboto)
 Font.register({
@@ -40,10 +40,11 @@ const styles = StyleSheet.create({
   // History Table
   tableTitle: { fontSize: 14, fontWeight: 700, marginBottom: 10, color: '#111827' },
   tableHeader: { flexDirection: 'row', backgroundColor: '#F3F4F6', padding: 6, borderRadius: 4 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', padding: 6 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', padding: 6, alignItems: 'center' }, // align items center
+  
   colDate: { width: '20%', fontSize: 9 },
-  colType: { width: '25%', fontSize: 9 },
-  colEvent: { width: '55%', fontSize: 9 },
+  colType: { width: '25%', fontSize: 9, fontWeight: 700, color: '#4B5563' },
+  colEvent: { width: '55%', fontSize: 9, flexDirection: 'column' }, // column layout for details
   
   // Footer
   footer: { position: 'absolute', bottom: 30, left: 30, right: 30, fontSize: 8, textAlign: 'center', color: '#9CA3AF' },
@@ -123,11 +124,9 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                         <Text style={styles.value}>{pet.name}</Text>
                     </View>
                     
-                    {/* [FIX] ИСПОЛЬЗУЕМ НОВЫЕ ПОЛЯ ОТ БЭКЕНДА */}
                     <View style={styles.infoItem}>
                         <Text style={styles.label}>{t('breed')}</Text>
                         <Text style={styles.value}>
-                            {/* Сначала ищем породу, если нет - вид (Кошка), если нет - прочерк */}
                             {pet.breed || pet.species || '-'} 
                         </Text>
                     </View>
@@ -143,16 +142,15 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                         <Text style={styles.value}>{formatDate(pet.birth_date, locale)}</Text>
                     </View>
 
-                    {/* Вывод доп. атрибутов */}
+                    {/* Вывод доп. атрибутов (Чип, Вес и т.д.) */}
                     {pet.attributes?.slice(0, 4).map((attr, idx) => {
-                         // Не показываем породу тут, так как она уже выведена выше
                          if (attr.attribute.slug.includes('breed') || attr.attribute.slug.includes('пород')) return null;
                          
                          return (
                             <View key={idx} style={styles.infoItem}>
                                 <Text style={styles.label}>{attr.attribute.name}</Text>
                                 <Text style={styles.value}>
-                                    {attr.value} {attr.attribute.name === 'Вес' ? 'kg' : ''}
+                                    {attr.value} {attr.attribute.unit || ''}
                                 </Text>
                             </View>
                          );
@@ -183,15 +181,38 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
             </View>
 
             {pet.recent_events && pet.recent_events.length > 0 ? (
-                pet.recent_events.slice(0, 15).map((event, i) => (
-                    <View key={i} style={styles.tableRow}>
-                        <Text style={styles.colDate}>{formatDate(event.date, locale)}</Text>
-                        <Text style={styles.colType}>{event.event_type_display}</Text>
-                        <Text style={styles.colEvent}>
-                            {event.title || (event.description ? event.description.substring(0, 40) : '-')}
-                        </Text>
-                    </View>
-                ))
+                pet.recent_events.slice(0, 15).map((event, i) => {
+                    // [UPDATED] Определяем актуальное название типа события
+                    const typeName = event.event_type?.name || event.event_type_display || '-';
+                    
+                    // [UPDATED] Получаем информацию о враче/клинике
+                    const author = event.created_by_info?.clinic_name || event.created_by_info?.name;
+                    const isVet = event.created_by_info?.is_vet;
+
+                    return (
+                        <View key={i} style={styles.tableRow}>
+                            <Text style={styles.colDate}>{formatDate(event.date, locale)}</Text>
+                            
+                            <Text style={styles.colType}>
+                                {typeName}
+                                {event.status === 'planned' ? ' (План)' : ''}
+                            </Text>
+                            
+                            <View style={styles.colEvent}>
+                                <Text style={{ color: '#111827' }}>
+                                    {event.title || (event.description ? event.description.substring(0, 40) : '-')}
+                                </Text>
+                                
+                                {/* [NEW] Вывод клиники или врача мелким шрифтом */}
+                                {author && (
+                                    <Text style={{ fontSize: 8, color: '#6B7280', marginTop: 2 }}>
+                                        {isVet ? 'Клиника: ' : 'Автор: '} {author}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                    );
+                })
             ) : (
                 <View style={{ marginTop: 10 }}>
                     <Text style={{ fontSize: 10, color: '#9CA3AF', textAlign: 'center' }}>{t('no_records')}</Text>
@@ -200,7 +221,7 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
 
             {/* FOOTER */}
             <Text style={styles.footer}>
-                {t('footer_text')}
+                {t('footer_text')} | Generated on {new Date().toLocaleDateString()}
             </Text>
 
             </Page>

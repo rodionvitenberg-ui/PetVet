@@ -4,10 +4,13 @@ import React from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
 // === КОМПОНЕНТ ПЕРЕТАСКИВАЕМОЙ КАРТОЧКИ ===
+// Принимает числовой ID (из базы), сам добавляет префикс "event-" для DnD
 export function DraggableCard({ id, children, disabled }: { id: number; children: React.ReactNode; disabled?: boolean }) {
+  const dndId = `event-${id}`; // Внутренний ID для dnd-kit
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `event-${id}`, // Уникальный строковый ID для dnd-kit
-    data: { id },
+    id: dndId,
+    data: { originalId: id }, // Сохраняем чистый ID в data
     disabled
   });
 

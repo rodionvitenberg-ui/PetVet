@@ -2,6 +2,31 @@ from rest_framework import serializers
 from datetime import date
 from users.serializers import PublicProfileSerializer
 from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, PetEvent, EventType, PetEventAttachment
+import re
+import uuid
+
+# === ХЕЛПЕР ДЛЯ СЛАГОВ ===
+def custom_slugify(text):
+    """
+    Простой транслит для генерации слагов без сторонних библиотек.
+    """
+    translit_map = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    }
+    text = text.lower()
+    result = []
+    for char in text:
+        result.append(translit_map.get(char, char))
+    
+    slug = "".join(result)
+    slug = re.sub(r'[^a-z0-9]+', '-', slug).strip('-')
+    return slug
+
+# === СЕРИАЛИЗАТОРЫ СПРАВОЧНИКОВ ===
 
 class TagSerializer(serializers.ModelSerializer):
     is_custom = serializers.SerializerMethodField()
@@ -9,14 +34,20 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ['id', 'name', 'slug', 'target_gender', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
+        # [FIX] Делаем поля необязательными при входе
+        read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom', 'sort_order']
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
 
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ['id', 'name', 'slug', 'parent', 'icon', 'sort_order']
+    def validate(self, attrs):
+        # [FIX] Авто-генерация слага
+        if 'name' in attrs and not self.instance: # Только при создании
+             # Генерируем временный слаг, если его нет в запросе
+             base_slug = custom_slugify(attrs['name'])
+             # Добавляем хвост для уникальности кастомных тегов
+             attrs['slug'] = f"{base_slug}-{str(uuid.uuid4())[:4]}"
+        return attrs
 
 class AttributeSerializer(serializers.ModelSerializer):
     is_custom = serializers.SerializerMethodField()
@@ -24,9 +55,23 @@ class AttributeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attribute
         fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
+        # [FIX] Read-only поля
+        read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom', 'sort_order']
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
+
+    def validate(self, attrs):
+        # [FIX] Авто-генерация слага
+        if 'name' in attrs and not self.instance:
+             base_slug = custom_slugify(attrs['name'])
+             attrs['slug'] = f"{base_slug}-{str(uuid.uuid4())[:4]}"
+        return attrs
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'parent', 'icon', 'sort_order']
 
 class PetAttributeSerializer(serializers.ModelSerializer):
     attribute = AttributeSerializer(read_only=True)
@@ -47,6 +92,7 @@ class EventTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventType
         fields = ['id', 'name', 'slug', 'category', 'icon', 'default_schema', 'is_universal', 'is_custom']
+        read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom'] # Тоже защитим
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
@@ -68,31 +114,41 @@ class PetEventSerializer(serializers.ModelSerializer):
     )
     attachments = PetEventAttachmentSerializer(many=True, read_only=True)
     
-    # Вычисляемое поле для красивого отображения типа (fallback)
     event_type_display = serializers.CharField(source='event_type.name', read_only=True)
+    created_by_info = serializers.SerializerMethodField()
 
     class Meta:
         model = PetEvent
         fields = [
             'id', 'pet', 'event_type', 'event_type_id', 'event_type_display',
             'title', 'description', 'date', 'status', 'next_date',
-            'data', 'is_verified', 'attachments', 'created_at'
+            'data', 'is_verified', 'attachments', 'created_at', 'created_by_info'
         ]
+    
+    def get_created_by_info(self, obj):
+        """
+        Возвращает данные того, кто создал запись.
+        Если это врач - возвращает название клиники.
+        """
+        user = obj.created_by
+        if not user:
+            return None
+            
+        return {
+            "id": user.id,
+            # Собираем полное имя или ник
+            "name": f"{user.first_name} {user.last_name}".strip() or user.username,
+            "is_vet": user.is_veterinarian,
+            # [ВАЖНО] Если это врач, берем название клиники из его профиля
+            "clinic_name": user.clinic_name if user.is_veterinarian else None,
+            "avatar": user.avatar.url if user.avatar else None
+        }
 
     def validate(self, attrs):
-        # Здесь в будущем добавим валидацию поля 'data' на основе 'event_type.default_schema'
         return attrs
     
-# === 1. НОВЫЙ СЕРИАЛИЗАТОР ДЛЯ ДЕРЕВА (Pedigree) ===
+# === РОДОСЛОВНАЯ ===
 class PedigreeSerializer(serializers.ModelSerializer):
-    """
-    Облегченный рекурсивный сериализатор для построения дерева предков.
-    Отдает только базовые данные + родителей.
-    """
-    # Используем SerializerMethodField для рекурсии, чтобы контролировать глубину
-    # или просто полагаемся на стандартную вложенность.
-    
-    # Для простоты фронтенда вернем плоскую структуру с вложенностью родителей
     mother = serializers.SerializerMethodField()
     father = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
@@ -102,7 +158,6 @@ class PedigreeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'gender', 'birth_date', 'image', 'mother', 'father']
 
     def get_image(self, obj):
-        # Возвращаем первую картинку (аватарку)
         img = obj.images.first()
         if img:
             return img.image.url
@@ -110,9 +165,6 @@ class PedigreeSerializer(serializers.ModelSerializer):
 
     def get_mother(self, obj):
         if obj.mother:
-            # Рекурсивный вызов, но Django REST smart enough to handle this usually.
-            # Чтобы не уйти в бесконечность, можно ограничить глубину через context,
-            # но пока сделаем простую рекурсию (обычно родословная не бесконечна).
             return PedigreeSerializer(obj.mother, context=self.context).data
         return None
 
@@ -121,6 +173,7 @@ class PedigreeSerializer(serializers.ModelSerializer):
             return PedigreeSerializer(obj.father, context=self.context).data
         return None
 
+# === ОСНОВНОЙ СЕРИАЛИЗАТОР ПИТОМЦА ===
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     images = PetImageSerializer(many=True, read_only=True)
@@ -133,7 +186,7 @@ class PetSerializer(serializers.ModelSerializer):
     father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
     age = serializers.SerializerMethodField()
-    recent_events = PetEventSerializer(source='events', many=True, read_only=True)
+    recent_events = PetEventSerializer(source='events', many=True, read_only=True) # [FIX] Используем правильный класс
 
     owner_info = serializers.SerializerMethodField()
     active_vets = serializers.SerializerMethodField()
@@ -141,7 +194,6 @@ class PetSerializer(serializers.ModelSerializer):
     species = serializers.SerializerMethodField()
     breed = serializers.SerializerMethodField()
 
-    # Поле для "теневого" создания (оставляем как у тебя)
     temp_owner_phone = serializers.CharField(write_only=True, required=False)
 
     class Meta:
@@ -195,7 +247,8 @@ class PetSerializer(serializers.ModelSerializer):
 
     def get_recent_events(self, obj):
         events = obj.events.all()[:5]
-        return HealthEventSerializer(events, many=True, context=self.context).data
+        # [FIX] Исправлено имя класса сериализатора (было HealthEventSerializer)
+        return PetEventSerializer(events, many=True, context=self.context).data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -228,6 +281,10 @@ class PetSerializer(serializers.ModelSerializer):
         attributes_data = validated_data.pop('attributes', [])
         categories = validated_data.pop('categories', [])
         tags = validated_data.pop('tags', [])
+        
+        # Получаем пользователя из контекста запроса (если он не передан явно)
+        if 'created_by' not in validated_data and self.context.get('request'):
+            validated_data['created_by'] = self.context['request'].user
         
         pet = Pet.objects.create(**validated_data)
         
@@ -277,42 +334,23 @@ class PetSerializer(serializers.ModelSerializer):
         return instance
     
     def get_active_vets(self, obj):
-        """
-        Возвращает список врачей, у которых есть активный доступ к этому питомцу.
-        """
-        # Берем всех юзеров из AccessGrants, где is_active=True
         grants = obj.access_grants.filter(is_active=True).select_related('user')
         vets = [grant.user for grant in grants]
-        from users.serializers import PublicProfileSerializer
         return PublicProfileSerializer(vets, many=True, context=self.context).data
     
     def get_species(self, obj):
-        """
-        Возвращает родительскую категорию (Вид: Кошка, Собака).
-        Ищем категорию, у которой НЕТ родителя.
-        """
-        # optimization: categories уже подгружены через prefetch_related во viewset
         species_cat = next((cat for cat in obj.categories.all() if cat.parent is None), None)
         return species_cat.name if species_cat else None
 
     def get_breed(self, obj):
-        """
-        Возвращает дочернюю категорию (Порода).
-        Ищем категорию, у которой ЕСТЬ родитель.
-        """
         breed_cat = next((cat for cat in obj.categories.all() if cat.parent is not None), None)
         return breed_cat.name if breed_cat else None
     
-    # === ДОБАВЛЯЕМ В КОНЕЦ КЛАССА ВАЛИДАЦИЮ ===
     def validate(self, attrs):
-        """
-        Проверка логики родословной: возраст, пол (дублирующая проверка), циклы.
-        """
         mother = attrs.get('mother')
         father = attrs.get('father')
         birth_date = attrs.get('birth_date')
 
-        # Если это update, берем недостающие данные из инстанса
         if self.instance:
             if 'mother' not in attrs: mother = self.instance.mother
             if 'father' not in attrs: father = self.instance.father
@@ -320,14 +358,12 @@ class PetSerializer(serializers.ModelSerializer):
 
         errors = {}
 
-        # 1. Проверка на "Я сам себе дед" (только при обновлении)
         if self.instance:
             if mother == self.instance:
                 errors['mother'] = "Питомец не может быть своей собственной матерью."
             if father == self.instance:
                 errors['father'] = "Питомец не может быть своим собственным отцом."
 
-        # 2. Проверка возраста (Родитель должен быть старше)
         if birth_date:
             if mother and mother.birth_date and mother.birth_date >= birth_date:
                 errors['mother'] = f"Ошибка хронологии: Мать ({mother.name}) моложе ребенка."

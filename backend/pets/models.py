@@ -316,7 +316,7 @@ class PetEvent(models.Model): # Бывший HealthEvent
     )
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(blank=True, verbose_name="Описание")
-    date = models.DateField(verbose_name="Дата события")
+    date = models.DateTimeField(verbose_name="Дата и время события")
     
     # Гибкие данные (JSON)
     # Здесь храним: {"judge": "Иванов", "weight": 5.4, "rank": "CACIB"}
@@ -337,7 +337,7 @@ class PetEvent(models.Model): # Бывший HealthEvent
         default='completed', 
         verbose_name="Статус"
     )
-    next_date = models.DateField(null=True, blank=True, verbose_name="Дата следующего события")
+    next_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата следующего события")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

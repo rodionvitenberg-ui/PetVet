@@ -5,17 +5,17 @@ import { useTranslations, useLocale } from 'next-intl';
 import { FileDown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Activity, FileText, ChevronLeft, ChevronRight, ImageIcon, Calendar, Trash2, Edit2, Plus, Paperclip, User, Stethoscope
+  X, Activity, FileText, ChevronLeft, ChevronRight, ImageIcon, Calendar, Trash2, Edit2, Plus, Paperclip, User, Stethoscope, PawPrint
 } from 'lucide-react';
 import EditPetModal from './EditPetModal'; 
 import UpdateGalleryModal from './UpdateGalleryModal'; 
-import CreateHealthEventModal from './CreateHealthEventModal';
+import CreateEventModal from './CreateEventModal';
 import { useAuth } from '@/components/providers/AuthProvider';
 import UserProfileModal from './UserProfileModal';
+import DeletePetModal from './DeletePetModal'; 
 
-// === ИМПОРТ ТИПОВ (Вместо локальных портянок) ===
-import { PetDetail, UserProfile } from '@/types/pet'; 
-import { HealthEvent } from '@/types/event';
+import { PetDetail, UserProfile, PetTag } from '@/types/pet'; 
+import { PetEvent } from '@/types/event';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -35,7 +35,6 @@ const formatDateTime = (isoString: string) => {
 };
 
 export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: number | null, isOpen: boolean, onClose: () => void }) {
-  // === ХУКИ ДОЛЖНЫ БЫТЬ ВНУТРИ КОМПОНЕНТА ===
   const { user: currentUser } = useAuth(); 
   const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
 
@@ -43,22 +42,57 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
   const [activeTab, setActiveTab] = useState<'info' | 'medical'>('info');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   
+  // States for Modals
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   
-  const [editingEvent, setEditingEvent] = useState<HealthEvent | null>(null);
+  // [NEW] Состояние для модалки удаления
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const [editingEvent, setEditingEvent] = useState<PetEvent | null>(null);
   
   const [displayPetId, setDisplayPetId] = useState<number | null>(null);
   const t = useTranslations('Passport');
   const locale = useLocale();
 
+  const isOwner = currentUser && pet && (
+    Number(currentUser.id) === Number(pet.owner) || 
+    Number(currentUser.id) === Number(pet.created_by)
+  );
+
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const [swipeStart, setSwipeStart] = useState<number | null>(null);
+
+  // Универсальный обработчик начала нажатия (мышь или палец)
+  const handleSwipeStart = (e: React.TouchEvent | React.MouseEvent) => {
+      const x = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+      setSwipeStart(x);
+  };
+
+  // Универсальный обработчик конца нажатия
+  const handleSwipeEnd = (e: React.TouchEvent | React.MouseEvent) => {
+      if (swipeStart === null) return;
+      
+      const x = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
+      const diff = swipeStart - x;
+
+      const threshold = 50; // Минимальное расстояние для свайпа (пиксели)
+
+      if (diff > threshold) {
+          nextImage(); // Свайп влево -> Следующее фото
+      } else if (diff < -threshold) {
+          prevImage(); // Свайп вправо -> Предыдущее фото
+      }
+      
+      setSwipeStart(null);
+  };
 
   useEffect(() => {
       if (isOpen && petId) {
@@ -96,22 +130,30 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
     }
   }, [isOpen, displayPetId]); 
 
-  const handleDelete = async () => {
-      if (!pet) return;
-      const confirmed = window.confirm(`Удалить профиль "${pet.name}"?`);
-      if (!confirmed) return;
+  // [LOGIC UPDATE] Просто открывает модалку
+  const handleDeleteClick = () => {
+      setIsDeleteModalOpen(true);
+  };
 
+  // [LOGIC UPDATE] Реальное удаление (вызывается из модалки)
+  const confirmDelete = async () => {
+      if (!pet) return;
       setIsDeleting(true);
       try {
           const token = localStorage.getItem('access_token');
-          await fetch(`${API_URL}/api/pets/${pet.id}/`, {
+          const res = await fetch(`${API_URL}/api/pets/${pet.id}/`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
           });
-          onClose();
-          window.location.reload();
+          
+          if (!res.ok) throw new Error('Ошибка удаления');
+
+          setIsDeleteModalOpen(false); // Закрываем модалку подтверждения
+          onClose(); // Закрываем основное окно
+          window.location.reload(); // Обновляем страницу (или вызываем коллбек родителя)
       } catch (error) {
-          alert("Ошибка удаления.");
+          console.error(error);
+          alert("Не удалось удалить питомца.");
       } finally {
           setIsDeleting(false);
       }
@@ -122,7 +164,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       setIsHealthModalOpen(true);
   };
 
-  const openEditHealthEvent = (event: HealthEvent) => {
+  const openEditHealthEvent = (event: PetEvent) => {
       setEditingEvent(event); 
       setIsHealthModalOpen(true);
   };
@@ -142,16 +184,12 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
   };
 
-  const getStatusColor = (color?: string) => {
-      if (color === 'red') return 'bg-red-50 text-red-700 border-red-100';
-      if (color === 'yellow') return 'bg-yellow-50 text-yellow-700 border-yellow-100';
-      return 'bg-green-50 text-green-700 border-green-100';
-  };
-
   const handleParentClick = (id: number) => {
       setDisplayPetId(id);
       setActiveTab('info');
   };
+
+  const canDelete = currentUser && pet && (currentUser.id === pet.owner || currentUser.id === pet.created_by);
 
   return (
     <>
@@ -160,22 +198,30 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                 <EditPetModal 
                     isOpen={isEditOpen} 
                     onClose={() => setIsEditOpen(false)}
-                    pet={pet}
+                    pet={pet as PetDetail}
                     onSuccess={fetchPetData} 
                 />
                 <UpdateGalleryModal 
                     isOpen={isGalleryOpen} 
                     onClose={() => setIsGalleryOpen(false)}
                     petId={pet.id}
-                    images={pet.images || []} // Добавил fallback
+                    images={pet.images || []}
                     onSuccess={fetchPetData} 
                 />
-                <CreateHealthEventModal
+                <CreateEventModal
                     isOpen={isHealthModalOpen}
                     onClose={() => setIsHealthModalOpen(false)}
                     petId={pet.id}
                     onSuccess={fetchPetData}
                     initialData={editingEvent} 
+                />
+                {/* [NEW] Модалка удаления */}
+                <DeletePetModal
+                    isOpen={isDeleteModalOpen}
+                    onClose={() => setIsDeleteModalOpen(false)}
+                    onConfirm={confirmDelete}
+                    petName={pet.name}
+                    isDeleting={isDeleting}
                 />
             </>
         )}
@@ -195,50 +241,59 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                 </div>
             )}
 
-            {/* ХЕДЕР */}
-            <div className="relative h-64 bg-gray-900 shrink-0 group">
+            {/* ХЕДЕР С ГАЛЕРЕЕЙ */}
+            <div 
+                className="relative h-64 bg-gray-900 shrink-0 group cursor-grab active:cursor-grabbing select-none touch-pan-y"
+                // Вешаем обработчики сюда:
+                onTouchStart={handleSwipeStart}
+                onTouchEnd={handleSwipeEnd}
+                onMouseDown={handleSwipeStart}
+                onMouseUp={handleSwipeEnd}
+                onMouseLeave={() => setSwipeStart(null)} // Сброс, если увели мышь за пределы
+            >
                 {allImages.length > 0 ? (
                     <>
                         <div 
-                            className="absolute inset-0 opacity-30 blur-xl scale-110"
+                            className="absolute inset-0 opacity-30 blur-xl scale-110 pointer-events-none"
                             style={{ backgroundImage: `url(${getMediaUrl(allImages[currentImageIndex])})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                         />
                         <img 
+                            key={currentImageIndex}
                             src={getMediaUrl(allImages[currentImageIndex]) || ''} 
                             alt={pet?.name} 
+                            // draggable={false} ОБЯЗАТЕЛЬНО для работы свайпа мышкой на десктопе
+                            draggable={false} 
                             className="relative w-full h-full object-cover z-10 transition-all duration-300" 
                         />
                     </>
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-600 z-10 relative">
+                    <div className="w-full h-full flex items-center justify-center text-gray-600 z-10 relative bg-gray-100">
                         <ImageIcon size={48} opacity={0.5} />
                     </div>
                 )}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-20 pointer-events-none" />
 
+                {/* Кнопка Назад (остается без изменений) */}
                 {petId !== displayPetId && (
                      <button 
-                        onClick={() => setDisplayPetId(petId)}
-                        className="absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition flex items-center gap-2 text-sm font-bold"
+                        onClick={(e) => { e.stopPropagation(); setDisplayPetId(petId); }}
+                        className="absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition flex items-center gap-2 text-sm font-bold pointer-events-auto"
                      >
                         <ChevronLeft size={16} /> Назад
                      </button>
                 )}
 
-                {allImages.length > 1 && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={(e) => { e.stopPropagation(); prevImage(); }} className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition">
-                            <ChevronLeft size={24} />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition">
-                            <ChevronRight size={24} />
-                        </button>
-                    </div>
-                )}
+                {/* Кнопка Закрыть (остается без изменений) */}
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition pointer-events-auto">
+                    <X size={20} />
+                </button>
+
+                {/* [ИЗМЕНЕНИЕ] КНОПКИ УДАЛЕНЫ ПОЛНОСТЬЮ */}
                 
+                {/* Индикаторы (точки) - оставляем, чтобы видеть прогресс */}
                 {allImages.length > 1 && (
-                    <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
+                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-none">
                         {allImages.map((_, idx) => (
                             <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white w-3' : 'bg-white/50'}`} />
                         ))}
@@ -258,7 +313,6 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                         }
                     </h2>
                     
-                    {/* КНОПКА ВЛАДЕЛЬЦА (для врачей) */}
                     {pet?.owner_info && !pet.owner_info.is_temporary && (
                         <div 
                          onClick={() => setSelectedUserProfile(pet?.owner_info as UserProfile)}
@@ -275,9 +329,16 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                         </div>
                      )}
 
-                    <div className="flex items-center gap-3 text-white/90 text-sm mt-1 font-medium">
-                        <span className="bg-white/10 px-2 py-0.5 rounded backdrop-blur-sm">{pet?.age || 'Возраст скрыт'}</span>
-                        <span className="flex items-center gap-1 opacity-80">
+                    <div className="flex flex-wrap items-center gap-3 text-white/90 text-sm mt-2 font-medium">
+                        {/* ПОРОДА */}
+                        {pet?.breed && (
+                             <span className="bg-white/10 px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1 border border-white/10">
+                                <PawPrint size={14} className="opacity-80"/>
+                                {pet.breed}
+                             </span>
+                        )}
+                        
+                        <span className="flex items-center gap-1 opacity-80 text-xs">
                             <Calendar size={14} />
                             {pet?.birth_date ? new Date(pet.birth_date).toLocaleDateString('ru-RU') : 'Дата скрыта'}
                         </span>
@@ -404,29 +465,32 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             )}
 
                             {/* КНОПКИ ДЕЙСТВИЙ */}
-                            <div className="pt-8 mt-8 border-t border-gray-100 space-y-3">
+                            <div className="pt-35 mt-8 border-t border-gray-100 space-y-2">
                                 <button onClick={() => setIsGalleryOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                                     <ImageIcon size={18} /> ОБНОВИТЬ ГАЛЕРЕЮ
                                 </button>
                                 <button onClick={() => setIsEditOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                                     <Edit2 size={18} /> РЕДАКТИРОВАТЬ ПРОФИЛЬ
                                 </button>
-                                <button onClick={handleDelete} disabled={isDeleting} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                                    {isDeleting ? "Удаление..." : <><Trash2 size={18} /> УДАЛИТЬ ПРОФИЛЬ ПИТОМЦА</>}
-                                </button>
-                            {isClient && pet && (
-                              <PDFDownloadLink
-                                 document={<PetPassportDocument pet={pet} t={t} locale={locale} />}
-                                 fileName={`Passport_${pet.name}.pdf`}
-                                 className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
-                                 >
-                                 {({ loading }) => (
-                                 loading 
-                                 ? 'Генерация документа...' 
-                                 : <><FileDown size={18} /> СКАЧАТЬ PDF-ПАСПОРТ ({locale.toUpperCase()})</>
-                                 )}
-                              </PDFDownloadLink>
-                            )}
+                                                                {isClient && pet && (
+                                  <PDFDownloadLink
+                                     document={<PetPassportDocument pet={pet} t={t} locale={locale} />}
+                                     fileName={`Passport_${pet.name}.pdf`}
+                                     className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                                     >
+                                     {({ loading }) => (
+                                     loading 
+                                     ? 'Генерация документа...' 
+                                     : <><FileDown size={18} /> СКАЧАТЬ PDF-ПАСПОРТ ({locale.toUpperCase()})</>
+                                     )}
+                                  </PDFDownloadLink>
+                                )}
+                                {/* Кнопка открывает модалку DeletePetModal */}
+                                {canDelete && (
+                                    <button onClick={handleDeleteClick} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                                        <Trash2 size={18} /> УДАЛИТЬ ПРОФИЛЬ ПИТОМЦА
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
@@ -482,15 +546,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                 )}
                             </div>
 
-                             <div className={`p-4 rounded-xl border flex items-start gap-3 ${getStatusColor(pet.health_status?.color)}`}>
-                                 <div className="mt-0.5 shrink-0"><Activity size={20} /></div>
-                                 <div>
-                                     <h4 className="font-bold text-sm">{pet.health_status?.label || 'Статус не определен'}</h4>
-                                     <p className="text-xs opacity-80 mt-1 leading-relaxed">
-                                         Данные на основе последнего осмотра.
-                                     </p>
-                                 </div>
-                            </div>
+                            {/* [UPDATE] Блок статуса здоровья УДАЛЕН */}
 
                             <div>
                                 <div className="flex items-center justify-between mb-3">
@@ -524,30 +580,42 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                     <Edit2 size={14} />
                                                 </button>
 
-                                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                                                    event.status === 'completed' ? 'bg-green-100 text-green-600' :
-                                                    event.status === 'planned' ? 'bg-blue-50 text-blue-500' :
-                                                    'bg-gray-200 text-gray-500'
+                                                {/* ИКОНКА СОБЫТИЯ */}
+                                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center border ${
+                                                    event.status === 'completed' ? 'bg-white border-green-200 text-green-600' :
+                                                    event.status === 'planned' ? 'bg-white border-blue-200 text-blue-500' :
+                                                    'bg-gray-100 border-gray-200 text-gray-400'
                                                 }`}>
-                                                    <Activity size={18} />
+                                                    {event.event_type?.icon ? (
+                                                        <img src={getMediaUrl(event.event_type.icon)!} className="w-5 h-5 object-contain" alt="" />
+                                                    ) : (
+                                                        <Activity size={18} />
+                                                    )}
                                                 </div>
 
                                                 <div className="flex-1 min-w-0 pr-6">
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <h4 className="font-bold text-gray-900 truncate pr-2 text-sm">
-                                                                {event.title || event.event_type_display}
+                                                                {event.title}
                                                             </h4>
+                                                            
+                                                            {/* === ОТОБРАЖЕНИЕ АВТОРА / КЛИНИКИ === */}
                                                             <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 font-medium items-center">
-                                                                <span>{event.event_type_display}</span>
-                                                                {event.created_by_name && (
+                                                                <span className="bg-white border border-gray-200 px-1.5 py-0.5 rounded">
+                                                                    {event.event_type?.name} 
+                                                                </span>
+                                                                
+                                                                {event.created_by_info && (
                                                                     <>
                                                                         <span className="w-1 h-1 rounded-full bg-gray-300" />
                                                                         <span className="flex items-center gap-1">
-                                                                            {event.created_by_is_vet ? (
+                                                                            {event.created_by_info.is_vet ? (
                                                                                 <>
                                                                                     <Stethoscope size={12} className="text-blue-500" />
-                                                                                    <span className="text-blue-600 font-bold">{event.created_by_clinic || 'Врач'}</span>
+                                                                                    <span className="text-blue-600 font-bold">
+                                                                                        {event.created_by_info.clinic_name || 'Врач'}
+                                                                                    </span>
                                                                                 </>
                                                                             ) : (
                                                                                 <>
@@ -560,22 +628,22 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                                 )}
                                                             </div>
                                                         </div>
+                                                        
+                                                        {/* ДАТА И СТАТУС */}
                                                         <div className="text-right shrink-0">
                                                             <p className="text-xs font-bold text-gray-900">
                                                                 {formatDateTime(event.date)}
                                                             </p>
-                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold mt-1 inline-block ${
-                                                                event.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                                event.status === 'planned' ? 'bg-blue-100 text-blue-700' :
-                                                                'bg-gray-200 text-gray-600'
-                                                            }`}>
-                                                                {event.status_display}
-                                                            </span>
+                                                            {event.next_date && (
+                                                                <p className="text-[10px] text-blue-600 font-bold mt-0.5">
+                                                                    → {new Date(event.next_date).toLocaleDateString()}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     
                                                     {event.description && (
-                                                        <p className="text-xs text-gray-600 mt-2 line-clamp-2 bg-white/60 p-2 rounded-lg">
+                                                        <p className="text-xs text-gray-600 mt-2 line-clamp-2 bg-white p-2 rounded-lg border border-gray-100">
                                                             {event.description}
                                                         </p>
                                                     )}
@@ -588,10 +656,10 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                                     href={getMediaUrl(att.file)!} 
                                                                     target="_blank" 
                                                                     rel="noopener noreferrer"
-                                                                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded-md text-[10px] font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition"
+                                                                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-md text-[10px] font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition border border-gray-200"
                                                                 >
                                                                     <Paperclip size={12} />
-                                                                    Файл {att.id}
+                                                                    Файл
                                                                 </a>
                                                             ))}
                                                         </div>

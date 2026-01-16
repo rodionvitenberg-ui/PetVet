@@ -24,33 +24,22 @@ class PetFilter(filters.FilterSet):
     is_active = filters.BooleanFilter()
     is_public = filters.BooleanFilter()
     
-    # === 2. КАТЕГОРИИ И ТЕГИ (Множественный выбор) ===
-    # Было: categories__slug через getlist
-    # Стало: CharInFilter (стандарт DRF для списков через запятую)
-    # Пример: ?categories=cat,dog&tags=cute,funny
+    category_id = filters.NumberFilter(field_name='categories__id')
     categories = CharInFilter(field_name='categories__slug', lookup_expr='in')
     tags = CharInFilter(field_name='tags__slug', lookup_expr='in')
 
-    # Вспомогательные поля для "умного" поиска вида/породы
     species = filters.CharFilter(method='filter_species')
     breed = filters.CharFilter(method='filter_breed')
 
-    # === 3. ВОЗРАСТ (В МЕСЯЦАХ) ===
-    # Пример: ?min_age=12 (старше года)
     min_age = filters.NumberFilter(method='filter_min_age', label="Минимальный возраст (мес)")
     max_age = filters.NumberFilter(method='filter_max_age', label="Максимальный возраст (мес)")
 
-    # === 4. СОБЫТИЯ И ИСТОРИЯ ===
-    # ?has_event=vaccine (Был ли вакцинирован?)
     has_event = filters.CharFilter(method='filter_has_event')
     
-    # ?last_event_after=2024-01-01 (События после даты)
+
     last_event_after = filters.DateFilter(method='filter_last_event_date')
-    # Вспомогательное поле для уточнения типа события при фильтрации по дате
     event_type_slug = filters.CharFilter(field_name='events__event_type__slug')
 
-    # === 5. JSON ФИЛЬТРАЦИЯ (НОВОЕ) ===
-    # ?event_data=show|rank:CACIB
     event_data = filters.CharFilter(method='filter_event_json')
 
     class Meta:

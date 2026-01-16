@@ -7,7 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import { Loader2, Navigation, MapPin } from 'lucide-react';
 
 // === ЛЕЧИМ ИКОНКИ LEAFLET В NEXT.JS ===
-// По умолчанию Leaflet теряет иконки при сборке Webpack/Next
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
@@ -16,7 +15,7 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Кастомная иконка для Врача (Красная или Зеленая)
+// Кастомная иконка для Врача
 const VetIcon = L.divIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
   className: "bg-transparent",
@@ -25,7 +24,7 @@ const VetIcon = L.divIcon({
   popupAnchor: [0, -32]
 });
 
-// Кастомная иконка для Юзера (Синяя)
+// Кастомная иконка для Юзера
 const UserIcon = L.divIcon({
   html: `<div class="relative flex h-4 w-4"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-4 w-4 bg-blue-600 border-2 border-white"></span></div>`,
   className: "bg-transparent flex items-center justify-center",
@@ -44,7 +43,7 @@ interface Clinic {
   website?: string;
 }
 
-// Компонент для перемещения карты к пользователю
+// Компонент для перемещения карты
 function RecenterAutomatically({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
@@ -77,19 +76,21 @@ export default function VetMap() {
         console.error(err);
         setPermissionDenied(true);
         setLoading(false);
-        // Дефолтная позиция (например, центр Москвы или Бишкека), если запретил
-        // setPosition([42.87, 74.59]); 
       }
     );
   }, []);
 
-  // 2. ИЩЕМ ВЕТЕРИНАРОВ ЧЕРЕЗ OVERPASS API (OSM)
+  // 2. ИЩЕМ ВЕТЕРИНАРОВ (FIXED)
   const fetchNearbyVets = async (lat: number, lon: number) => {
     try {
-      // Ищем в радиусе 5000 метров (5 км)
       const radius = 5000;
+      
+      // [FIX] Используем более стабильное зеркало Kumi Systems
+      const OVERPASS_URL = 'https://overpass.kumi.systems/api/interpreter';
+      
+      // [FIX] Добавили [timeout:10] чтобы не висеть вечно
       const query = `
-        [out:json];
+        [out:json][timeout:10];
         (
           node["amenity"="veterinary"](around:${radius},${lat},${lon});
           way["amenity"="veterinary"](around:${radius},${lat},${lon});
@@ -98,23 +99,30 @@ export default function VetMap() {
         out center;
       `;
       
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const response = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(query)}`);
+
+      // [FIX] Проверка на ошибки сервера (504, 500 и т.д.) перед парсингом JSON
+      if (!response.ok) {
+          throw new Error(`Ошибка сервера карт: ${response.status}`);
+      }
+
       const data = await response.json();
 
       const formattedClinics: Clinic[] = data.elements.map((el: any) => ({
         id: el.id,
-        lat: el.lat || el.center.lat, // Для way/relation координаты в center
-        lon: el.lon || el.center.lon,
-        name: el.tags.name || 'Ветеринарная клиника',
-        street: el.tags['addr:street'],
-        housenumber: el.tags['addr:housenumber'],
-        phone: el.tags.phone || el.tags['contact:phone'],
-        website: el.tags.website || el.tags['contact:website'],
-      }));
+        lat: el.lat || el.center?.lat, 
+        lon: el.lon || el.center?.lon,
+        name: el.tags?.name || 'Ветеринарная клиника',
+        street: el.tags?.['addr:street'],
+        housenumber: el.tags?.['addr:housenumber'],
+        phone: el.tags?.phone || el.tags?.['contact:phone'],
+        website: el.tags?.website || el.tags?.['contact:website'],
+      })).filter((c: any) => c.lat && c.lon); // Убираем сломанные координаты
 
       setClinics(formattedClinics);
     } catch (error) {
       console.error("Ошибка поиска клиник:", error);
+      // Можно добавить тост или уведомление, что клиники не загрузились
     } finally {
       setLoading(false);
     }
@@ -128,7 +136,7 @@ export default function VetMap() {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Доступ к геопозиции запрещен</h2>
               <p className="text-gray-500 mt-2 max-w-md">
-                  Мы не можем найти ближайшие клиники, так как вы запретили доступ к местоположению. Разрешите доступ в настройках браузера.
+                  Мы не можем найти ближайшие клиники, так как вы запретили доступ к местоположению.
               </p>
           </div>
       )
@@ -151,15 +159,12 @@ export default function VetMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {/* Перемещаем карту при загрузке позиции */}
         <RecenterAutomatically lat={position[0]} lng={position[1]} />
 
-        {/* Маркер пользователя */}
         <Marker position={position} icon={UserIcon}>
           <Popup>Вы здесь</Popup>
         </Marker>
 
-        {/* Маркеры клиник */}
         {clinics.map((clinic) => (
           <Marker 
             key={clinic.id} 
@@ -183,7 +188,7 @@ export default function VetMap() {
                 )}
                 
                 {clinic.website && (
-                    <a href={clinic.website} target="_blank" rel="noopener" className="block w-full text-center text-xs text-gray-400 hover:text-blue-500 hover:underline">
+                    <a href={clinic.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center text-xs text-gray-400 hover:text-blue-500 hover:underline">
                         Перейти на сайт
                     </a>
                 )}
@@ -202,7 +207,6 @@ export default function VetMap() {
         ))}
       </MapContainer>
       
-      {/* Плашка со статистикой */}
       <div className="absolute bottom-6 left-6 z-[400] bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-gray-100 text-xs font-bold text-gray-700">
           Найдено клиник рядом: {clinics.length}
       </div>

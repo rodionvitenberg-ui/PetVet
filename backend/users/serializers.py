@@ -146,19 +146,19 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
     
 class PublicProfileSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
     contacts = UserContactSerializer(many=True, read_only=True) 
 
     class Meta:
         model = User
         fields = [
-            'id', 'full_name', 'email', 
+            'id', 'name', 'email', 
             'contacts', 
             'clinic_name', 'city', 'avatar', 'about',
             'is_veterinarian', 'is_verified'
         ]
     
-    def get_full_name(self, obj):
+    def get_name(self, obj):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
     

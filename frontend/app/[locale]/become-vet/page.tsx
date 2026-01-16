@@ -41,12 +41,23 @@ export default function BecomeVetPage() {
                 const res = await fetch(`${API_URL}/api/auth/verification/current_status/`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                // 1. Проверяем статус 204 (No Content)
+                if (res.status === 204) {
+                    setRequest(null);
+                    return;
+                }
+
                 if (res.ok) {
-                    const data = await res.json();
+                    // 2. Сначала читаем как текст, чтобы не упасть на пустом теле
+                    const text = await res.text();
+                    // 3. Если текст есть — парсим, если нет — null
+                    const data = text ? JSON.parse(text) : null;
+                    
                     if (data) setRequest(data);
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Ошибка при загрузке статуса:", e);
             } finally {
                 setIsLoading(false);
             }
