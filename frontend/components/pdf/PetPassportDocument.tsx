@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
 
 const formatDate = (dateString: string | undefined | null, locale: string) => {
     if (!dateString) return '-';
-    // Пытаемся распарсить дату
     try {
         return new Date(dateString).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
     } catch (e) {
@@ -62,43 +61,27 @@ const formatDate = (dateString: string | undefined | null, locale: string) => {
 };
 
 const getAbsoluteImageUrl = (url: string | undefined | null) => {
-    if (!url) return undefined; // react-pdf игнорирует undefined src
+    if (!url) return undefined;
     if (url.startsWith('http')) return url;
     
-    // API URL из переменных окружения или хардкод для локалки
-    // ВАЖНО: При генерации PDF на клиенте process.env.NEXT_PUBLIC_API_URL должен быть доступен
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-    // Убираем слеш в конце apiUrl и в начале url чтобы избежать двойных слешей
     const cleanApi = apiUrl.replace(/\/$/, '');
     const cleanUrl = url.startsWith('/') ? url : `/${url}`;
     
     return `${cleanApi}${cleanUrl}`;
 };
 
-// Хелпер для получения телефона/контакта владельца
 const getOwnerContact = (ownerInfo: UserProfile | TemporaryOwnerProfile | undefined): string => {
     if (!ownerInfo) return '';
-    
-    // Проверяем, есть ли поле is_temporary (Type Guard)
     if ('is_temporary' in ownerInfo && ownerInfo.is_temporary) {
         return (ownerInfo as TemporaryOwnerProfile).phone || '';
     }
-    
-    // Если это зарегистрированный юзер
     const user = ownerInfo as UserProfile;
     if (user.phone) return user.phone;
-    // Если нет телефона, ищем в контактах первый попавшийся
     if (user.contacts && user.contacts.length > 0) {
         return `${user.contacts[0].type_display}: ${user.contacts[0].value}`;
     }
     return user.email;
-};
-
-// Хелпер для поиска атрибута (например, Породы)
-const getAttributeValue = (attributes: PetAttribute[] | undefined, searchSlug: string): string | null => {
-    if (!attributes) return null;
-    const found = attributes.find(a => a.attribute.slug.includes(searchSlug) || a.attribute.name.toLowerCase().includes(searchSlug));
-    return found ? found.value : null;
 };
 
 // === КОМПОНЕНТ ===
@@ -110,13 +93,8 @@ interface PassportProps {
 }
 
 export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
-    // Получаем главную картинку
     const mainImageObj = pet.images?.find(img => img.is_main) || pet.images?.[0];
     const imageUrl = getAbsoluteImageUrl(mainImageObj?.image);
-
-    // Пытаемся найти породу в атрибутах (так как в PetBasic нет поля breed)
-    // Ищем по ключевым словам 'breed' или 'порода'
-    const breedValue = getAttributeValue(pet.attributes, 'breed') || getAttributeValue(pet.attributes, 'пород') || '-';
 
     return (
         <Document>
@@ -145,10 +123,13 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                         <Text style={styles.value}>{pet.name}</Text>
                     </View>
                     
-                    {/* Вывод породы из атрибутов */}
+                    {/* [FIX] ИСПОЛЬЗУЕМ НОВЫЕ ПОЛЯ ОТ БЭКЕНДА */}
                     <View style={styles.infoItem}>
                         <Text style={styles.label}>{t('breed')}</Text>
-                        <Text style={styles.value}>{breedValue}</Text>
+                        <Text style={styles.value}>
+                            {/* Сначала ищем породу, если нет - вид (Кошка), если нет - прочерк */}
+                            {pet.breed || pet.species || '-'} 
+                        </Text>
                     </View>
 
                     <View style={styles.infoItem}>
@@ -162,10 +143,11 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                         <Text style={styles.value}>{formatDate(pet.birth_date, locale)}</Text>
                     </View>
 
-                    {/* Вывод доп. атрибутов (первые 2, кроме породы) */}
+                    {/* Вывод доп. атрибутов */}
                     {pet.attributes?.slice(0, 4).map((attr, idx) => {
-                         // Пропускаем породу, если уже вывели
+                         // Не показываем породу тут, так как она уже выведена выше
                          if (attr.attribute.slug.includes('breed') || attr.attribute.slug.includes('пород')) return null;
+                         
                          return (
                             <View key={idx} style={styles.infoItem}>
                                 <Text style={styles.label}>{attr.attribute.name}</Text>

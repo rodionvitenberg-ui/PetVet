@@ -4,9 +4,14 @@ from users.serializers import PublicProfileSerializer
 from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent, HealthEventAttachment
 
 class TagSerializer(serializers.ModelSerializer):
+    is_custom = serializers.SerializerMethodField()
+
     class Meta:
         model = Tag
-        fields = ['id', 'name', 'slug', 'target_gender', 'sort_order', 'icon']
+        fields = ['id', 'name', 'slug', 'target_gender', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
+
+    def get_is_custom(self, obj):
+        return obj.created_by is not None
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,9 +19,14 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'parent', 'icon', 'sort_order']
 
 class AttributeSerializer(serializers.ModelSerializer):
+    is_custom = serializers.SerializerMethodField()
+
     class Meta:
         model = Attribute
-        fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon']
+        fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
+
+    def get_is_custom(self, obj):
+        return obj.created_by is not None
 
 class PetAttributeSerializer(serializers.ModelSerializer):
     attribute = AttributeSerializer(read_only=True)
@@ -110,6 +120,9 @@ class PetSerializer(serializers.ModelSerializer):
     owner_info = serializers.SerializerMethodField()
     active_vets = serializers.SerializerMethodField()
 
+    species = serializers.SerializerMethodField()
+    breed = serializers.SerializerMethodField()
+
     class Meta:
         model = Pet
         fields = [
@@ -120,7 +133,7 @@ class PetSerializer(serializers.ModelSerializer):
             'is_public', 
             'is_active', 'images', 'recent_events', 'created_at',
             'clinic_name',
-            'temp_owner_name', 'temp_owner_phone', 'created_by',
+            'temp_owner_name', 'temp_owner_phone', 'created_by', 'species', 'breed',
         ]
         read_only_fields = ['created_by']
     
@@ -251,3 +264,20 @@ class PetSerializer(serializers.ModelSerializer):
         vets = [grant.user for grant in grants]
         from users.serializers import PublicProfileSerializer
         return PublicProfileSerializer(vets, many=True, context=self.context).data
+    
+    def get_species(self, obj):
+        """
+        Возвращает родительскую категорию (Вид: Кошка, Собака).
+        Ищем категорию, у которой НЕТ родителя.
+        """
+        # optimization: categories уже подгружены через prefetch_related во viewset
+        species_cat = next((cat for cat in obj.categories.all() if cat.parent is None), None)
+        return species_cat.name if species_cat else None
+
+    def get_breed(self, obj):
+        """
+        Возвращает дочернюю категорию (Порода).
+        Ищем категорию, у которой ЕСТЬ родитель.
+        """
+        breed_cat = next((cat for cat in obj.categories.all() if cat.parent is not None), None)
+        return breed_cat.name if breed_cat else None

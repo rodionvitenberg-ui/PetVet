@@ -2,7 +2,38 @@ from django.contrib import admin
 from modeltranslation.admin import TranslationAdmin
 from django import forms
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from .models import Category, Pet, Attribute, PetAttribute, Tag, PetImage, HealthEvent
+
+# === CUSTOM FILTERS & ACTIONS ===
+
+class ScopeFilter(admin.SimpleListFilter):
+    """Фильтр для разделения Системных и Пользовательских записей"""
+    title = 'Область видимости (Scope)'
+    parameter_name = 'scope'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('system', '🔒 Системные (Global)'),
+            ('custom', '👤 Пользовательские (Custom)'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'system':
+            return queryset.filter(created_by__isnull=True)
+        if self.value() == 'custom':
+            return queryset.filter(created_by__isnull=False)
+        return queryset
+
+@admin.action(description='🚀 ПРОМОУШЕН: Сделать выбранные системными')
+def promote_to_system(modeladmin, request, queryset):
+    """
+    Убирает автора у записей, делая их системными (общими).
+    """
+    rows_updated = queryset.update(created_by=None)
+    modeladmin.message_user(request, f"Успешно обновлено записей: {rows_updated}. Теперь они системные.")
+
+# === ADMIN CLASSES ===
 
 @admin.register(Category)
 class CategoryAdmin(TranslationAdmin):
@@ -14,19 +45,32 @@ class CategoryAdmin(TranslationAdmin):
 
     def icon_preview(self, obj):
         if obj.icon:
+            # Здесь mark_safe используется корректно
             return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
         return "-"
     icon_preview.short_description = "Иконка"
 
 @admin.register(Attribute)
 class AttributeAdmin(TranslationAdmin):
-    # Добавили 'icon_preview' в список
-    list_display = ('name', 'unit', 'sort_order', 'icon_preview')
+    list_display = ('name', 'unit', 'type_label', 'is_universal', 'sort_order', 'icon_preview')
     list_editable = ('sort_order',) 
-    search_fields = ('name',)
+    list_filter = (ScopeFilter, 'is_universal')
+    search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
+    actions = [promote_to_system]
+    readonly_fields = ('created_by',)
 
-    # Функция превью для атрибутов
+    def type_label(self, obj):
+        if obj.created_by:
+            # Тут format_html нужен, так как есть аргумент obj.created_by
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">👤 Custom</span> <span style="color: #999; font-size: 10px;">({})</span>', 
+                obj.created_by
+            )
+        # [FIX] Тут была ошибка. Для статики используем mark_safe
+        return mark_safe('<span style="color: green; font-weight: bold;">🔒 System</span>')
+    type_label.short_description = "Тип"
+
     def icon_preview(self, obj):
         if obj.icon:
             return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
@@ -35,23 +79,27 @@ class AttributeAdmin(TranslationAdmin):
 
 @admin.register(Tag)
 class TagAdmin(TranslationAdmin):
-    verbose_name = "Метка"
-    verbose_name_plural = "Метки"
-    # Добавили 'icon_preview' в список
-    list_display = ('name', 'slug', 'target_gender', 'sort_order', 'icon_preview')
-    list_editable = ('sort_order',)
+    list_display = ('name', 'slug', 'type_label', 'is_universal', 'target_gender', 'sort_order')
+    list_editable = ('sort_order', 'target_gender') 
+    list_filter = (ScopeFilter, 'is_universal', 'target_gender')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    list_filter = ('target_gender',)
+    actions = [promote_to_system]
+    readonly_fields = ('created_by',)
 
-    # Функция превью для тегов
-    def icon_preview(self, obj):
-        if obj.icon:
-            return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
-        return "-"
-    icon_preview.short_description = "Иконка"
+    def type_label(self, obj):
+        if obj.created_by:
+            # [FIX] Добавил вывод автора (как в атрибутах), чтобы format_html имел аргументы
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">👤 Custom</span> <span style="color: #999; font-size: 10px;">({})</span>', 
+                obj.created_by
+            )
+        # [FIX] Заменил format_html на mark_safe
+        return mark_safe('<span style="color: green; font-weight: bold;">🔒 System</span>')
+    type_label.short_description = "Тип"
 
-# ... (Остальные классы PetAdmin, HealthEventAdmin и т.д. оставляем без изменений)
+# === INLINES & OTHER ===
+
 class PetAttributeInline(admin.TabularInline):
     model = PetAttribute
     extra = 1
@@ -64,21 +112,10 @@ class PetImageInline(admin.TabularInline):
 class HealthEventInline(admin.TabularInline):
     model = HealthEvent
     extra = 0
-    fields = ('event_type', 'title', 'date', 'status', 'is_verified')
-    readonly_fields = ('is_verified',)
     show_change_link = True
-
-class PetAdminForm(forms.ModelForm):
-    class Meta:
-        model = Pet
-        fields = '__all__'
-        widgets = {
-            'birth_date': admin.widgets.AdminDateWidget(attrs={'type': 'date'}),
-        }
 
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
-    form = PetAdminForm
     autocomplete_fields = ['categories', 'owner', 'mother', 'father']
     filter_horizontal = ('categories', 'tags') 
     list_display = ('name', 'owner', 'gender', 'birth_date', 'get_categories', 'is_active', 'is_public', 'created_at')
@@ -106,8 +143,8 @@ class PetAdmin(admin.ModelAdmin):
 
 @admin.register(HealthEvent)
 class HealthEventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'pet', 'event_type', 'date', 'status', 'is_verified')
-    list_filter = ('event_type', 'status', 'is_verified', 'date')
+    list_display = ('title', 'pet', 'event_type', 'date', 'status', 'next_date')
+    list_filter = ('event_type', 'status', 'date')
     search_fields = ('title', 'pet__name', 'description')
-    date_hierarchy = 'date'
     autocomplete_fields = ['pet']
+    date_hierarchy = 'date'

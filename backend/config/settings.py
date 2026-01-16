@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'simple_history',
     'notifications',
     'channels',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -156,6 +157,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.careyour.pet",
     "http://localhost:3000",
     "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -196,7 +198,8 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 
 # === CELERY SETTINGS ===
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:6379/0'
@@ -212,7 +215,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(REDIS_HOST, 6379)],
+            "hosts": [f"redis://{REDIS_HOST}:6379/1"],
         },
     },
 }

@@ -67,13 +67,13 @@ export interface PetBasic {
     is_public: boolean;
     clinic_name?: string;
     
-    // Новые поля
     temp_owner_name?: string;
     temp_owner_phone?: string;
-    created_by?: number; // <--- [NEW] ID врача-создателя (для прав доступа)
+    created_by?: number;
 
-    // [FIX] Теперь строго типизируем атрибуты, чтобы TS не ругался
     attributes?: PetAttribute[]; 
+    species?: string;
+    breed?: string;  
 }
 
 export interface PetTag {

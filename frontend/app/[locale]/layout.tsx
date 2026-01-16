@@ -19,7 +19,7 @@ import NotificationListener from "@/components/providers/NotificationListener";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "PetVet",
+  title: "Care Your Pet",
   description: "Здоровье ваших питомцев",
 };
 

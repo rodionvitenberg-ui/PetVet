@@ -57,6 +57,19 @@ class Tag(models.Model):
     icon = models.FileField(upload_to='attribute_icons/', blank=True, null=True, verbose_name="Иконка (SVG/PNG)")
     sort_order = models.IntegerField(default=0, verbose_name="Порядок вывода")
 
+    is_universal = models.BooleanField(
+        default=False, 
+        verbose_name="Универсальный (для всех видов)"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL,
+        null=True, 
+        blank=True, 
+        related_name='custom_tags', 
+        verbose_name="Создатель (если кастомный)"
+    )
+
     class Meta:
         verbose_name = "Метка"
         verbose_name_plural = "Метки"
@@ -69,9 +82,21 @@ class Attribute(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Название атрибута")
     slug = models.SlugField(max_length=100, unique=True)
     unit = models.CharField(max_length=100, blank=True, verbose_name="Единица измерения")
-    
     icon = models.FileField(upload_to='attribute_icons/', blank=True, null=True, verbose_name="Иконка (SVG/PNG)")
     sort_order = models.IntegerField(default=0, verbose_name="Порядок вывода")
+
+    is_universal = models.BooleanField(
+        default=False, 
+        verbose_name="Универсальный (для всех видов)"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, # Если юзера удалят, атрибут останется (можно поменять на CASCADE)
+        null=True, 
+        blank=True, 
+        related_name='custom_attributes', 
+        verbose_name="Создатель (если кастомный)"
+    )
 
     class Meta:
         verbose_name = "Атрибут"

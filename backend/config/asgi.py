@@ -1,4 +1,3 @@
-# config/asgi.py
 import os
 import django
 
@@ -7,16 +6,19 @@ django.setup()
 
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-from channels.security.websocket import AllowedHostsOriginValidator # <--- Импорт
+from channels.security.websocket import AllowedHostsOriginValidator
 import notifications.routing
+import chat.routing  # Импортируем роутинг чата
+from chat.middleware import JwtAuthMiddleware # <--- Импортируем наш Middleware
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AllowedHostsOriginValidator( # <--- Оборачиваем в валидатор
-        AuthMiddlewareStack(
+    "websocket": AllowedHostsOriginValidator(
+        JwtAuthMiddleware(  # <--- Оборачиваем роутеры в наш Middleware
             URLRouter(
-                notifications.routing.websocket_urlpatterns
+                # Объединяем маршруты уведомлений и чата
+                notifications.routing.websocket_urlpatterns +
+                chat.routing.websocket_urlpatterns
             )
         )
     ),

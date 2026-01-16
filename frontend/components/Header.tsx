@@ -13,6 +13,10 @@ import {
 } from 'lucide-react';
 import NotificationsDropdown from './dashboard/NotificationsDropdown';
 
+// Импорт сервисов и типов для чата
+import { chatService } from '@/services/chat';
+import { ChatRoom } from '@/types/chat';
+
 // Импорт кастомных анимированных иконок
 import { BoneIcon } from '@/components/ui/bone';
 import { BookTextIcon } from '@/components/ui/book-text';
@@ -20,18 +24,21 @@ import { MapPinIcon } from '@/components/ui/map-pin';
 import { HomeIcon } from '@/components/ui/home';
 import { StethoscopeIcon } from '@/components/ui/stethoscope';
 import { BellIcon } from '@/components/ui/bell';
+// Предполагаемые импорты новых иконок (согласно вашему описанию)
+import { MessageCircleIcon } from '@/components/ui/message-circle';
+import { MessageCircleMoreIcon } from '@/components/ui/message-circle-more';
 
 type ActiveMenu = 'notifications' | 'burger' | null;
 
 export default function Header() {
   const t = useTranslations('Navigation');
   const pathname = usePathname();
-  const { isAuth, logout } = useAuth();
+  const { isAuth, logout, user } = useAuth(); // Добавили user для проверки отправителя
   
-  // toggleMode больше не нужен, берем только статус
   const { isVetMode } = useAppMode(); 
   
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>(null);
+  const [unreadCount, setUnreadCount] = useState(0); // Счетчик непрочитанных диалогов
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
@@ -43,6 +50,38 @@ export default function Header() {
   const closeMenu = () => {
     setActiveMenu(null);
   };
+
+  // Эффект для получения количества непрочитанных сообщений
+  useEffect(() => {
+    const fetchUnreadChats = async () => {
+      if (!isAuth || !user) return;
+
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const rooms: ChatRoom[] = await chatService.getMyChats(token);
+        
+        // Считаем комнаты, где последнее сообщение не прочитано и отправлено НЕ нами
+        const count = rooms.filter(room => 
+          room.last_message && 
+          !room.last_message.is_read && 
+          room.last_message.sender !== user.id
+        ).length;
+
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("Failed to fetch chats for header badge", error);
+      }
+    };
+
+    fetchUnreadChats();
+
+    // Можно добавить поллинг (раз в 30 сек) или обновлять при смене страницы
+    const interval = setInterval(fetchUnreadChats, 30000);
+    return () => clearInterval(interval);
+
+  }, [isAuth, user, pathname]); // Обновляем также при смене страницы (pathname)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -75,7 +114,6 @@ export default function Header() {
         {/* 2. ЦЕНТР (Навигация) */}
         <div className="hidden md:flex items-center justify-center h-full gap-8">
           
-          {/* HOME */}
           <Link 
             href="/"
             className={`
@@ -92,7 +130,6 @@ export default function Header() {
             <span className="text-sm font-medium">{t('home')}</span>
           </Link>
 
-          {/* DASHBOARD */}
           <Link 
             href="/dashboard"
             className={`
@@ -109,7 +146,6 @@ export default function Header() {
             <span className="text-sm font-medium">{t('dashboard')}</span>
           </Link>
 
-          {/* CALENDAR */}
           <Link 
             href="/planboard"
             className={`
@@ -126,7 +162,6 @@ export default function Header() {
             <span className="text-sm font-medium">{t('calendar')}</span>
           </Link>
 
-          {/* SERVICES (FIND DOCTOR) */}
           <Link 
             href="/find-vet"
             className={`
@@ -147,30 +182,58 @@ export default function Header() {
         {/* 3. ПРАВАЯ ЧАСТЬ */}
         <div className="flex items-center justify-end gap-2 flex-1 relative" ref={menuRef}>
           
-          {/* Кнопка переключения режимов УДАЛЕНА */}
-
           {isAuth ? (
-              <div className="relative">
-                {/* Кнопка-триггер: Анимированный колокольчик */}
-                <button 
-                  onClick={() => toggleMenu('notifications')}
+              <div className="flex items-center gap-1">
+                
+                {/* === КНОПКА ЧАТА === */}
+                <Link
+                  href="/dashboard/messages"
                   className={`
-                    p-2 rounded-full transition duration-200 flex items-center justify-center outline-none
-                    ${activeMenu === 'notifications' 
-                        ? 'text-primary bg-gray-100' 
+                    p-2 rounded-full transition duration-200 flex items-center justify-center outline-none relative
+                    ${isActive('/dashboard/messages')
+                        ? 'text-primary bg-gray-100'
                         : 'text-gray-600 hover:text-primary hover:bg-gray-100'
                     }
                   `}
                 >
-                  <BellIcon size={24} />
-                </button>
-                
-                {/* Окно уведомлений */}
-                {activeMenu === 'notifications' && (
-                  <div className="absolute top-full right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                     <NotificationsDropdown />
-                  </div>
-                )}
+                   {/* Логика смены иконки: если есть непрочитанные - MessageCircleMore, иначе MessageCircle */}
+                   {unreadCount > 0 ? (
+                      <MessageCircleMoreIcon size={24} />
+                   ) : (
+                      <MessageCircleIcon size={24} />
+                   )}
+
+                   {/* Счетчик сообщений (Badge) */}
+                   {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white ring-2 ring-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                   )}
+                </Link>
+                {/* ================= */}
+
+                {/* Кнопка-триггер: Анимированный колокольчик */}
+                <div className="relative">
+                    <button 
+                    onClick={() => toggleMenu('notifications')}
+                    className={`
+                        p-2 rounded-full transition duration-200 flex items-center justify-center outline-none
+                        ${activeMenu === 'notifications' 
+                            ? 'text-primary bg-gray-100' 
+                            : 'text-gray-600 hover:text-primary hover:bg-gray-100'
+                        }
+                    `}
+                    >
+                    <BellIcon size={24} />
+                    </button>
+                    
+                    {/* Окно уведомлений */}
+                    {activeMenu === 'notifications' && (
+                    <div className="absolute top-full right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                        <NotificationsDropdown />
+                    </div>
+                    )}
+                </div>
               </div>
             ) : (
               <button className="hover:bg-gray-300 p-2 rounded-full transition cursor-pointer">

@@ -366,15 +366,55 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         response_data.sort(key=lambda x: x['sort_order'])
         return Response(response_data)
 
-class AttributeViewSet(viewsets.ModelViewSet):
-    queryset = Attribute.objects.all()
-    serializer_class = AttributeSerializer
-    permission_classes = [AllowAny]
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    """
+    Разрешает:
+    - Просмотр всем (кто авторизован).
+    - Создание всем (кто авторизован).
+    - Изменение/Удаление ТОЛЬКО автору объекта.
+    Системные объекты (created_by=None) доступны только для чтения.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Чтение разрешено всем (безопасные методы: GET, HEAD, OPTIONS)
+        if request.method in permissions.SAFE_METHODS:
+            return True
 
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
+        # Изменение разрешено, только если ты автор этого объекта
+        return obj.created_by == request.user
+
+class AttributeViewSet(viewsets.ModelViewSet): # <--- Стало ModelViewSet
+    serializer_class = AttributeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Attribute.objects.filter(
+            Q(created_by__isnull=True) | Q(created_by=user)
+        ).order_by('-is_universal', 'sort_order', 'name')
+
+    def perform_create(self, serializer):
+        serializer.save(
+            created_by=self.request.user,
+            is_universal=False
+        )
+
+class TagViewSet(viewsets.ModelViewSet): # <--- Стало ModelViewSet (теперь можно писать)
     serializer_class = TagSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly] # <--- Подключили защиту
+
+    def get_queryset(self):
+        user = self.request.user
+        # Показываем: Системные + Мои
+        return Tag.objects.filter(
+            Q(created_by__isnull=True) | Q(created_by=user)
+        ).order_by('-is_universal', 'sort_order', 'name')
+
+    # При создании автоматически привязываем к юзеру
+    def perform_create(self, serializer):
+        serializer.save(
+            created_by=self.request.user, 
+            is_universal=False # Пользовательские теги по умолчанию не универсальны (хотя можно разрешить)
+        )
 
 class AIConsultView(APIView):
     permission_classes = [IsAuthenticated]
