@@ -15,10 +15,13 @@ class Notification(models.Model):
     )
 
     CATEGORY_CHOICES = [
-        ('system', 'Системное'),         
-        ('reminder', 'Напоминание'),     
-        ('medical', 'Медицина'),         
-        ('action', 'Требует действия'),  
+        ('system', 'Системное'),
+        ('reminder', 'Напоминание'),
+        ('medical', 'Медицина'),
+        ('reproduction', 'Репродукция'), # Новое
+        ('show', 'Выставки'),            # Новое
+        ('care', 'Уход'),                # Новое
+        ('action', 'Требует действия'),
     ]
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='system')
 

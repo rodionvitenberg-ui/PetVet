@@ -7,6 +7,15 @@ import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { ChatRoom, ChatMessage, UserShort, PaginatedResponse } from '@/types/chat';
 import { Send, User as UserIcon, Loader2 } from 'lucide-react';
 
+// Хелпер для склейки URL картинки
+const getFullUrl = (path?: string | null) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  // Берем хост из env или хардкод для локалки
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  return `${baseUrl}${path}`;
+};
+
 export default function MessagesPage() {
   const { user } = useAuth(); 
   const [token, setToken] = useState<string | null>(null);
@@ -19,75 +28,68 @@ export default function MessagesPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [inputText, setInputText] = useState('');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Используем реф не на пустой див, а на сам контейнер сообщений для управления скроллом
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 1. НАДЕЖНОЕ ПОЛУЧЕНИЕ ТОКЕНА
+  // 1. Получение токена
   useEffect(() => {
-    // Пытаемся найти токен под всеми возможными именами ключей
     const storedToken = 
         localStorage.getItem('access') || 
         localStorage.getItem('access_token') || 
         localStorage.getItem('token');
     
-    console.log("Token check:", storedToken ? "Found" : "Not Found"); // ОТЛАДКА
-
     if (storedToken) {
         setToken(storedToken);
     } else {
-        // Если токена нет - перенаправляем на логин или показываем ошибку
         console.warn("Auth token is missing in localStorage");
         setIsLoadingRooms(false); 
     }
   }, []);
 
-  // 2. ЗАГРУЗКА КОМНАТ (Только когда есть токен)
+  // 2. Загрузка комнат (Исправлен TS)
   useEffect(() => {
     if (token) {
-      console.log("Fetching chats with token..."); // ОТЛАДКА
       chatService.getMyChats(token)
-        .then((data) => {
-          console.log("Chats loaded:", data); // ОТЛАДКА
+        .then((data: ChatRoom[]) => { // <--- Явно указываем тип
           setRooms(data);
           setIsLoadingRooms(false);
         })
-        .catch((err) => {
+        .catch((err: any) => { // <--- Явно указываем тип ошибки
           console.error("Failed to load chats", err);
           setIsLoadingRooms(false);
         });
     }
-  }, [token]); // <-- Этот эффект сработает только когда token перестанет быть null
+  }, [token]);
 
-// 3. ЗАГРУЗКА ИСТОРИИ
+  // 3. Загрузка истории
   useEffect(() => {
     if (selectedRoomId && token) {
       setIsLoadingMessages(true);
       setMessages([]); 
       
       chatService.getMessages(token, { roomId: selectedRoomId })
-        // Явно указываем тип входящих данных:
         .then((data: PaginatedResponse<ChatMessage> | ChatMessage[]) => {
-          // Теперь TS знает, что у data может быть поле results
           const msgs = 'results' in data ? data.results : data;
-          
           setMessages(msgs.reverse());
           setIsLoadingMessages(false);
-          scrollToBottom();
+          scrollToBottom(true); // Мгновенный скролл при открытии
         })
-        .catch((err) => {
+        .catch((err: any) => {
             console.error(err);
             setIsLoadingMessages(false);
         });
     }
   }, [selectedRoomId, token]);
 
-  // 4. WEBSOCKET
+  // 4. WebSocket
   const { sendMessage, isConnected } = useChatWebSocket({
     roomId: selectedRoomId,
     token: token,
     onNewMessage: (msg) => {
       setMessages((prev) => [...prev, msg]);
-      scrollToBottom();
+      scrollToBottom(false); // Плавный скролл при новом сообщении
       
+      // Обновляем список чатов (поднимаем активный наверх)
       setRooms(prev => prev.map(room => {
         if (room.id === msg.room) {
            return { ...room, updated_at: msg.created_at };
@@ -97,9 +99,17 @@ export default function MessagesPage() {
     }
   });
 
-  const scrollToBottom = () => {
+  // Улучшенная функция скролла (без прыжков страницы)
+  const scrollToBottom = (instant: boolean = false) => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (scrollContainerRef.current) {
+        const { scrollHeight, clientHeight } = scrollContainerRef.current;
+        // Устанавливаем позицию скролла в самый низ
+        scrollContainerRef.current.scrollTo({
+            top: scrollHeight - clientHeight,
+            behavior: instant ? 'auto' : 'smooth'
+        });
+      }
     }, 100);
   };
 
@@ -128,6 +138,7 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-100px)] bg-gray-50 border rounded-lg overflow-hidden shadow-sm mt-4">
+      
       {/* ЛЕВАЯ КОЛОНКА: СПИСОК */}
       <div className="w-1/3 border-r bg-white flex flex-col">
         <div className="p-4 border-b bg-gray-100 font-semibold text-gray-700">
@@ -139,11 +150,13 @@ export default function MessagesPage() {
             <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>
           ) : rooms.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
-                {token ? "Нет активных чатов" : "Ошибка авторизации"}
+                {token ? "Нет активных чатов" : "Загрузка..."}
             </div>
           ) : (
             rooms.map((room) => {
               const interlocutor = getInterlocutor(room);
+              const avatarUrl = getFullUrl(interlocutor.avatar); // Обработка URL аватара
+
               return (
                 <div
                   key={room.id}
@@ -153,8 +166,8 @@ export default function MessagesPage() {
                   }`}
                 >
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                    {interlocutor.avatar ? (
-                        <img src={interlocutor.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                         <UserIcon className="text-gray-400 w-6 h-6" />
                     )}
@@ -189,7 +202,11 @@ export default function MessagesPage() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Контейнер сообщений с ref для скролла */}
+            <div 
+                ref={scrollContainerRef} 
+                className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+            >
               {isLoadingMessages ? (
                  <div className="flex justify-center mt-10"><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>
               ) : (
@@ -218,7 +235,6 @@ export default function MessagesPage() {
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 bg-white border-t">

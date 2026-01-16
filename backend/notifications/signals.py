@@ -4,18 +4,17 @@ from django.dispatch import receiver
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-# Импорты моделей
-from pets.models import HealthEvent, PetAccess
+# [FIX] Импортируем новую модель
+from pets.models import PetEvent, PetAccess
 from .models import Notification
 from .serializers import NotificationSerializer
 
-# === СИГНАЛ 1: БИЗНЕС-ЛОГИКА ===
-@receiver(post_save, sender=HealthEvent)
+@receiver(post_save, sender=PetEvent) # [FIX] Слушаем PetEvent
 def create_notification_on_event(sender, instance, created, **kwargs):
     if not created:
         return
 
-    # 1. Определяем список получателей
+    # 1. Логика получателей (та же самая, она правильная)
     recipients = set()
     if instance.pet.owner:
         recipients.add(instance.pet.owner)
@@ -24,45 +23,41 @@ def create_notification_on_event(sender, instance, created, **kwargs):
     for access in active_accesses:
         recipients.add(access.user)
     
-    # Исключаем автора события, чтобы не спамить ему самому
     if instance.created_by in recipients:
         recipients.remove(instance.created_by)
 
     if not recipients:
         return
 
-    # 2. Готовим данные
+    # 2. [FIX] Маппинг категорий (EventType -> Notification)
+    # category в EventType: medical, reproduction, show, care, other
+    # category в Notification: medical, reproduction, show, care, system...
+    # Они почти совпадают, можно использовать напрямую или через маппинг
+    event_cat = instance.event_type.category
+    notif_category = event_cat if event_cat in ['medical', 'reproduction', 'show', 'care'] else 'system'
+
+    # 3. Готовим данные
     title_text = f"Новое событие: {instance.title}"
+    author_name = instance.created_by.get_full_name() if instance.created_by else 'System'
     
-    # Определяем имя автора
-    author_name = 'System'
-    if instance.created_by:
-        # Если есть профиль врача/пользователя, берем имя оттуда, иначе username
-        author_name = getattr(instance.created_by, 'first_name', instance.created_by.username)
-
-    message_text = f"{author_name} добавил запись «{instance.get_event_type_display()}» для питомца {instance.pet.name}."
-
-    # --- ГЕНЕРАЦИЯ ССЫЛКИ ---
-    # Ссылка ведет на страницу питомца и сразу открывает вкладку 'medical'
-    target_link = f"/pets/{instance.pet.id}?tab=medical"
+    message_text = f"Добавлено событие «{instance.event_type.name}» для питомца {instance.pet.name}. Автор: {author_name}."
 
     notifications_to_create = []
     for user in recipients:
         notifications_to_create.append(Notification(
             recipient=user,
-            category='medical',
+            category=notif_category, # Используем вычисленную категорию
             title=title_text,
             message=message_text,
-            content_object=instance,
-            # Сохраняем ссылку в metadata (предполагаем, что в модели Notification есть JSONField metadata)
+            content_object=instance, # Generic Link на PetEvent
             metadata={
-                "link": target_link,
                 "pet_id": instance.pet.id,
-                "event_id": instance.id
+                "event_id": instance.id,
+                "event_type": instance.event_type.slug
             }
         ))
     
-    # Сохраняем по одному, чтобы сработал сигнал отправки (Сигнал 2)
+    # Сохраняем по одному, чтобы сработал сигнал доставки (send_delivery_ws)
     for n in notifications_to_create:
         n.save()
 

@@ -3,7 +3,7 @@ from modeltranslation.admin import TranslationAdmin
 from django import forms
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
-from .models import Category, Pet, Attribute, PetAttribute, Tag, PetImage, HealthEvent
+from .models import Category, Pet, Attribute, PetAttribute, Tag, PetImage, PetEvent, EventType, PetEventAttachment
 
 # === CUSTOM FILTERS & ACTIONS ===
 
@@ -45,29 +45,33 @@ class CategoryAdmin(TranslationAdmin):
 
     def icon_preview(self, obj):
         if obj.icon:
-            # Здесь mark_safe используется корректно
             return mark_safe(f'<img src="{obj.icon.url}" width="30" height="30" />')
         return "-"
     icon_preview.short_description = "Иконка"
 
 @admin.register(Attribute)
 class AttributeAdmin(TranslationAdmin):
+    # Показываем статус (System/Custom), галочку универсальности и иконку
     list_display = ('name', 'unit', 'type_label', 'is_universal', 'sort_order', 'icon_preview')
+    
+    # [FIX] Оставляем в editable только безопасные поля, чтобы не конфликтовать с TranslationAdmin
     list_editable = ('sort_order',) 
+    
     list_filter = (ScopeFilter, 'is_universal')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
     actions = [promote_to_system]
+    
     readonly_fields = ('created_by',)
 
     def type_label(self, obj):
         if obj.created_by:
-            # Тут format_html нужен, так как есть аргумент obj.created_by
+            # Здесь format_html нужен, так как есть аргументы
             return format_html(
                 '<span style="color: orange; font-weight: bold;">👤 Custom</span> <span style="color: #999; font-size: 10px;">({})</span>', 
                 obj.created_by
             )
-        # [FIX] Тут была ошибка. Для статики используем mark_safe
+        # [FIX] Для статики используем mark_safe, иначе Django 5+ ругается
         return mark_safe('<span style="color: green; font-weight: bold;">🔒 System</span>')
     type_label.short_description = "Тип"
 
@@ -89,16 +93,48 @@ class TagAdmin(TranslationAdmin):
 
     def type_label(self, obj):
         if obj.created_by:
-            # [FIX] Добавил вывод автора (как в атрибутах), чтобы format_html имел аргументы
             return format_html(
                 '<span style="color: orange; font-weight: bold;">👤 Custom</span> <span style="color: #999; font-size: 10px;">({})</span>', 
                 obj.created_by
             )
-        # [FIX] Заменил format_html на mark_safe
+        # [FIX] Используем mark_safe
         return mark_safe('<span style="color: green; font-weight: bold;">🔒 System</span>')
     type_label.short_description = "Тип"
 
-# === INLINES & OTHER ===
+# === EVENT TYPES & EVENTS ===
+
+@admin.register(EventType)
+class EventTypeAdmin(TranslationAdmin):
+    list_display = ('name', 'category', 'type_label', 'is_universal', 'created_by')
+    list_filter = ('category', ScopeFilter, 'is_universal')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    actions = [promote_to_system]
+    readonly_fields = ('created_by',)
+
+    def type_label(self, obj):
+        if obj.created_by:
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">👤 Custom</span> <span style="color: #999; font-size: 10px;">({})</span>', 
+                obj.created_by
+            )
+        return mark_safe('<span style="color: green; font-weight: bold;">🔒 System</span>')
+    type_label.short_description = "Тип"
+
+class PetEventAttachmentInline(admin.TabularInline):
+    model = PetEventAttachment
+    extra = 1
+
+@admin.register(PetEvent)
+class PetEventAdmin(admin.ModelAdmin):
+    list_display = ('title', 'pet', 'event_type', 'date', 'status')
+    list_filter = ('event_type__category', 'status', 'date')
+    search_fields = ('title', 'pet__name', 'description')
+    autocomplete_fields = ['pet', 'event_type']
+    inlines = [PetEventAttachmentInline]
+    date_hierarchy = 'date'
+
+# === INLINES & PET ADMIN ===
 
 class PetAttributeInline(admin.TabularInline):
     model = PetAttribute
@@ -109,19 +145,15 @@ class PetImageInline(admin.TabularInline):
     model = PetImage
     extra = 1
 
-class HealthEventInline(admin.TabularInline):
-    model = HealthEvent
-    extra = 0
-    show_change_link = True
-
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
     autocomplete_fields = ['categories', 'owner', 'mother', 'father']
     filter_horizontal = ('categories', 'tags') 
-    list_display = ('name', 'owner', 'gender', 'birth_date', 'get_categories', 'is_active', 'is_public', 'created_at')
-    list_filter = ('is_active', 'gender', 'categories', 'is_public', 'tags')
+    list_display = ('name', 'owner', 'gender', 'species_breed', 'is_active', 'is_public', 'created_at')
+    list_filter = ('is_active', 'gender', 'categories', 'is_public')
     search_fields = ('name', 'description', 'owner__username', 'owner__email')
-    inlines = [PetAttributeInline, PetImageInline, HealthEventInline]
+    # HealthEventInline заменили на отдельную админку событий, но можно вернуть как inline, если нужно
+    inlines = [PetAttributeInline, PetImageInline] 
     prepopulated_fields = {'slug': ('name',)}
     
     fieldsets = (
@@ -137,14 +169,9 @@ class PetAdmin(admin.ModelAdmin):
         }),
     )
 
-    def get_categories(self, obj):
-        return ", ".join([c.name for c in obj.categories.all()])
-    get_categories.short_description = "Категории"
-
-@admin.register(HealthEvent)
-class HealthEventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'pet', 'event_type', 'date', 'status', 'next_date')
-    list_filter = ('event_type', 'status', 'date')
-    search_fields = ('title', 'pet__name', 'description')
-    autocomplete_fields = ['pet']
-    date_hierarchy = 'date'
+    def species_breed(self, obj):
+        # Безопасное получение вида и породы
+        species = next((c.name for c in obj.categories.all() if c.parent is None), "-")
+        breed = next((c.name for c in obj.categories.all() if c.parent is not None), "-")
+        return f"{species} / {breed}"
+    species_breed.short_description = "Вид / Порода"

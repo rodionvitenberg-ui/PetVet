@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PetViewSet, CategoryViewSet, AttributeViewSet, HealthEventViewSet, TagViewSet, HealthEventAttachmentViewSet, AIConsultView
+from .views import PetViewSet, CategoryViewSet, AttributeViewSet, PetEventViewSet, PetEventAttachmentViewSet, TagViewSet, EventTypeViewSet, AIConsultView
 
 # Создаем роутер
 router = DefaultRouter()
@@ -26,8 +26,9 @@ router.register(r'tags', TagViewSet, basename='tag')
 # 4. Медицинская карта / События (НОВОЕ)
 # GET /api/events/ - Список всех событий (прививки, вес)
 # POST /api/events/ - Добавить запись
-router.register(r'health-events', HealthEventViewSet, basename='health-event')
-router.register(r'attachments', HealthEventAttachmentViewSet, basename='attachment')
+router.register(r'events', PetEventViewSet, basename='event')
+router.register(r'event-types', EventTypeViewSet, basename='event-type')
+router.register(r'event-attachments', PetEventAttachmentViewSet, basename='event-attachment')
 
 urlpatterns = [
     path('ai/consult/', AIConsultView.as_view(), name='ai-consult'),

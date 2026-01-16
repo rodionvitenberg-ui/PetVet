@@ -249,108 +249,130 @@ class PetAttribute(models.Model):
     def __str__(self):
         return f"{self.pet.name} - {self.attribute.name}: {self.value}"
 
-class HealthEvent(models.Model):
+class EventType(models.Model):
     """
-    Медицинская карта / События жизни (Вакцинация, Обработка, Визиты)
+    Справочник типов событий (Вакцинация, Вязка, Выставка, Груминг и т.д.)
+    """
+    CATEGORY_CHOICES = [
+        ('medical', 'Медицина'),
+        ('reproduction', 'Репродукция'),
+        ('show', 'Выставки и Документы'),
+        ('care', 'Уход и Гигиена'),
+        ('other', 'Другое'),
+    ]
+
+    name = models.CharField(max_length=100, verbose_name="Название")
+    slug = models.SlugField(max_length=100, unique=True)
+    category = models.CharField(
+        max_length=20, 
+        choices=CATEGORY_CHOICES, 
+        default='other', 
+        verbose_name="Категория"
+    )
+    icon = models.FileField(upload_to='event_icons/', null=True, blank=True, verbose_name="Иконка")
+    
+    # JSON-схема для фронтенда (какие поля показывать)
+    # Пример: {"fields": [{"name": "judge", "label": "Судья", "type": "text"}]}
+    default_schema = models.JSONField(
+        default=dict, 
+        blank=True, 
+        verbose_name="JSON Схема полей (Metadata Schema)"
+    )
+
+    # Настройки видимости (как в Tag/Attribute)
+    is_universal = models.BooleanField(default=True, verbose_name="Общий для всех")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='custom_event_types',
+        verbose_name="Создатель"
+    )
+
+    class Meta:
+        verbose_name = "Тип события"
+        verbose_name_plural = "Типы событий"
+        ordering = ['category', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+
+
+class PetEvent(models.Model): # Бывший HealthEvent
+    """
+    Конкретное событие в жизни питомца.
     """
     pet = models.ForeignKey(
         Pet, 
         on_delete=models.CASCADE, 
-        related_name='events', 
+        related_name='events', # Переименовали recent_events -> events для краткости
         verbose_name="Питомец"
     )
-    
-    EVENT_TYPES = [
-        ('vaccine', 'Вакцинация'),
-        ('parasite', 'Обработка от паразитов (Глисты/Блохи)'),
-        ('medical', 'Визит к врачу / Лечение'),
-        ('hygiene', 'Гигиена / Уход'),
-        ('measure', 'Замеры (Вес/Рост)'),
-        ('other', 'Другое'),
-    ]
-    
-    event_type = models.CharField(
-        max_length=20, 
-        choices=EVENT_TYPES, 
+    event_type = models.ForeignKey(
+        EventType,
+        on_delete=models.PROTECT, # Нельзя удалить тип, если есть события
+        related_name='events',
         verbose_name="Тип события"
     )
+    title = models.CharField(max_length=200, verbose_name="Заголовок")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    date = models.DateField(verbose_name="Дата события")
     
+    # Гибкие данные (JSON)
+    # Здесь храним: {"judge": "Иванов", "weight": 5.4, "rank": "CACIB"}
+    data = models.JSONField(
+        default=dict, 
+        blank=True, 
+        verbose_name="Дополнительные данные (Metadata)"
+    )
+
     STATUS_CHOICES = [
         ('planned', 'Запланировано'),
-        ('confirmed', 'Подтверждено'),
-        ('completed', 'Завершено'),
-        ('cancelled', 'Отменено'),
+        ('completed', 'Выполнено'),
+        ('missed', 'Пропущено'),
     ]
-    
     status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
+        max_length=20, 
+        choices=STATUS_CHOICES, 
         default='completed', 
-        verbose_name="Статус события"
+        verbose_name="Статус"
     )
+    next_date = models.DateField(null=True, blank=True, verbose_name="Дата следующего события")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    title = models.CharField(max_length=255, verbose_name="Название")
-    
-    # === [CHANGED] Теперь DateTimeField для точного времени ===
-    date = models.DateTimeField(verbose_name="Время события")
-    
-    # Напоминание тоже с точным временем
-    next_date = models.DateTimeField(
-        null=True, 
-        blank=True, 
-        verbose_name="Напоминание (Дата и Время)"
-    )
-    
-    description = models.TextField(blank=True, verbose_name="Заметки / Описание")
-    
-    # === [REMOVED] document field (перенесено в HealthEventAttachment) ===
-
+    # Привязка к создателю (автору записи)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Кем создана запись"
+        null=True, blank=True,
+        verbose_name="Автор записи"
     )
-    
     is_verified = models.BooleanField(default=False, verbose_name="Подтверждено врачом")
-    
-    # История изменений
-    history = HistoricalRecords()
-    
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Событие / Запись"
-        verbose_name_plural = "Медкарта и События"
+        verbose_name = "Событие питомца"
+        verbose_name_plural = "События питомца"
         ordering = ['-date']
 
     def __str__(self):
-        return f"{self.pet.name} - {self.title}"
+        return f"{self.event_type.name}: {self.title} ({self.pet.name})"
 
-class HealthEventAttachment(models.Model):
-    """
-    [NEW] Вложения к событию (Фото, PDF, анализы).
-    Поддерживает множественную загрузку.
-    """
+
+class PetEventAttachment(models.Model): # Бывший HealthEventAttachment
     event = models.ForeignKey(
-        HealthEvent, 
+        PetEvent, 
         on_delete=models.CASCADE, 
         related_name='attachments',
         verbose_name="Событие"
     )
-    file = models.FileField(
-        upload_to='health_docs/%Y/%m/',
-        verbose_name="Файл"
-    )
+    file = models.FileField(upload_to='event_docs/%Y/%m/', verbose_name="Файл")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Вложение (Медкарта)"
-        verbose_name_plural = "Вложения (Медкарта)"
-
-    def __str__(self):
-        return f"File for {self.event.title}"
+        verbose_name = "Вложение"
+        verbose_name_plural = "Вложения"
 
 class PetAccess(models.Model):
     """

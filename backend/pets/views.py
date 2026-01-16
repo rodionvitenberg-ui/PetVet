@@ -17,10 +17,10 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 import re
 import json
 
-from .models import Pet, Category, Attribute, Tag, PetAttribute, HealthEvent, PetImage, HealthEventAttachment, PetAccess
+from .models import Pet, Category, Attribute, Tag, PetAttribute, EventType, PetImage, PetEvent, PetEventAttachment, PetAccess
 from .serializers import (
     PetSerializer, CategorySerializer, AttributeSerializer, 
-    TagSerializer, HealthEventSerializer, PetImageSerializer
+    TagSerializer, EventTypeSerializer, PetEventSerializer, PetEventAttachmentSerializer, PetImageSerializer, PedigreeSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PetFilter
@@ -30,6 +30,15 @@ def normalize_search_text(text):
     if not text:
         return ""
     return re.sub(r'\s+', ' ', text.lower().strip())
+
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # Чтение разрешено всем (безопасные методы: GET, HEAD, OPTIONS)
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Изменение разрешено, только если ты автор этого объекта
+        return obj.created_by == request.user
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -199,6 +208,16 @@ class PetViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(filtered_queryset, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def pedigree(self, request, pk=None):
+        """
+        Возвращает дерево предков (рекурсивно) для визуализации.
+        URL: /api/pets/{id}/pedigree/
+        """
+        pet = self.get_object()
+        serializer = PedigreeSerializer(pet, context={'request': request})
+        return Response(serializer.data)
 
     @action(detail=True, methods=['POST'], parser_classes=[parsers.MultiPartParser])
     def upload_image(self, request, pk=None):
@@ -209,67 +228,61 @@ class PetViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class HealthEventViewSet(viewsets.ModelViewSet):
-    serializer_class = HealthEventSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = (parsers.MultiPartParser, parsers.FormParser)
-    
-    def get_queryset(self):
-        # === [LOGIC UPDATE] ===
-        # Ветеринар должен видеть события питомцев, к которым у него есть доступ
-        user = self.request.user
-        return HealthEvent.objects.filter(
-            Q(pet__owner=user) | 
-            Q(pet__access_grants__user=user, pet__access_grants__is_active=True)
-        ).distinct()\
-            .select_related('pet', 'created_by')\
-            .prefetch_related('attachments')\
-            .order_by('-date')
-    
-    def _validate_file(self, file_obj):
-        """Проверка типа и размера файла"""
-        ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-        MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+# 1. ViewSet для типов событий (Справочник)
+class EventTypeViewSet(viewsets.ModelViewSet):
+    serializer_class = EventTypeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly] # Используем наш пермишен
 
-        if file_obj.content_type not in ALLOWED_TYPES:
-            raise ValidationError(f"Недопустимый формат файла: {file_obj.name}. Разрешены: JPG, PNG, PDF.")
-        
-        if file_obj.size > MAX_SIZE:
-            raise ValidationError(f"Файл {file_obj.name} слишком большой. Максимум 5 МБ.")
+    def get_queryset(self):
+        user = self.request.user
+        # Показываем системные + пользовательские
+        return EventType.objects.filter(
+            Q(created_by__isnull=True) | Q(created_by=user)
+        ).order_by('category', 'name')
 
     def perform_create(self, serializer):
-        files = self.request.FILES.getlist('attachments')
-        for f in files:
-            self._validate_file(f)
+        serializer.save(created_by=self.request.user)
 
-        user = self.request.user
-        is_trusted_source = user.is_veterinarian and getattr(user, 'is_verified', False)
-        
-        event = serializer.save(
-            created_by=user, 
-            is_verified=is_trusted_source
-        )
-        
-        for f in files:
-            HealthEventAttachment.objects.create(event=event, file=f)
-            
-        if 'document' in self.request.FILES:
-             HealthEventAttachment.objects.create(event=event, file=self.request.FILES['document'])
 
-    def perform_update(self, serializer):
-        event = serializer.save()
-        files = self.request.FILES.getlist('attachments')
-        for f in files:
-            HealthEventAttachment.objects.create(event=event, file=f)
-
-class HealthEventAttachmentViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    queryset = HealthEventAttachment.objects.all()
-    permission_classes = [IsAuthenticated]
+# 2. Обновленный ViewSet для событий
+class PetEventViewSet(viewsets.ModelViewSet):
+    serializer_class = PetEventSerializer
+    permission_classes = [permissions.IsAuthenticated] # Добавьте IsOwnerOrReadOnly при необходимости
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['pet', 'event_type__category', 'status', 'date']
+    ordering_fields = ['date', 'created_at']
 
     def get_queryset(self):
-        return HealthEventAttachment.objects.filter(event__created_by=self.request.user)
+        # Показываем события только для моих питомцев или тех, к кому есть доступ
+        user = self.request.user
+        return PetEvent.objects.filter(
+            Q(pet__owner=user) | 
+            Q(pet__access_grants__user=user)
+        ).select_related('event_type', 'pet').distinct()
 
-# ... (Остальные ViewSets: Category, Attribute, Tag остаются без изменений) ...
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+class PetEventAttachmentViewSet(viewsets.ModelViewSet):
+    """
+    CRUD для загрузки файлов к событиям.
+    """
+    serializer_class = PetEventAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Показываем только файлы моих питомцев
+        return PetEventAttachment.objects.filter(
+            event__pet__owner=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        # Проверка прав: нельзя прикрепить файл к чужому событию
+        event = serializer.validated_data.get('event')
+        if event.pet.owner != self.request.user:
+            raise PermissionDenied("Вы не можете добавлять файлы к чужим событиям.")
+        serializer.save()
+
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.annotate(children_count=Count('children'))\
         .prefetch_related('children')\
@@ -365,22 +378,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         
         response_data.sort(key=lambda x: x['sort_order'])
         return Response(response_data)
-
-class IsAuthorOrReadOnly(permissions.BasePermission):
-    """
-    Разрешает:
-    - Просмотр всем (кто авторизован).
-    - Создание всем (кто авторизован).
-    - Изменение/Удаление ТОЛЬКО автору объекта.
-    Системные объекты (created_by=None) доступны только для чтения.
-    """
-    def has_object_permission(self, request, view, obj):
-        # Чтение разрешено всем (безопасные методы: GET, HEAD, OPTIONS)
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        # Изменение разрешено, только если ты автор этого объекта
-        return obj.created_by == request.user
 
 class AttributeViewSet(viewsets.ModelViewSet): # <--- Стало ModelViewSet
     serializer_class = AttributeSerializer

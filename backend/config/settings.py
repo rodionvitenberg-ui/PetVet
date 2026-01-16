@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'notifications',
     'channels',
     'chat',
+    'breeding',
 ]
 
 MIDDLEWARE = [

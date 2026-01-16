@@ -1,5 +1,5 @@
 from datetime import date
-from .models import Pet, HealthEvent
+from .models import Pet, PetEvent  # [FIX] Импортируем новую модель
 
 def calculate_age(birth_date):
     if not birth_date:
@@ -21,31 +21,33 @@ def build_pet_profile_prompt(pet_id):
     age = calculate_age(pet.birth_date)
     gender = "Самец (Boy)" if pet.gender == 'M' else "Самка (Girl)"
     
-    # === ВАЖНОЕ ИЗМЕНЕНИЕ ===
-    # Проверяем теги на наличие кастрации/стерилизации
-    # Предполагаем, что теги могут быть: "neutered", "spayed", "кастрирован", "стерилизована"
+    # === ТЕГИ (Логика кастрации осталась прежней) ===
     tags_list = [t.name.lower() for t in pet.tags.all()]
     is_neutered = any(term in tags_list for term in ['neutered', 'spayed', 'кастрирован', 'стерилизован', 'стерилизована'])
     
     reproductive_status = "КАСТРИРОВАН/СТЕРИЛИЗОВАН" if is_neutered else "НЕ КАСТРИРОВАН (INTACT) - Возможен половой инстинкт!"
 
-    # Атрибуты
+    # === АТРИБУТЫ (Логика прежняя) ===
     attributes_list = []
     for pa in pet.attributes.all():
         attributes_list.append(f"{pa.attribute.name}: {pa.value} {pa.attribute.unit or ''}")
     attributes_str = "; ".join(attributes_list) if attributes_list else "Нет данных"
 
-    # История (оставляем как было)
-    last_events = HealthEvent.objects.filter(
+    # === ИСТОРИЯ (РЕФАКТОРИНГ) ===
+    # 1. Используем PetEvent
+    # 2. Фильтруем по category внутри event_type
+    last_events = PetEvent.objects.filter(
         pet=pet,
-        event_type__in=['vaccine', 'medical', 'parasite', 'surgery']
-    ).order_by('-date')[:5]
+        event_type__category__in=['medical', 'reproduction', 'surgery', 'parasite'] # Выбираем важные категории для AI
+    ).select_related('event_type').order_by('-date')[:5] # select_related для оптимизации запросов
 
     history_str = ""
     if last_events.exists():
         for event in last_events:
             date_str = event.date.strftime('%d.%m.%Y')
-            history_str += f"- {date_str} [{event.get_event_type_display()}]: {event.title}. {event.description or ''}\n"
+            # [FIX] Берем имя из связанной модели EventType
+            type_name = event.event_type.name 
+            history_str += f"- {date_str} [{type_name}]: {event.title}. {event.description or ''}\n"
     else:
         history_str = "История чиста (нет записей)."
 

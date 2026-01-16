@@ -1,6 +1,5 @@
 from modeltranslation.translator import register, TranslationOptions
-from .models import Category, Attribute, Tag
-
+from .models import Category, Attribute, Tag, EventType
 # Для каждой модели создаем класс настроек
 # Указываем только те поля, которые требуют перевода (обычно название и описание)
 
@@ -18,3 +17,7 @@ class AttributeTranslationOptions(TranslationOptions):
 @register(Tag)
 class TagTranslationOptions(TranslationOptions):
     fields = ('name',)
+
+@register(EventType)
+class EventTypeTranslationOptions(TranslationOptions):
+    fields = ('name',) # Мы переводим только название. Иконки и слаги общие.

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from datetime import date
 from users.serializers import PublicProfileSerializer
-from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, HealthEvent, HealthEventAttachment
+from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, PetEvent, EventType, PetEventAttachment
 
 class TagSerializer(serializers.ModelSerializer):
     is_custom = serializers.SerializerMethodField()
@@ -41,67 +41,85 @@ class PetImageSerializer(serializers.ModelSerializer):
         model = PetImage
         fields = ['id', 'image', 'is_main']
 
-class HealthEventAttachmentSerializer(serializers.ModelSerializer):
+class EventTypeSerializer(serializers.ModelSerializer):
+    is_custom = serializers.SerializerMethodField()
+
     class Meta:
-        model = HealthEventAttachment
+        model = EventType
+        fields = ['id', 'name', 'slug', 'category', 'icon', 'default_schema', 'is_universal', 'is_custom']
+
+    def get_is_custom(self, obj):
+        return obj.created_by is not None
+
+
+class PetEventAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PetEventAttachment
         fields = ['id', 'file', 'created_at']
 
-class HealthEventSerializer(serializers.ModelSerializer):
-    event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    
-    created_by_name = serializers.ReadOnlyField(source='created_by.username')
-    created_by_clinic = serializers.ReadOnlyField(source='created_by.clinic_name')
-    created_by_is_vet = serializers.ReadOnlyField(source='created_by.is_veterinarian')
-    
-    attachments = HealthEventAttachmentSerializer(many=True, read_only=True)
 
-    date = serializers.DateTimeField(format="%Y-%m-%d %H:%M", input_formats=["%Y-%m-%d %H:%M", "iso-8601"])
-    next_date = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M", 
-        input_formats=["%Y-%m-%d %H:%M", "iso-8601"], 
-        required=False, 
-        allow_null=True
+class PetEventSerializer(serializers.ModelSerializer):
+    # Разворачиваем тип события при чтении, принимаем ID при записи
+    event_type = EventTypeSerializer(read_only=True)
+    event_type_id = serializers.PrimaryKeyRelatedField(
+        queryset=EventType.objects.all(), 
+        source='event_type', 
+        write_only=True
     )
+    attachments = PetEventAttachmentSerializer(many=True, read_only=True)
+    
+    # Вычисляемое поле для красивого отображения типа (fallback)
+    event_type_display = serializers.CharField(source='event_type.name', read_only=True)
 
     class Meta:
-        model = HealthEvent
+        model = PetEvent
         fields = [
-            'id', 'pet', 'event_type', 'event_type_display',
-            'status', 'status_display',
-            'title', 'date', 'next_date', 'description', 
-            'attachments',
-            'created_by_name', 'created_by_clinic', 'created_by_is_vet',
-            'is_verified'
+            'id', 'pet', 'event_type', 'event_type_id', 'event_type_display',
+            'title', 'description', 'date', 'status', 'next_date',
+            'data', 'is_verified', 'attachments', 'created_at'
         ]
-        read_only_fields = ['is_verified', 'created_by']
 
-    def to_representation(self, instance):
-        """
-        Превращаем pet_id в полноценный объект pet для удобства фронтенда.
-        """
-        response = super().to_representation(instance)
-        
-        # Вручную формируем объект питомца
-        response['pet'] = {
-            "id": instance.pet.id,
-            "name": instance.pet.name,
-            # Добавляем фото на случай, если понадобятся в карточках
-            "images": PetImageSerializer(instance.pet.images.all(), many=True).data
-        }
-        return response
+    def validate(self, attrs):
+        # Здесь в будущем добавим валидацию поля 'data' на основе 'event_type.default_schema'
+        return attrs
     
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        
-        # Вручную формируем объект питомца + добавляем ID владельца
-        response['pet'] = {
-            "id": instance.pet.id,
-            "name": instance.pet.name,
-            "owner_id": instance.pet.owner_id, # <--- ВАЖНО для фильтрации в Канбане
-            "images": PetImageSerializer(instance.pet.images.all(), many=True).data
-        }
-        return response
+# === 1. НОВЫЙ СЕРИАЛИЗАТОР ДЛЯ ДЕРЕВА (Pedigree) ===
+class PedigreeSerializer(serializers.ModelSerializer):
+    """
+    Облегченный рекурсивный сериализатор для построения дерева предков.
+    Отдает только базовые данные + родителей.
+    """
+    # Используем SerializerMethodField для рекурсии, чтобы контролировать глубину
+    # или просто полагаемся на стандартную вложенность.
+    
+    # Для простоты фронтенда вернем плоскую структуру с вложенностью родителей
+    mother = serializers.SerializerMethodField()
+    father = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Pet
+        fields = ['id', 'name', 'slug', 'gender', 'birth_date', 'image', 'mother', 'father']
+
+    def get_image(self, obj):
+        # Возвращаем первую картинку (аватарку)
+        img = obj.images.first()
+        if img:
+            return img.image.url
+        return None
+
+    def get_mother(self, obj):
+        if obj.mother:
+            # Рекурсивный вызов, но Django REST smart enough to handle this usually.
+            # Чтобы не уйти в бесконечность, можно ограничить глубину через context,
+            # но пока сделаем простую рекурсию (обычно родословная не бесконечна).
+            return PedigreeSerializer(obj.mother, context=self.context).data
+        return None
+
+    def get_father(self, obj):
+        if obj.father:
+            return PedigreeSerializer(obj.father, context=self.context).data
+        return None
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -115,13 +133,16 @@ class PetSerializer(serializers.ModelSerializer):
     father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
     age = serializers.SerializerMethodField()
-    recent_events = serializers.SerializerMethodField()
+    recent_events = PetEventSerializer(source='events', many=True, read_only=True)
 
     owner_info = serializers.SerializerMethodField()
     active_vets = serializers.SerializerMethodField()
 
     species = serializers.SerializerMethodField()
     breed = serializers.SerializerMethodField()
+
+    # Поле для "теневого" создания (оставляем как у тебя)
+    temp_owner_phone = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Pet
@@ -281,3 +302,40 @@ class PetSerializer(serializers.ModelSerializer):
         """
         breed_cat = next((cat for cat in obj.categories.all() if cat.parent is not None), None)
         return breed_cat.name if breed_cat else None
+    
+    # === ДОБАВЛЯЕМ В КОНЕЦ КЛАССА ВАЛИДАЦИЮ ===
+    def validate(self, attrs):
+        """
+        Проверка логики родословной: возраст, пол (дублирующая проверка), циклы.
+        """
+        mother = attrs.get('mother')
+        father = attrs.get('father')
+        birth_date = attrs.get('birth_date')
+
+        # Если это update, берем недостающие данные из инстанса
+        if self.instance:
+            if 'mother' not in attrs: mother = self.instance.mother
+            if 'father' not in attrs: father = self.instance.father
+            if 'birth_date' not in attrs: birth_date = self.instance.birth_date
+
+        errors = {}
+
+        # 1. Проверка на "Я сам себе дед" (только при обновлении)
+        if self.instance:
+            if mother == self.instance:
+                errors['mother'] = "Питомец не может быть своей собственной матерью."
+            if father == self.instance:
+                errors['father'] = "Питомец не может быть своим собственным отцом."
+
+        # 2. Проверка возраста (Родитель должен быть старше)
+        if birth_date:
+            if mother and mother.birth_date and mother.birth_date >= birth_date:
+                errors['mother'] = f"Ошибка хронологии: Мать ({mother.name}) моложе ребенка."
+            
+            if father and father.birth_date and father.birth_date >= birth_date:
+                errors['father'] = f"Ошибка хронологии: Отец ({father.name}) моложе ребенка."
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs

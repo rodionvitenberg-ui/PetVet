@@ -2,45 +2,38 @@
 from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
-from pets.models import HealthEvent, PetAccess
+from pets.models import PetEvent, PetAccess
 from .models import Notification
 
 @shared_task
 def send_scheduled_reminders():
-    now = timezone.now()
-    # Интервал напоминания: например, события, которые случатся в ближайшие 24 часа
-    time_threshold = now + timedelta(days=1)
+    now = timezone.now().date() # Важно работать с датами, PetEvent.date - это DateField
+    # Напоминаем за 1 день ДО события
+    reminder_date = now + timedelta(days=1)
     
-    # 1. Ищем события, которые наступят СКОРО (по полю date)
-    # Исключаем те, статус которых уже 'completed' или 'cancelled'
-    upcoming_events = HealthEvent.objects.filter(
-        date__lte=time_threshold,
-        date__gt=now,
-        status__in=['planned', 'confirmed']
-    )
+    # 1. Ищем события на ЗАВТРА, статус = planned
+    upcoming_events = PetEvent.objects.filter(
+        date=reminder_date,
+        status='planned' # [FIX] У PetEvent статус 'planned', а не 'confirmed'
+    ).select_related('pet__owner', 'event_type')
 
     for event in upcoming_events:
-        # Важно: Не отправить уведомление дважды.
-        # Проверяем, создавали ли мы уже уведомление типа 'reminder' для этого события
+        # Проверка на дубликаты (через content_type)
         already_notified = Notification.objects.filter(
             category='reminder',
-            content_type__model='healthevent',
-            object_id=event.id
+            object_id=event.id,
+            content_type__model='petevent' # Важно: имя модели в нижнем регистре
         ).exists()
         
         if already_notified:
             continue
 
-        # --- КОГО УВЕДОМЛЯТЬ? ---
+        # Собираем получателей
         recipients = set()
+        if event.pet.owner:
+            recipients.add(event.pet.owner)
         
-        # 1. Владелец
-        recipients.add(event.pet.owner)
-        
-        # 2. Ветеринары с доступом (PetAccess)
-        # Получаем всех юзеров, у которых есть грант доступа к этому питомцу
-        access_grants = PetAccess.objects.filter(pet=event.pet, is_active=True)
-        for grant in access_grants:
+        for grant in PetAccess.objects.filter(pet=event.pet, is_active=True):
             recipients.add(grant.user)
 
         # Рассылаем
@@ -49,6 +42,10 @@ def send_scheduled_reminders():
                 recipient=user,
                 category='reminder',
                 title=f"Напоминание: {event.title}",
-                message=f"Напоминаем, что {event.date.strftime('%d.%m в %H:%M')} запланировано событие для {event.pet.name}.",
-                content_object=event
+                message=f"Завтра ({event.date}) запланировано событие: {event.event_type.name} для {event.pet.name}.",
+                content_object=event, # Связь с событием
+                metadata={
+                    "event_date": str(event.date),
+                    "pet_id": event.pet.id
+                }
             )
