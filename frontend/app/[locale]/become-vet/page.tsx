@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Upload, FileText, CheckCircle, XCircle, Clock, ChevronLeft } from 'lucide-react';
-import AuthGuard from '@/components/providers/AuthGuard'; // <--- 1. Импортируем Guard
+import AuthGuard from '@/components/providers/AuthGuard';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -17,11 +17,9 @@ interface VerificationRequest {
 
 export default function BecomeVetPage() {
     const router = useRouter();
-    // Нам больше не нужно доставать authLoading здесь, Guard сделает это за нас
     const { user } = useAuth(); 
     
     const [request, setRequest] = useState<VerificationRequest | null>(null);
-    // Это локальный лоадинг (загрузка статуса заявки с API), его оставляем
     const [isLoading, setIsLoading] = useState(true);
     
     const [file, setFile] = useState<File | null>(null);
@@ -30,7 +28,6 @@ export default function BecomeVetPage() {
 
     // Загружаем текущий статус
     useEffect(() => {
-        // Добавил проверку user, чтобы лишний раз не дергать API, если Guard еще не отработал
         const fetchStatus = async () => {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -42,16 +39,13 @@ export default function BecomeVetPage() {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                // 1. Проверяем статус 204 (No Content)
                 if (res.status === 204) {
                     setRequest(null);
                     return;
                 }
 
                 if (res.ok) {
-                    // 2. Сначала читаем как текст, чтобы не упасть на пустом теле
                     const text = await res.text();
-                    // 3. Если текст есть — парсим, если нет — null
                     const data = text ? JSON.parse(text) : null;
                     
                     if (data) setRequest(data);
@@ -65,9 +59,6 @@ export default function BecomeVetPage() {
 
         if (user) {
             fetchStatus();
-        } else {
-            // Если юзера еще нет (Guard в процессе), не грузим данные, но и лоадинг не снимаем
-            // AuthGuard сам покажет свой спиннер.
         }
     }, [user]);
 
@@ -108,12 +99,16 @@ export default function BecomeVetPage() {
         }
     };
 
-    // Если AuthGuard пропустил (юзер есть), но мы все еще качаем статус заявки с бэка:
+    // Обновил и лоадер, чтобы он тоже был на правильном затемненном фоне
     if (isLoading && user) {
         return (
             <AuthGuard>
-                <div className="min-h-screen flex items-center justify-center pt-24 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
-                     <div className="animate-spin w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+                <div className="min-h-screen relative pt-24 pb-10 px-4">
+                    <div className="absolute inset-0 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed z-0" />
+                    <div className="absolute inset-0 bg-black/60 z-0" />
+                    <div className="relative z-10 flex items-center justify-center h-[60vh]">
+                         <div className="animate-spin w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+                    </div>
                 </div>
             </AuthGuard>
         );
@@ -121,10 +116,18 @@ export default function BecomeVetPage() {
 
     return (
         <AuthGuard>
-            <div className="min-h-screen bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed pt-24 pb-10 px-4">
-                <div className="max-w-2xl mx-auto">
-                    <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 transition">
-                        <ChevronLeft size={20} /> Назад
+            <div className="min-h-screen relative pt-24 pb-10 px-4">
+                
+                {/* 1. Слой с картинкой (фиксированный фон) */}
+                <div className="absolute inset-0 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed z-0" />
+
+                {/* 2. Слой затемнения (bg-black/60) */}
+                <div className="absolute inset-0 bg-black/60 z-0" />
+
+                {/* 3. Контент (поднимаем выше с relative z-10) */}
+                <div className="relative z-10 max-w-2xl mx-auto">
+                    <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition">
+                        <ChevronLeft size={20} /> <span className="text-white">Назад</span>
                     </button>
 
                     <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8">
@@ -133,7 +136,6 @@ export default function BecomeVetPage() {
                             Для доступа к функциям врача нам необходимо подтвердить вашу квалификацию.
                         </p>
 
-                        {/* СЦЕНАРИЙ 1: ЕСТЬ ЗАЯВКА */}
                         {request ? (
                             <div className="space-y-6">
                                 {request.status === 'pending' && (
@@ -188,7 +190,6 @@ export default function BecomeVetPage() {
                                 )}
                             </div>
                         ) : (
-                            /* СЦЕНАРИЙ 2: НЕТ ЗАЯВКИ (ФОРМА) */
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                                 <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
                                     <div className="shrink-0 text-blue-500"><FileText size={24} /></div>

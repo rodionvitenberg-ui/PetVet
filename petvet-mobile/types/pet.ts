@@ -1,18 +1,21 @@
 // types/pet.ts
 
+import { PetEvent } from './event'; // Обрати внимание: HealthEvent переименован
+
 export interface PetImage {
     id: number;
     image: string;
     is_main: boolean;
 }
+
 export type ContactType = 'phone' | 'whatsapp' | 'telegram' | 'instagram' | 'email' | 'site' | 'vk' | 'other';
 
 export interface UserContact {
     id: number;
     type: ContactType;
-    type_display: string; // "WhatsApp" (с бэка)
+    type_display: string;
     value: string;
-    label?: string; // "Рабочий"
+    label?: string;
 }
 
 export interface UserProfile {
@@ -24,68 +27,67 @@ export interface UserProfile {
     clinic_name?: string;
     city?: string;
     is_veterinarian: boolean;
-    
-    // [NEW] Заменяем жесткие поля на массив
-    contacts: UserContact[]; 
-    
-    // Старые поля можно оставить как опциональные fallback, если база еще не мигрирована полностью
+    contacts: UserContact[];
     phone?: string;
-    is_temporary?: boolean; 
+    is_temporary?: boolean;
 }
 
-// Интерфейс для временного владельца (когда owner = null)
+// Временный владелец (для карт, созданных врачом)
 export interface TemporaryOwnerProfile {
     id: null;
     name: string;
     phone?: string | null;
     avatar?: string | null;
     about?: string;
-    is_temporary: boolean; // <--- Главный флаг для UI
+    is_temporary: boolean;
 }
 
-// Базовый питомец (для списков Dashboard)
-export interface PetBasic {
+// === СПРАВОЧНИКИ (НОВОЕ) ===
+
+export interface Category {
     id: number;
     name: string;
-    
-    // 1. Разрешаем null для теневых карт
-    owner: number | null; 
-    
-    // 2. Расширяем тип инфо о владельце
-    owner_info?: UserProfile | TemporaryOwnerProfile; 
-    
-    images?: PetImage[];
-    is_active: boolean;
-    gender: 'M' | 'F';
-    age?: string;
-    is_public: boolean;
-    clinic_name?: string; // Текстовое поле (старое)
-
-    // 3. Добавляем поля временного владельца (приходят с бэка)
-    temp_owner_name?: string;
-    temp_owner_phone?: string;
-}
-
-// === ТИПЫ ДЛЯ ДЕТАЛЬНОЙ АНКЕТЫ (PetDetails) ===
-
-export interface AttributeType {
-    name: string;
     slug: string;
-    icon: string | null;
-}
-
-export interface PetAttribute {
-    attribute: AttributeType;
-    value: string;
+    icon?: string | null;
+    parent?: number | null;
+    sort_order?: number;
+    children?: Category[]; // Для дерева категорий
 }
 
 export interface PetTag {
     id: number;
     slug: string;
     name: string;
-    icon: string | null;
+    icon?: string | null;
+    target_gender?: 'M' | 'F' | null;
+    is_universal: boolean;
+    is_custom: boolean; // Создан ли пользователем
 }
 
+export interface AttributeType {
+    id: number;
+    name: string;
+    slug: string;
+    unit?: string;
+    icon?: string | null;
+    is_universal: boolean;
+    is_custom: boolean;
+}
+
+// Атрибут внутри питомца (значение)
+export interface PetAttribute {
+    attribute: AttributeType;
+    value: string;
+}
+
+// Простой объект родителя (то, что возвращает поле mother/father)
+export interface ParentSimple {
+    id: number;
+    name: string;
+    slug: string;
+}
+
+// Расширенный объект родителя (для UI с фото)
 export interface ParentInfo {
     id: number;
     name: string;
@@ -93,27 +95,76 @@ export interface ParentInfo {
     image?: string | null;
 }
 
-export interface HealthStatus {
-    status: 'healthy' | 'sick' | 'attention';
-    label: string;
-    color: string;
+// === ПИТОМЕЦ ===
+
+export interface PetBasic {
+    id: number;
+    name: string;
+    slug: string;
+    owner: number | null; // ID владельца
+    owner_info?: UserProfile | TemporaryOwnerProfile;
+    
+    // Медиа
+    images?: PetImage[];
+    
+    // Основное
+    is_active: boolean;
+    is_public: boolean;
+    gender: 'M' | 'F';
+    birth_date?: string; // YYYY-MM-DD
+    age?: string;        // Вычисляемое на бэке (например "2 года")
+    description?: string;
+
+    // Классификация (Read-only объекты)
+    categories?: Category[]; 
+    tags?: PetTag[];
+    attributes?: PetAttribute[];
+    
+    // Хелперы
+    species?: string; // Вид (Кошка)
+    breed?: string;   // Порода (Мейн-кун)
+    
+    // Теневые данные
+    temp_owner_name?: string;
+    temp_owner_phone?: string;
+    created_by?: number;
+    clinic_name?: string | null;
 }
 
-// Полная анкета питомца
-// Наследуем от PetBasic, чтобы не дублировать общие поля
 export interface PetDetail extends PetBasic {
-    birth_date?: string;
-    attributes: PetAttribute[];
-    tags: PetTag[];
-    description?: string;
-    
-    mother_info?: ParentInfo;
-    father_info?: ParentInfo;
-    health_status?: HealthStatus;
-    
-    // [NEW] Список врачей, имеющих доступ (для кликабельной клиники)
+    // Родословная
+    mother?: ParentSimple | null; // ID и имя
+    father?: ParentSimple | null;
+    mother_info?: ParentInfo | null; // Красивое превью
+    father_info?: ParentInfo | null;
+
+    // История
     active_vets: UserProfile[]; 
+    recent_events?: PetEvent[]; 
     
-    // События
-    recent_events?: any[]; 
+    // Данные для входа (возвращаются только при создании пациента)
+    generated_login?: string;
+    generated_password?: string;
+}
+
+// === PAYLOADS (ДЛЯ ОТПРАВКИ НА БЭКЕНД) ===
+// Используем это в PetForm
+export interface PetPayload {
+    name: string;
+    gender: 'M' | 'F';
+    birth_date?: string | null;
+    description?: string;
+    is_public: boolean;
+    
+    // ID-шники для связей
+    categories: number[];
+    tags: string[]; // Отправляем слаги тегов
+    attributes: { attribute_slug: string; value: string }[];
+    
+    mother?: number | null; // ID
+    father?: number | null; // ID
+    
+    // Теневой владелец
+    temp_owner_name?: string;
+    temp_owner_phone?: string;
 }

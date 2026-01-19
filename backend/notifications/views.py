@@ -1,8 +1,9 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Notification
-from .serializers import NotificationSerializer
+from .models import Notification, NotificationSettings
+from .serializers import NotificationSerializer, NotificationSettingsSerializer
+
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -45,3 +46,23 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         self.get_queryset().filter(is_read=False).update(is_read=True)
         return Response({'status': 'success'})
+    
+class NotificationSettingsViewSet(viewsets.GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = NotificationSettingsSerializer
+
+    # GET /api/notification-settings/me/
+    @action(detail=False, methods=['get', 'patch'], url_path='me')
+    def me(self, request):
+        settings_obj, _ = NotificationSettings.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = self.get_serializer(settings_obj)
+            return Response(serializer.data)
+        
+        elif request.method == 'PATCH':
+            serializer = self.get_serializer(settings_obj, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

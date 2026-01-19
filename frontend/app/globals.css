@@ -107,3 +107,41 @@
     @apply bg-background text-foreground antialiased transition-colors duration-300;
   }
 }
+
+.rbc-calendar {
+    font-family: inherit; /* Использовать шрифт темы (Inter/etc) */
+}
+.rbc-toolbar button {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem !important; /* rounded-lg */
+    color: #374151 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+    margin-right: 0.5rem !important;
+}
+.rbc-toolbar button:hover {
+    background-color: #f3f4f6 !important; /* bg-gray-100 */
+}
+.rbc-toolbar button.rbc-active {
+    background-color: #eff6ff !important; /* bg-blue-50 */
+    color: #2563eb !important; /* text-blue-600 */
+    border-color: #bfdbfe !important;
+    font-weight: bold;
+    box-shadow: none !important;
+}
+.rbc-header {
+    padding: 10px 0 !important;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+.rbc-off-range-bg {
+    background-color: #f9fafb !important; /* bg-gray-50 */
+}
+.rbc-today {
+    background-color: #fff7ed !important; /* Orange tint for today, optional */
+}
+.rbc-event {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}

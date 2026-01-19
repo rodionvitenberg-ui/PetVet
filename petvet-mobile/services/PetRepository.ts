@@ -31,6 +31,93 @@ export const PetRepository = {
     }
   },
 
+  getUnsyncedPets: async (): Promise<LocalPet[]> => {
+    try {
+      return await db.getAllAsync<LocalPet>(
+        `SELECT * FROM pets WHERE server_id IS NULL AND sync_status != 'deleted'`
+      );
+    } catch (e) {
+      console.error('Error getting unsynced pets:', e);
+      return [];
+    }
+  },
+
+  // [НОВОЕ] Пометить питомца как синхронизированного
+  markAsSynced: async (localId: number, serverId: number) => {
+    try {
+      await db.runAsync(
+        `UPDATE pets SET 
+           server_id = ?, 
+           sync_status = 'synced' 
+         WHERE local_id = ?`,
+        [serverId, localId]
+      );
+      console.log(`✅ Pet local_${localId} linked to server_${serverId}`);
+    } catch (e) {
+      console.error('Error marking pet as synced:', e);
+    }
+  },
+  
+  syncServerPets: async (serverPets: PetBasic[]) => {
+    try {
+      // Используем транзакцию для скорости и надежности
+      await db.withTransactionAsync(async () => {
+        for (const pet of serverPets) {
+          // 1. Проверяем, есть ли уже этот питомец в локальной базе по server_id
+          // (В будущем, если user удалил приложение и поставил заново, 
+          // у него будет пустая база, и мы создадим всё с нуля)
+          const existing = await db.getFirstAsync<{ local_id: number }>(
+            'SELECT local_id FROM pets WHERE server_id = ?',
+            [pet.id]
+          );
+
+          if (existing) {
+            // 2a. ОБНОВЛЕНИЕ (UPDATE)
+            // Мы доверяем серверу, поэтому перезаписываем локальные данные
+            await db.runAsync(
+              `UPDATE pets SET 
+                 name = ?, 
+                 gender = ?, 
+                 species = ?, 
+                 breed = ?, 
+                 birth_date = ?,
+                 sync_status = 'synced'
+               WHERE local_id = ?`,
+              [
+                pet.name,
+                pet.gender,
+                // species нет в PetBasic, но есть в PetDetail. 
+                // Если API списка его не возвращает, можно пока поставить 'unknown' или допилить сериалайзер.
+                // Пока предположим, что API возвращает или ставим дефолт.
+                (pet as any).species || 'unknown', 
+                (pet as any).breed || null,
+                (pet as any).birth_date || null, // Если API возвращает дату
+                existing.local_id
+              ]
+            );
+          } else {
+            // 2b. ВСТАВКА (INSERT)
+            await db.runAsync(
+              `INSERT INTO pets (server_id, name, gender, species, breed, birth_date, sync_status)
+               VALUES (?, ?, ?, ?, ?, ?, 'synced')`,
+              [
+                pet.id,
+                pet.name,
+                pet.gender,
+                (pet as any).species || 'unknown',
+                (pet as any).breed || null,
+                (pet as any).birth_date || null
+              ]
+            );
+          }
+        }
+      });
+      console.log(`✅ Synced ${serverPets.length} pets from server`);
+    } catch (e) {
+      console.error('Failed to sync pets:', e);
+    }
+  },
+
   // === CREATE ===
   createPet: async (pet: { name: string; gender: 'M' | 'F'; species?: string; birth_date?: string }) => {
     try {

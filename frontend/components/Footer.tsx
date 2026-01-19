@@ -1,5 +1,5 @@
 'use client';
-
+import { useTranslations } from 'next-intl';
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; // <--- 1. Импортируем компонент Image
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 export default function Footer() {
+  const t = useTranslations('Footer');
   const currentYear = new Date().getFullYear();
 
   return (
@@ -31,41 +32,41 @@ export default function Footer() {
                     height={40} 
                     className="object-contain" // Чтобы логотип не растягивался
                 />
-                <span>PetVet</span>
+                <span>careyour.pet</span>
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">
-                Современная платформа для заботы о здоровье ваших питомцев. 
+                {t('description')}
             </p>
         </div>
 
         {/* 2. НАВИГАЦИЯ */}
         <div>
-            <h3 className="text-white font-bold mb-4">Платформа</h3>
+            <h3 className="text-white font-bold mb-4">{t('platform')}</h3>
             <ul className="space-y-3 text-sm">
                 <li>
-                    <Link href="/dashboard" className="hover:text-blue-400 transition">Личный кабинет</Link>
+                    <Link href="/dashboard" className="hover:text-blue-400 transition">{t('perscab')}</Link>
                 </li>
                 <li>
-                    <Link href="/find-vet" className="hover:text-blue-400 transition">Найти ветеринара</Link>
+                    <Link href="/find-vet" className="hover:text-blue-400 transition">{t('findvet')}</Link>
                 </li>
                 <li>
-                    <Link href="/become-vet" className="hover:text-blue-400 transition">Специалистам</Link>
+                    <Link href="/become-vet" className="hover:text-blue-400 transition">{t('forspec')}</Link>
                 </li>
             </ul>
         </div>
 
         {/* 3. ДОКУМЕНТЫ */}
         <div>
-            <h3 className="text-white font-bold mb-4">Правовая информация</h3>
+            <h3 className="text-white font-bold mb-4">{t('rulinf')}</h3>
             <ul className="space-y-3 text-sm">
                 <li>
                     <Link href="/privacy" className="flex items-center gap-2 hover:text-blue-400 transition">
-                        <Shield size={14} /> Политика конфиденциальности
+                        <Shield size={14} /> {t('policyconf')}
                     </Link>
                 </li>
                 <li>
                     <Link href="/terms" className="flex items-center gap-2 hover:text-blue-400 transition">
-                        <FileText size={14} /> Условия использования
+                        <FileText size={14} /> {t('uslisp')}
                     </Link>
                 </li>
             </ul>
@@ -73,11 +74,11 @@ export default function Footer() {
 
         {/* 4. КОНТАКТЫ */}
         <div>
-            <h3 className="text-white font-bold mb-4">Контакты</h3>
+            <h3 className="text-white font-bold mb-4">{t('contacts')}</h3>
             <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-3">
                     <Mail size={18} className="shrink-0 mt-0.5" />
-                    <a href="mailto:support@petvet.app" className="hover:text-white transition">support@petvet.app</a>
+                    <a href="mailto:support@petvet.app" className="hover:text-white transition">pleasecareyourpet@gmail.com</a>
                 </li>
             </ul>
             
@@ -92,8 +93,8 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-8 border-t border-gray-800 text-sm text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p>&copy; {currentYear} PetVet. Все права защищены.</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-8 text-sm text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p>&copy; {currentYear} {t('pravzash')}</p>
         <p className="opacity-50">Powered by Debell</p>
       </div>
     </footer>

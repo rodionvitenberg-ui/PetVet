@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'channels',
     'chat',
     'breeding',
+    'billing',
 ]
 
 MIDDLEWARE = [

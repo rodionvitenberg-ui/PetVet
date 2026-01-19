@@ -112,6 +112,12 @@ class PetEventSerializer(serializers.ModelSerializer):
         source='event_type', 
         write_only=True
     )
+    pet = serializers.PrimaryKeyRelatedField(
+        queryset=Pet.objects.all(), 
+        required=False, 
+        allow_null=True
+    )
+    pet_info = serializers.SerializerMethodField()
     attachments = PetEventAttachmentSerializer(many=True, read_only=True)
     
     event_type_display = serializers.CharField(source='event_type.name', read_only=True)
@@ -122,7 +128,7 @@ class PetEventSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'pet', 'event_type', 'event_type_id', 'event_type_display',
             'title', 'description', 'date', 'status', 'next_date',
-            'data', 'is_verified', 'attachments', 'created_at', 'created_by_info'
+            'data', 'is_verified', 'attachments', 'created_at', 'created_by_info', 'guest_name', 'guest_phone', 'admin_notes', 'pet_info'
         ]
     
     def get_created_by_info(self, obj):
@@ -144,8 +150,37 @@ class PetEventSerializer(serializers.ModelSerializer):
             "avatar": user.avatar.url if user.avatar else None
         }
 
-    def validate(self, attrs):
-        return attrs
+    def get_pet_info(self, obj):
+        # Если питомец есть - возвращаем краткую инфу
+        if obj.pet:
+            return {
+                "id": obj.pet.id,
+                "name": obj.pet.name,
+                "avatar": obj.pet.images.filter(is_main=True).first().image.url if obj.pet.images.filter(is_main=True).exists() else None,
+                "owner_name": obj.pet.owner_info.get('name') if getattr(obj.pet, 'owner_info', None) else None
+            }
+        return None
+
+    def validate(self, data):
+        """
+        Гарантируем целостность данных.
+        """
+        # Если это частичное обновление (PATCH), берем недостающие данные из instance
+        pet = data.get('pet')
+        guest_name = data.get('guest_name')
+        
+        if self.instance:
+            if 'pet' not in data: pet = self.instance.pet
+            if 'guest_name' not in data: guest_name = self.instance.guest_name
+
+        # Правило: Либо привязка к питомцу, либо Имя гостя.
+        # Пустое событие создавать нельзя.
+        if not pet and not guest_name:
+             raise serializers.ValidationError(
+                "Событие должно быть привязано к Питомцу или содержать Имя клиента."
+            )
+        
+        return data
     
 # === РОДОСЛОВНАЯ ===
 class PedigreeSerializer(serializers.ModelSerializer):

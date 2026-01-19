@@ -1,16 +1,21 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation'; // [UPD] Добавил useRouter
 import { useAuth } from '@/components/providers/AuthProvider';
 import PlanboardCard from '@/components/planboard/PlanboardCard';
-import CreateEventModal from '@/components/dashboard/CreateEventModal'; // [FIX] Обновили импорт
-import { PetEvent } from '@/types/event'; // [FIX] Используем актуальный тип
+import CreateEventModal from '@/components/dashboard/CreateEventModal';
+import TimeModal from '@/components/planboard/TimeModal';
+import PlanModal from '@/components/planboard/PlanModal';
+import { PetEvent } from '@/types/event';
 import { PetBasic } from '@/types/pet';
-import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon, Users, PawPrint } from 'lucide-react';
-
-// === Импорты DnD ===
+import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon, Users, PawPrint, LayoutGrid, List, FileText } from 'lucide-react'; // [UPD] Добавил FileText
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { DraggableCard, DroppableColumn } from '@/components/planboard/DnDComponents';
+
+import SearchInput from '@/components/ui/SearchInput';
+import PetFilters from '@/components/dashboard/PetFilters';
+import EventFilter from '@/components/planboard/EventFilter';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -22,19 +27,55 @@ const getMediaUrl = (url: string | undefined | null) => {
 
 export default function PlanboardPage() {
     const { user } = useAuth();
+    const router = useRouter(); // [UPD] Инициализация роутера
+    const searchParams = useSearchParams();
+    
     const [pets, setPets] = useState<PetBasic[]>([]);
-    const [events, setEvents] = useState<PetEvent[]>([]); // [FIX] Тип PetEvent
+    const [events, setEvents] = useState<PetEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+
+    // Modals state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
-    const [editingEvent, setEditingEvent] = useState<PetEvent | null>(null); // [FIX] Тип PetEvent
+    const [editingEvent, setEditingEvent] = useState<PetEvent | null>(null);
+    const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+    const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+    const [pendingDragEvent, setPendingDragEvent] = useState<number | null>(null);
 
-    // === ЛОГИКА ПЕРЕКЛЮЧЕНИЯ (MY vs PATIENTS) ===
+    const [notifiedEvents, setNotifiedEvents] = useState<Set<number>>(new Set());
     const [viewMode, setViewMode] = useState<'my' | 'patients'>('my');
 
-    const myPets = pets.filter(p => p.owner === user?.id);
-    const patients = pets.filter(p => p.owner !== user?.id);
+    // === 1. БАЗОВАЯ ФИЛЬТРАЦИЯ (Поиск, Вид, Пол) ===
+    const filteredPets = useMemo(() => {
+        const query = searchParams.get('search')?.toLowerCase() || "";
+        const gender = searchParams.get('gender');
+        const species = searchParams.get('species');
+
+        return pets.filter(p => {
+            // Поиск (Имя, Владелец)
+            if (query) {
+                const matchName = p.name.toLowerCase().includes(query);
+                const matchOwner = p.owner_info?.name?.toLowerCase().includes(query);
+                const matchTemp = p.temp_owner_name?.toLowerCase().includes(query);
+                if (!matchName && !matchOwner && !matchTemp) return false;
+            }
+            // Пол
+            if (gender && p.gender !== gender) return false;
+            
+            // Вид
+            if (species) {
+                const hasCategory = p.categories?.some(c => c.slug === species);
+                if (!hasCategory) return false;
+            }
+            return true;
+        });
+    }, [pets, searchParams]);
+
+    // Разделяем списки
+    const myPets = filteredPets.filter(p => p.owner === user?.id);
+    const patients = filteredPets.filter(p => p.owner !== user?.id);
 
     useEffect(() => {
         if (!loading && user?.is_veterinarian && myPets.length === 0 && patients.length > 0) {
@@ -43,8 +84,26 @@ export default function PlanboardPage() {
     }, [loading, user, myPets.length, patients.length]);
 
     const displayedPets = viewMode === 'my' ? myPets : patients;
+    
+    // Получаем текущий фильтр по типу задачи из URL
+    const eventTypeFilter = searchParams.get('eventType');
 
-    // Сенсоры для DnD
+    // === 2. УМНАЯ ФИЛЬТРАЦИЯ (visiblePets) ===
+    // Показываем только тех питомцев, у которых есть задачи выбранного типа
+    const visiblePets = useMemo(() => {
+        if (!eventTypeFilter) return displayedPets;
+
+        return displayedPets.filter(pet => {
+            return events.some(e => {
+                const eid = (typeof e.pet === 'object' && e.pet) ? (e.pet as any).id : e.pet;
+                // Проверяем принадлежность события питомцу И совпадение типа
+                if (Number(eid) !== Number(pet.id)) return false;
+                return e.event_type?.slug === eventTypeFilter;
+            });
+        });
+    }, [displayedPets, events, eventTypeFilter]);
+
+
     const sensors = useSensors(
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
@@ -54,7 +113,7 @@ export default function PlanboardPage() {
         try {
             const token = localStorage.getItem('access_token');
             if (!token) return;
-            // [FIX] Обновленный endpoint api/events/
+            
             const [petsRes, eventsRes] = await Promise.all([
                 fetch(`${API_URL}/api/pets/`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 fetch(`${API_URL}/api/events/`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -78,17 +137,36 @@ export default function PlanboardPage() {
         }
     }, [user]);
 
-    // === ОБНОВЛЕНИЕ СТАТУСА (API) ===
+    // Уведомления
+    useEffect(() => {
+        const checkNotifications = () => {
+            const now = new Date();
+            events.forEach(event => {
+                if (event.status === 'completed' || event.status === 'missed') return;
+                const eventDate = new Date(event.date);
+                const diffMs = eventDate.getTime() - now.getTime();
+                const diffMinutes = Math.floor(diffMs / 60000);
+
+                if (diffMinutes >= 0 && diffMinutes <= 15 && !notifiedEvents.has(event.id)) {
+                    const audio = new Audio('/notification.mp3'); 
+                    audio.play().catch(() => {});
+                    if (Notification.permission === 'granted') {
+                        new Notification(`Напоминание: ${event.title}`, { body: `Через ${diffMinutes} мин.` });
+                    }
+                    setNotifiedEvents(prev => new Set(prev).add(event.id));
+                }
+            });
+        };
+        const interval = setInterval(checkNotifications, 60000); 
+        return () => clearInterval(interval);
+    }, [events, notifiedEvents]);
+
     const updateEventApi = async (id: number, payload: any) => {
         try {
             const token = localStorage.getItem('access_token');
-            // [FIX] Обновленный endpoint api/events/
             await fetch(`${API_URL}/api/events/${id}/`, {
                 method: 'PATCH',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
         } catch (err) {
@@ -97,65 +175,45 @@ export default function PlanboardPage() {
         }
     };
 
-    // === ЛОГИКА ПЕРЕТАСКИВАНИЯ (DragEnd) ===
+    const handleTodayTimeConfirm = (selectedDate: Date) => {
+        if (!pendingDragEvent) return;
+        setEvents(prev => prev.map(e => e.id === pendingDragEvent ? { ...e, status: 'planned', date: selectedDate.toISOString() } : e));
+        updateEventApi(pendingDragEvent, { status: 'planned', date: selectedDate.toISOString().replace('T', ' ').slice(0, 16) });
+        setIsTimeModalOpen(false);
+        setPendingDragEvent(null);
+    };
+
+    const handlePlanDateConfirm = (selectedDate: Date) => {
+        if (!pendingDragEvent) return;
+        setEvents(prev => prev.map(e => e.id === pendingDragEvent ? { ...e, status: 'planned', date: selectedDate.toISOString() } : e));
+        updateEventApi(pendingDragEvent, { status: 'planned', date: selectedDate.toISOString().replace('T', ' ').slice(0, 16) });
+        setIsPlanModalOpen(false);
+        setPendingDragEvent(null);
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-
         if (!over) return;
 
-        // [FIX] DraggableCard добавляет префикс "event-", поэтому здесь мы его убираем, чтобы получить ID
         const eventId = Number(active.id.toString().replace('event-', ''));
-        
-        // Разбираем ID колонки назначения: "urgent-pet-1" -> ["urgent", "pet", "1"]
         const [targetType, , petIdStr] = over.id.toString().split('-'); 
         
         const currentEvent = events.find(e => e.id === eventId);
         if (!currentEvent) return;
 
-        // [FIX] PetEvent.pet теперь объект, берем .id
-        if (currentEvent.pet.id.toString() !== petIdStr) {
-             return; 
+        const eventPetId = (typeof currentEvent.pet === 'object' && currentEvent.pet !== null) ? (currentEvent.pet as any).id : currentEvent.pet;
+        if (String(eventPetId) !== petIdStr) return; 
+
+        if (targetType === 'urgent') { 
+            setPendingDragEvent(eventId); setIsTimeModalOpen(true); return;
         }
-
-        let newStatus = currentEvent.status;
-        let newDate = currentEvent.date;
-
-        const now = new Date();
-
-        // Логика изменений в зависимости от колонки
+        if (targetType === 'plans') {
+            setPendingDragEvent(eventId); setIsPlanModalOpen(true); return;
+        }
         if (targetType === 'history') {
-            newStatus = 'completed';
-        } else if (targetType === 'urgent') {
-            newStatus = 'planned'; 
-            newDate = now.toISOString(); 
-        } else if (targetType === 'plans') {
-            newStatus = 'planned'; 
-            
-            const eventDate = new Date(currentEvent.date);
-            const urgentThreshold = new Date();
-            urgentThreshold.setDate(now.getDate() + 3);
-            
-            if (eventDate <= urgentThreshold) {
-                const futureDate = new Date();
-                futureDate.setDate(now.getDate() + 4); 
-                newDate = futureDate.toISOString();
-            }
+            setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' } : e));
+            updateEventApi(eventId, { status: 'completed' });
         }
-
-        // 1. Оптимистичное обновление UI
-        setEvents(prev => prev.map(e => {
-            if (e.id === eventId) {
-                // [FIX] Убрали is_completed, работаем только со status
-                return { ...e, status: newStatus, date: newDate };
-            }
-            return e;
-        }));
-
-        // 2. Отправка на сервер
-        updateEventApi(eventId, {
-            status: newStatus,
-            date: newDate.replace('T', ' ').slice(0, 16) 
-        });
     };
 
     const handleCreateClick = (petId: number) => {
@@ -165,239 +223,225 @@ export default function PlanboardPage() {
     };
 
     const handleEditClick = (event: PetEvent) => {
-        // [FIX] Берем ID из объекта pet
-        setSelectedPetId(event.pet.id);
+        const petId = (typeof event.pet === 'object' && event.pet !== null) ? (event.pet as any).id : event.pet;
+        setSelectedPetId(Number(petId));
         setEditingEvent(event);
         setIsModalOpen(true);
     };
 
     const handleToggleStatus = (id: number, isCompleted: boolean) => {
-        // [FIX] Логика переключения статуса (planned <-> completed)
         const newStatus = isCompleted ? 'planned' : 'completed';
-        
-        setEvents(prev => prev.map(e => 
-            e.id === id ? { ...e, status: newStatus } : e
-        ));
+        setEvents(prev => prev.map(e => e.id === id ? { ...e, status: newStatus } : e));
         updateEventApi(id, { status: newStatus });
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen pt-24 flex justify-center items-start">
+            <div className="min-h-screen pt-24 flex justify-center items-center">
                 <Loader2 className="animate-spin text-primary" size={32} />
             </div>
         );
     }
 
     const now = new Date();
-    const urgentThreshold = new Date();
-    urgentThreshold.setDate(now.getDate() + 3);
-    urgentThreshold.setHours(23, 59, 59, 999);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    const isCompact = density === 'compact';
 
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
-                <div className="max-w-[1600px] mx-auto">
+                <div className="max-w-[1920px] mx-auto">
                     
-                    {/* ХЕДЕР С ПЕРЕКЛЮЧАТЕЛЕМ */}
-                    <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {viewMode === 'my' ? 'График процедур и назначений' : 'Контроль назначений и процедур пациентов'}
-                            </h1>
+                    <header className="flex flex-col gap-5 mb-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                    {viewMode === 'my' ? 'Мои задачи' : 'Стационар'}
+                                    <span className="text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        {/* [UPD] Показываем кол-во видимых после фильтрации */}
+                                        {visiblePets.length}
+                                    </span>
+                                </h1>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
+                                    <button onClick={() => setDensity('comfortable')} className={`p-2 rounded-md transition-all ${!isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}><LayoutGrid size={18} /></button>
+                                    <button onClick={() => setDensity('compact')} className={`p-2 rounded-md transition-all ${isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}><List size={18} /></button>
+                                </div>
+
+                                {user?.is_veterinarian && (
+                                    <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
+                                        <button onClick={() => setViewMode('my')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'my' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><PawPrint size={14} /> Личные</button>
+                                        <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}><Users size={14} /> Пациенты</button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {user?.is_veterinarian && (
-                            <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm self-start md:self-auto">
-                                <button
-                                    onClick={() => setViewMode('my')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
-                                        viewMode === 'my' 
-                                        ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                                        : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    <PawPrint size={16} /> Личные
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('patients')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
-                                        viewMode === 'patients' 
-                                        ? 'bg-emerald-50 text-emerald-600 shadow-sm' 
-                                        : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    <Users size={16} /> Пациенты
-                                    {patients.length > 0 && (
-                                        <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1.5 rounded-full">
-                                            {patients.length}
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
-                        )}
+                        {/* Панель фильтров */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                             <SearchInput placeholder={viewMode === 'my' ? "Поиск..." : "Поиск по стационару..."} />
+                             <PetFilters />
+                             <EventFilter />
+                        </div>
                     </header>
 
-                    {/* Заголовки таблицы (Desktop) */}
-                    <div className="hidden md:grid grid-cols-[180px_1fr_1fr_1fr] gap-6 mb-4 px-4">
-                        <div></div> 
-                        <div className="flex items-center gap-2 text-red-600 font-bold text-sm uppercase tracking-wider pl-1">
-                            <AlertCircle size={16} /> Внимание (3 дня)
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 font-bold text-sm uppercase tracking-wider pl-1">
-                            <Calendar size={16} /> Планы
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-500 font-bold text-sm uppercase tracking-wider pl-1">
-                            <CheckCircle2 size={16} /> История
-                        </div>
+                    <div className={`hidden md:grid gap-4 mb-2 px-2 sticky top-20 z-10 bg-gray-50/95 backdrop-blur py-2 border-b border-gray-200
+                        ${isCompact ? 'grid-cols-[120px_1fr_1fr_1fr]' : 'grid-cols-[180px_1fr_1fr_1fr]'}`}
+                    >
+                        <div className="text-xs font-bold text-gray-400 uppercase">Пациент</div> 
+                        <div className="flex items-center gap-2 text-red-600 font-bold text-xs uppercase pl-1"><AlertCircle size={14} /> Сегодня</div>
+                        <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase pl-1"><Calendar size={14} /> Планы</div>
+                        <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase pl-1"><CheckCircle2 size={14} /> История</div>
                     </div>
 
-                    <div className="space-y-12 md:space-y-8">
-                        {displayedPets.map(pet => {
-                            // [FIX] pet.id гарантированно число, e.pet.id тоже
-                            const petEvents = events.filter(e => e.pet.id === pet.id);
+                    <div className={isCompact ? "space-y-1" : "space-y-8"}>
+                        {/* [UPD] Рендерим visiblePets */}
+                        {visiblePets.map(pet => {
+                            const petEvents = events.filter(e => {
+                                const eid = (typeof e.pet === 'object' && e.pet) ? (e.pet as any).id : e.pet;
+                                if (Number(eid) !== Number(pet.id)) return false;
+                                
+                                // Фильтруем карточки внутри колонок
+                                if (eventTypeFilter && e.event_type.slug !== eventTypeFilter) return false;
+                                
+                                return true;
+                            });
+                            
                             const mainImage = pet.images?.find(img => img.is_main)?.image || pet.images?.[0]?.image;
 
-                            // [FIX] Фильтрация на основе status
-                            const historyEvents = petEvents.filter(e => 
-                                e.status === 'completed' || e.status === 'missed'
-                            ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-
-                            const activeEvents = petEvents.filter(e => 
-                                e.status !== 'completed' && e.status !== 'missed'
-                            );
-
-                            const urgentEvents = activeEvents.filter(e => new Date(e.date) <= urgentThreshold)
+                            const historyEvents = petEvents.filter(e => e.status === 'completed' || e.status === 'missed')
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+                            const activeEvents = petEvents.filter(e => e.status !== 'completed' && e.status !== 'missed');
+                            const todayEvents = activeEvents.filter(e => new Date(e.date) <= endOfToday)
                                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                            const upcomingEvents = activeEvents.filter(e => new Date(e.date) > urgentThreshold)
+                            const futureEvents = activeEvents.filter(e => new Date(e.date) > endOfToday)
                                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
                             return (
-                                <div key={pet.id} className="bg-white md:bg-transparent rounded-3xl md:rounded-none shadow-sm md:shadow-none p-5 md:p-0 border border-gray-100 md:border-none">
-                                    
-                                    <div className="md:grid md:grid-cols-[180px_1fr_1fr_1fr] gap-6 items-start">
+                                <div key={pet.id} className={`bg-white rounded-xl border border-gray-200 transition-all hover:border-blue-300
+                                    ${isCompact ? 'py-2 px-2 shadow-sm' : 'p-5 shadow-sm'}`}
+                                >
+                                    <div className={`md:grid gap-4 items-start
+                                        ${isCompact ? 'grid-cols-[120px_1fr_1fr_1fr]' : 'grid-cols-[180px_1fr_1fr_1fr]'}`}
+                                    >
                                         
-                                        {/* 1. ПИТОМЕЦ */}
-                                        <div className="flex md:flex-col items-center md:items-start gap-4 mb-6 md:mb-0 md:pt-6">
-                                            <div className="w-16 h-16 md:w-full md:h-40 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden shrink-0 shadow-sm relative group">
+                                        {/* ПИТОМЕЦ [UPD] Кликабельный аватар */}
+                                        <div className={`flex items-center gap-3 ${isCompact ? 'flex-row' : 'md:flex-col md:items-start'}`}>
+                                            <div 
+                                                onClick={() => router.push(`/planboard/pets/${pet.id}`)}
+                                                className={`shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative group cursor-pointer
+                                                ${isCompact ? 'w-10 h-10' : 'w-16 h-16 md:w-full md:h-32'}`}
+                                            >
                                                 {mainImage ? (
-                                                    <img src={getMediaUrl(mainImage)!} alt={pet.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                    <img src={getMediaUrl(mainImage)!} className="w-full h-full object-cover transition duration-300 group-hover:scale-105" />
                                                 ) : (
-                                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gray-50"><ImageIcon size={32} /></div>
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={isCompact?16:32} /></div>
                                                 )}
                                                 
-                                                {viewMode === 'patients' && (
-                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-2 py-1 truncate">
-                                                        {pet.owner_info?.is_temporary ? "Врем: " : "Вл: "}
-                                                        {pet.owner_info?.name || pet.temp_owner_name}
+                                                {/* Ховер с иконкой для перехода в историю */}
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                                    <FileText className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" size={24} />
+                                                </div>
+
+                                                {!isCompact && viewMode === 'patients' && (
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-2 py-1 truncate pointer-events-none">
+                                                        {pet.owner_info?.name}
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="w-full">
-                                                <h3 className="font-bold text-xl text-gray-900 leading-tight">{pet.name}</h3>
-                                                <button onClick={() => handleCreateClick(pet.id)} className="mt-2 w-full text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 px-3 rounded-lg transition flex items-center justify-center gap-2">
-                                                    <Plus size={14} /> Добавить запись
+                                            
+                                            <div className="min-w-0">
+                                                <h3 className={`font-bold text-gray-900 leading-tight truncate ${isCompact ? 'text-sm' : 'text-lg'}`}>
+                                                    {pet.name}
+                                                </h3>
+                                                
+                                                <button 
+                                                    onClick={() => handleCreateClick(pet.id)} 
+                                                    className={`mt-1 flex items-center gap-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition
+                                                    ${isCompact ? 'p-1' : 'w-full py-2 px-3 justify-center mt-2'}`}
+                                                    title="Добавить запись"
+                                                >
+                                                    <Plus size={isCompact ? 14 : 16} /> 
+                                                    {!isCompact && <span className="text-xs font-bold">Добавить</span>}
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* 2. ВНИМАНИЕ */}
-                                        <DroppableColumn 
-                                            id={`urgent-pet-${pet.id}`} 
-                                            className="md:bg-white md:rounded-3xl md:p-4 md:min-h-[160px] md:border md:border-red-100 mb-6 md:mb-0 md:shadow-sm h-full"
-                                        >
-                                            <div className="md:hidden font-bold text-red-500 text-xs uppercase mb-3 flex items-center gap-2">
-                                                <AlertCircle size={14} /> Внимание
-                                            </div>
-                                            <div className="space-y-3 min-h-[50px]">
-                                                {urgentEvents.map(ev => (
-                                                    // [FIX] Передаем чистый ID (number)
+                                        {/* СЕГОДНЯ */}
+                                        <DroppableColumn id={`urgent-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-white p-3 min-h-[140px] border-red-50'}`}>
+                                            <div className="space-y-2">
+                                                {todayEvents.map(ev => (
                                                     <DraggableCard key={ev.id} id={ev.id}>
-                                                        <div onClick={() => handleEditClick(ev)}>
-                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} variant="urgent" />
+                                                        <div onClick={() => handleEditClick(ev)} className={new Date(ev.date) < now ? "ring-1 ring-red-400 rounded-lg" : ""}>
+                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} variant="urgent" compact={isCompact} />
                                                         </div>
                                                     </DraggableCard>
                                                 ))}
-                                                {urgentEvents.length === 0 && (
-                                                    <div className="hidden md:flex h-20 items-center justify-center text-gray-300 text-xs text-center border-2 border-dashed border-gray-100 rounded-2xl">
-                                                        <span>Нет срочных дел</span>
-                                                    </div>
-                                                )}
                                             </div>
                                         </DroppableColumn>
 
-                                        {/* 3. ПЛАНЫ */}
-                                        <DroppableColumn 
-                                            id={`plans-pet-${pet.id}`} 
-                                            className="md:bg-white md:rounded-3xl md:p-4 md:min-h-[160px] md:border md:border-gray-100 mb-6 md:mb-0 md:shadow-sm h-full"
-                                        >
-                                            <div className="md:hidden font-bold text-blue-500 text-xs uppercase mb-3 flex items-center gap-2">
-                                                <Calendar size={14} /> Планы
-                                            </div>
-                                            <div className="space-y-3 min-h-[50px]">
-                                                {upcomingEvents.map(ev => (
+                                        {/* ПЛАНЫ */}
+                                        <DroppableColumn id={`plans-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-white p-3 min-h-[140px] border-gray-100'}`}>
+                                            <div className="space-y-2">
+                                                {futureEvents.map(ev => (
                                                     <DraggableCard key={ev.id} id={ev.id}>
                                                         <div onClick={() => handleEditClick(ev)}>
-                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} />
+                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} compact={isCompact} />
                                                         </div>
                                                     </DraggableCard>
                                                 ))}
-                                                {upcomingEvents.length === 0 && (
-                                                    <div className="hidden md:flex h-20 items-center justify-center text-gray-300 text-xs text-center">
-                                                        <span>Планов пока нет</span>
-                                                    </div>
-                                                )}
                                             </div>
                                         </DroppableColumn>
 
-                                        {/* 4. ИСТОРИЯ */}
-                                        <DroppableColumn 
-                                            id={`history-pet-${pet.id}`} 
-                                            className="md:bg-gray-50/50 md:rounded-3xl md:p-4 md:min-h-[160px] md:border md:border-gray-100/50 h-full"
-                                        >
-                                            <div className="md:hidden font-bold text-gray-400 text-xs uppercase mb-3 flex items-center gap-2">
-                                                <CheckCircle2 size={14} /> История
-                                            </div>
-                                            <div className="space-y-3 min-h-[50px]">
+                                        {/* ИСТОРИЯ */}
+                                        <DroppableColumn id={`history-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-gray-50/50 p-3 min-h-[140px] border-gray-100/50'}`}>
+                                            <div className="space-y-2">
                                                 {historyEvents.map(ev => (
                                                     <DraggableCard key={ev.id} id={ev.id}>
                                                         <div onClick={() => handleEditClick(ev)}>
-                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} variant="completed" />
+                                                            <PlanboardCard event={ev} onToggle={handleToggleStatus} variant="completed" compact={isCompact} />
                                                         </div>
                                                     </DraggableCard>
                                                 ))}
-                                                {historyEvents.length === 0 && (
-                                                    <div className="hidden md:flex h-20 items-center justify-center text-gray-300 text-xs text-center">
-                                                        <span>Пусто</span>
-                                                    </div>
+
+                                                {/* [UPD] Кнопка "Показать всё" */}
+                                                {petEvents.filter(e => e.status === 'completed' || e.status === 'missed').length > 5 && (
+                                                    <button 
+                                                        onClick={() => router.push(`/planboard/pets/${pet.id}`)}
+                                                        className="w-full text-xs text-center text-gray-400 hover:text-blue-500 py-2 transition font-medium border-t border-gray-100 mt-2"
+                                                    >
+                                                        Показать всю историю →
+                                                    </button>
                                                 )}
                                             </div>
                                         </DroppableColumn>
                                     </div>
-                                    <div className="md:hidden h-px bg-gray-100 mt-6 mx-2" />
                                 </div>
                             );
                         })}
                         
-                        {displayedPets.length === 0 && (
-                            <div className="text-center py-12">
-                                <p className="text-gray-400">В этом списке пока нет животных</p>
+                        {/* Empty State */}
+                        {visiblePets.length === 0 && (
+                             <div className="text-center py-20 text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                                <Users size={48} className="mx-auto mb-3 opacity-50" />
+                                {searchParams.toString().length > 0 ? (
+                                    <p>Ничего не найдено. Попробуйте изменить фильтры.</p>
+                                ) : (
+                                    <p>В стационаре пока пусто.</p>
+                                )}
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* [FIX] Модальное окно переименовано */}
                 {isModalOpen && selectedPetId && (
-                    <CreateEventModal
-                        isOpen={isModalOpen}
-                        onClose={() => setIsModalOpen(false)}
-                        onSuccess={fetchData}
-                        petId={selectedPetId}
-                        initialData={editingEvent}
-                    />
+                    <CreateEventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} petId={selectedPetId} initialData={editingEvent} />
                 )}
+                <TimeModal isOpen={isTimeModalOpen} onClose={() => { setIsTimeModalOpen(false); setPendingDragEvent(null); }} onConfirm={handleTodayTimeConfirm} />
+                <PlanModal isOpen={isPlanModalOpen} onClose={() => { setIsPlanModalOpen(false); setPendingDragEvent(null); }} onConfirm={handlePlanDateConfirm} />
             </div>
         </DndContext>
     );

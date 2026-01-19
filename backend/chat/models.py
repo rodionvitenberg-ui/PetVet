@@ -49,18 +49,16 @@ class ChatMessage(models.Model):
         on_delete=models.CASCADE,
         related_name='sent_messages'
     )
-    text = models.TextField(verbose_name="Текст сообщения")
+    # [FIX] Делаем текст необязательным (blank=True)
+    text = models.TextField(verbose_name="Текст сообщения", blank=True, default="")
     
-    # Возможность прикрепить файл (опционально)
     attachment = models.FileField(upload_to='chat_attachments/%Y/%m/', null=True, blank=True)
     
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['created_at'] # Хронологический порядок
-        verbose_name = "Сообщение"
-        verbose_name_plural = "Сообщения"
+        ordering = ['created_at'] # Сортировка по порядку создания
 
     def __str__(self):
-        return f"{self.sender.username}: {self.text[:20]}"
+        return f"Msg {self.id} from {self.sender}"

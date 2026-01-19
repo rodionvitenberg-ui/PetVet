@@ -306,7 +306,9 @@ class PetEvent(models.Model): # Бывший HealthEvent
         Pet, 
         on_delete=models.CASCADE, 
         related_name='events', # Переименовали recent_events -> events для краткости
-        verbose_name="Питомец"
+        verbose_name="Питомец",
+        null=True,
+        blank=True
     )
     event_type = models.ForeignKey(
         EventType,
@@ -317,6 +319,25 @@ class PetEvent(models.Model): # Бывший HealthEvent
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(blank=True, verbose_name="Описание")
     date = models.DateTimeField(verbose_name="Дата и время события")
+
+    guest_name = models.CharField(
+        max_length=100, 
+        null=True, 
+        blank=True, 
+        verbose_name="Имя клиента (Гость)"
+    )
+    guest_phone = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True, 
+        verbose_name="Телефон (Гость)"
+    )
+    
+    admin_notes = models.TextField(
+        null=True, 
+        blank=True, 
+        verbose_name="Заметки администратора"
+    )
     
     # Гибкие данные (JSON)
     # Здесь храним: {"judge": "Иванов", "weight": 5.4, "rank": "CACIB"}

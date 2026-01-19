@@ -1,13 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import NotificationViewSet
+from .views import NotificationViewSet, NotificationSettingsViewSet
 
 router = DefaultRouter()
-
-# URL: /api/notifications/
-# URL: /api/notifications/unread_count/
-# URL: /api/notifications/{id}/mark_read/
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'notification-settings', NotificationSettingsViewSet, basename='notification-settings')
 
 urlpatterns = [
     path('', include(router.urls)),

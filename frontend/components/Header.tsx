@@ -7,15 +7,12 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useAppMode } from '@/components/providers/AppModeProvider';
+import { useChat } from '@/components/providers/ChatProvider'; 
 import { 
   Menu,
   Globe
 } from 'lucide-react';
 import NotificationsDropdown from './dashboard/NotificationsDropdown';
-
-// Импорт сервисов и типов для чата
-import { chatService } from '@/services/chat';
-import { ChatRoom } from '@/types/chat';
 
 // Импорт кастомных анимированных иконок
 import { BoneIcon } from '@/components/ui/bone';
@@ -24,21 +21,22 @@ import { MapPinIcon } from '@/components/ui/map-pin';
 import { HomeIcon } from '@/components/ui/home';
 import { StethoscopeIcon } from '@/components/ui/stethoscope';
 import { BellIcon } from '@/components/ui/bell';
-// Предполагаемые импорты новых иконок (согласно вашему описанию)
 import { MessageCircleIcon } from '@/components/ui/message-circle';
 import { MessageCircleMoreIcon } from '@/components/ui/message-circle-more';
+// [NEW] Импорт новой иконки календаря
+import { CalendarDaysIcon } from '@/components/ui/calendar-days';
 
 type ActiveMenu = 'notifications' | 'burger' | null;
 
 export default function Header() {
   const t = useTranslations('Navigation');
   const pathname = usePathname();
-  const { isAuth, logout, user } = useAuth(); // Добавили user для проверки отправителя
-  
+  const { isAuth, logout } = useAuth();
   const { isVetMode } = useAppMode(); 
   
+  const { unreadCount } = useChat();
+  
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>(null);
-  const [unreadCount, setUnreadCount] = useState(0); // Счетчик непрочитанных диалогов
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
@@ -50,38 +48,6 @@ export default function Header() {
   const closeMenu = () => {
     setActiveMenu(null);
   };
-
-  // Эффект для получения количества непрочитанных сообщений
-  useEffect(() => {
-    const fetchUnreadChats = async () => {
-      if (!isAuth || !user) return;
-
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-
-      try {
-        const rooms: ChatRoom[] = await chatService.getMyChats(token);
-        
-        // Считаем комнаты, где последнее сообщение не прочитано и отправлено НЕ нами
-        const count = rooms.filter(room => 
-          room.last_message && 
-          !room.last_message.is_read && 
-          room.last_message.sender !== user.id
-        ).length;
-
-        setUnreadCount(count);
-      } catch (error) {
-        console.error("Failed to fetch chats for header badge", error);
-      }
-    };
-
-    fetchUnreadChats();
-
-    // Можно добавить поллинг (раз в 30 сек) или обновлять при смене страницы
-    const interval = setInterval(fetchUnreadChats, 30000);
-    return () => clearInterval(interval);
-
-  }, [isAuth, user, pathname]); // Обновляем также при смене страницы (pathname)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -162,6 +128,24 @@ export default function Header() {
             <span className="text-sm font-medium">{t('calendar')}</span>
           </Link>
 
+          {/* [NEW] Добавлен Calendar Link (Desktop) */}
+          <Link 
+            href="/calendar"
+            className={`
+              h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
+              ${isActive('/calendar') 
+                ? 'text-black opacity-100 border-b-2 border-black' 
+                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+              }
+            `}
+          >
+            <div className="p-2">
+               <CalendarDaysIcon size={24} />
+            </div>
+            {/* Используем новый ключ перевода, например 'calendar_days', чтобы не путать с 'calendar' выше */}
+            <span className="text-sm font-medium">{t('calendar_days')}</span>
+          </Link>
+
           <Link 
             href="/find-vet"
             className={`
@@ -196,7 +180,7 @@ export default function Header() {
                     }
                   `}
                 >
-                   {/* Логика смены иконки: если есть непрочитанные - MessageCircleMore, иначе MessageCircle */}
+                   {/* Логика смены иконки */}
                    {unreadCount > 0 ? (
                       <MessageCircleMoreIcon size={24} />
                    ) : (
@@ -340,6 +324,19 @@ export default function Header() {
                     </div>
                     <span>{t('calendar')}</span>
                  </Link>
+
+                 {/* [NEW] Добавлен Calendar Link (Mobile) */}
+                 <Link 
+                    href="/calendar" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                 >
+                    <div className="text-gray-500 group-hover:text-primary transition">
+                        <CalendarDaysIcon size={24} />
+                    </div>
+                    <span>{t('calendar_days')}</span>
+                 </Link>
+
                  <Link 
                     href="/find-vet" 
                     onClick={closeMenu}
@@ -349,6 +346,20 @@ export default function Header() {
                         <MapPinIcon size={24} />
                     </div>
                     <span>{t('find_doctor')}</span>
+                 </Link>
+                 <Link 
+                    href="/dashboard/messages" 
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                 >
+                    <div className="text-gray-500 group-hover:text-primary transition">
+                        {/* Иконка в мобильном меню, тоже динамическая */}
+                        {unreadCount > 0 ? <MessageCircleMoreIcon size={24}/> : <MessageCircleIcon size={24} />}
+                    </div>
+                    <span>
+                        {t('messages') || 'Сообщения'} 
+                        {unreadCount > 0 && <span className="ml-2 text-red-500 font-bold">({unreadCount})</span>}
+                    </span>
                  </Link>
               </div>
 

@@ -33,6 +33,79 @@
     "become_vet": "Станьте ветеринаром",
     "become_vet_desc": "Принимайте пациентов и зарабатывайте на этом.",
     "help_center": "Центр помощи",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "messages": "Сообщения",
+    "calendar_days": "Календарь"
+ },
+"AboutProject": {
+    "archive_title": "Цифровой архив",
+    "archive_desc": "Забудьте о потерянных справках. Храните анализы, прививки и назначения врача в облаке.",
+    "passport_title": "PDF-паспорт",
+    "passport_desc": "Генерируйте полный отчет о здоровье питомца одним кликом. Идеально для путешествий.",
+    "security_title": "Полный контроль",
+    "security_desc": "Вы сами решаете, кому предоставить доступ к данным питомца: врачу, родственнику или зооняне."
+  },
+  "ForVeterinarians": {
+    "title": "Вы ветеринарный врач?",
+    "description": "Присоединяйтесь к платформе, подтвердите квалификацию и получите удобные инструменты для ведения пациентов. Забудьте о бумажной волоките.",
+    "button": "Стать партнером"
+  },
+    "Footer": {
+    "title": "careyour.pet",
+    "description": "Современная платформа для заботы о здоровье ваших питомцев.",
+    "platform": "Платформа",
+    "perscab": "Личный кабинет",
+    "findvet": "Найти ветеринара",
+    "forspec": "Специалистам",
+    "rulinf": "Правовая информация",
+    "policyconf": "Политика конфиденциальности",
+    "uslisp": "Условия использования",
+    "contacts": "Контакты",
+    "pravzash": "careyour.pet. Все права защищены."
+  },
+      "BeVet": {
+    "bever": "Пройти верификацию",
+    "verdesc": "Для доступа к функциям врача нам необходимо подтвердить вашу квалификацию.",
+    "down": "Что загружать?",
+    "photo": "Фотографию или скан диплома о ветеринарном образовании. Ваше имя в профиле должно совпадать с именем в документе.",
+    "photo2": "Нажмите для загрузки фото",
+    "photo3": "JPG, PNG до 5MB",
+    "taptochange": "Нажмите, чтобы изменить",
+    "ver": "Отправить на проверку",
+    "ver1": "Заявка на проверке",
+    "ver2": "Мы проверяем ваши документы. Обычно это занимает до 24 часов. Вам придет уведомление о решении.",
+    "ver4": "Вы верифицированы!",
+    "ver5": "Ваш статус подтвержден.",
+    "rettocab": "Перейти в кабинет",
+    "gtfo": "Заявка отклонена!",
+    "gtfo2": "К сожалению, мы не смогли подтвердить ваш статус.",
+    "gtfo3": "Причина:",
+    "gtfo4": "Попробовать снова"
+  },
+  "FindVet": {
+    "downmap": "Загружаем карту...",
+    "verdesc": "Найти ветеринара",
+    "down": "Показываем ближайшие клиники."
+  },
+  "Login": {
+    "bever": "Get Verified",
+    "verdesc": "To access veterinary features, we need to verify your qualifications.",
+    "down": "What to upload?",
+    "photo": "A photo or scan of your veterinary diploma. The name in your profile must match the name on the document.",
+    "photo2": "Click to upload photo",
+    "photo3": "JPG, PNG up to 5MB",
+    "taptochange": "Click to change",
+    "ver": "Submit for review",
+    "ver1": "Application under review",
+    "ver2": "We are reviewing your documents. This usually takes up to 24 hours. You will receive a notification regarding the decision.",
+    "ver4": "You are verified!",
+    "ver5": "Your status is confirmed.",
+    "rettocab": "Go to Dashboard",
+    "gtfo": "Application rejected",
+    "gtfo2": "Unfortunately, we could not verify your status.",
+    "gtfo3": "Reason:",
+    "gtfo4": "Try again"
   }
+
+
 }

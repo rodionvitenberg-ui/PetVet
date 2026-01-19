@@ -253,11 +253,20 @@ class PetEventViewSet(viewsets.ModelViewSet):
     ordering_fields = ['date', 'created_at']
 
     def get_queryset(self):
-        # Показываем события только для моих питомцев или тех, к кому есть доступ
         user = self.request.user
-        return PetEvent.objects.filter(
+        
+        # 1. Базовая фильтрация по датам (для Календаря)
+        queryset = PetEvent.objects.all()
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date and end_date:
+            queryset = queryset.filter(date__range=[start_date, end_date])
+
+        return queryset.filter(
             Q(pet__owner=user) | 
-            Q(pet__access_grants__user=user)
+            Q(pet__access_grants__user=user) |
+            Q(created_by=user)
         ).select_related('event_type', 'pet').distinct()
 
     def perform_create(self, serializer):
@@ -504,3 +513,20 @@ class AIConsultView(APIView):
         except Exception as e:
             print(f"GenAI Error: {e}")
             return Response({'error': str(e)}, status=500)
+        
+class PetImageViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """
+    Специальный ViewSet для удаления фотографий.
+    Поддерживает только DELETE /api/pet_images/{id}/
+    """
+    serializer_class = PetImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Удалять фото могут: Владелец, Врач с доступом, Создатель теневой карты
+        return PetImage.objects.filter(
+            Q(pet__owner=user) | 
+            Q(pet__access_grants__user=user, pet__access_grants__is_active=True) |
+            Q(pet__created_by=user, pet__owner__isnull=True)
+        )

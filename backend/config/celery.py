@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.schedules import crontab
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -15,5 +16,20 @@ app.conf.beat_schedule = {
     'send-reminders-every-hour': {
         'task': 'notifications.tasks.send_scheduled_reminders',
         'schedule': 3600.0,
+    },
+}
+
+app.conf.beat_schedule = {
+    # 1. "Гибкие напоминания": Запускаем каждую минуту.
+    # Так мы поймаем и тех, кто хочет за 15 мин, и тех, кто за 24 часа.
+    'check-flexible-reminders-every-minute': {
+        'task': 'notifications.tasks.send_flexible_reminders',
+        'schedule': 60.0, # 60 секунд
+    },
+
+    # 2. "Повторы": Запускаем раз в день утром (например, в 9:00).
+    'check-repeating-events-daily': {
+        'task': 'notifications.tasks.process_repeating_events',
+        'schedule': crontab(hour=9, minute=0),
     },
 }

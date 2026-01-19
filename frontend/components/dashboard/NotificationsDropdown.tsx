@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
+import NotificationSettingsModal from '@/components/notifications/NotificationsSettingsModal'; // Путь проверь
 import { useRouter } from 'next/navigation'; // <--- 1. Импорт роутера
 import { 
     Bell, 
@@ -10,6 +12,7 @@ import {
     Stethoscope,
     Loader2
 } from 'lucide-react';
+
 
 // Типизация уведомления
 interface NotificationAction {
@@ -40,6 +43,7 @@ export default function NotificationsDropdown() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const fetchNotifications = async () => {
     const token = localStorage.getItem('access_token');
@@ -133,7 +137,16 @@ export default function NotificationsDropdown() {
              Прочитать все
            </button>
         )}
+        {/* 3. ВОТ ЭТА КНОПКА (Шестеренка) */}
+             <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition"
+                title="Настройки уведомлений"
+             >
+                <Settings size={16} />
+             </button>
       </div>
+      
 
       <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
         {notifications.length === 0 ? (
@@ -217,6 +230,11 @@ export default function NotificationsDropdown() {
             })
         )}
       </div>
+      {isSettingsOpen && (
+        <NotificationSettingsModal 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+        />)}
     </div>
   );
 }

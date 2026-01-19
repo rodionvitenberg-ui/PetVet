@@ -2,7 +2,6 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import ChatRoom, ChatMessage
-from pets.models import PetAccess
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -10,75 +9,89 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f'chat_{self.room_id}'
         self.user = self.scope.get("user")
 
-        # --- ОТЛАДКА ---
-        print(f"DEBUG: Connect attempt to Room {self.room_id}")
-        print(f"DEBUG: User found: {self.user} (Is Auth: {self.user.is_authenticated})")
-        # ----------------
-
-        # 1. Проверка прав доступа
+        # Проверка прав (как и раньше)
         if not await self.can_access_room(self.user, self.room_id):
-            print(f"DEBUG: Access DENIED for {self.user} to room {self.room_id}") # <--- Ловим отказ
             await self.close()
             return
 
-        print("DEBUG: Access GRANTED") # <--- Ловим успех
-
-        # 2. Подключение к группе
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
 
-    # Получение сообщения от WebSocket (клиента)
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    # Получение сообщения от клиента
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        message_text = text_data_json['message']
+        message_text = text_data_json.get('message', '')
+        # attachment_id здесь - это ID сообщения, которое уже создано через REST API
+        attachment_id = text_data_json.get('attachment_id', None)
 
-        # 3. Сохранение в БД
-        new_msg = await self.save_message(self.user, self.room_id, message_text)
+        # [FIX] Сохраняем или обновляем сообщение
+        msg = await self.save_message(self.user, self.room_id, message_text, attachment_id)
 
-        # 4. Отправка сообщения всей группе (включая отправителя)
+        # Отправка обновления всем (включая отправителя)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': message_text,
+                'id': msg.id,
+                'message': msg.text,          # Используем актуальный текст из объекта
                 'sender_id': self.user.id,
-                'sender_name': self.user.username, # Или .first_name
-                'created_at': new_msg.created_at.isoformat(),
+                'sender_name': self.user.username,
+                # Если у сообщения есть файл, отправляем его URL
+                'attachment': msg.attachment.url if msg.attachment else None,
+                'created_at': msg.created_at.isoformat(),
             }
         )
 
-    # Обработка события chat_message
+    # Отправка данных в WebSocket
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
+            'id': event['id'],
             'message': event['message'],
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],
+            'attachment': event.get('attachment'),
             'created_at': event['created_at'],
         }))
 
-    # --- Вспомогательные методы (обращение к БД) ---
     @database_sync_to_async
     def can_access_room(self, user, room_id):
-        if not user.is_authenticated:
-            return False
+        if not user.is_authenticated: return False
         try:
             room = ChatRoom.objects.get(id=room_id)
-            # Доступ имеют: Владелец комнаты, Вет комнаты
-            if user == room.owner or user == room.vet:
-                # *Важно*: Тут можно добавить доп. проверку актуальности PetAccess, 
-                # если мы хотим блокировать чат при отзыве прав.
-                return True
-            return False
+            return user == room.owner or user == room.vet
         except ChatRoom.DoesNotExist:
             return False
 
     @database_sync_to_async
-    def save_message(self, user, room_id, text):
+    def save_message(self, user, room_id, text, attachment_id=None):
         room = ChatRoom.objects.get(id=room_id)
-        msg = ChatMessage.objects.create(room=room, sender=user, text=text)
-        room.updated_at = msg.created_at # Обновляем время комнаты (чтобы поднять вверх в списке)
+        
+        # [FIX] ЛОГИКА ОБНОВЛЕНИЯ ВМЕСТО СОЗДАНИЯ
+        if attachment_id:
+            try:
+                # Пытаемся найти сообщение, созданное загрузчиком файла
+                # Важно проверить sender=user, чтобы нельзя было чужое сообщение перезаписать
+                msg = ChatMessage.objects.get(id=attachment_id, room=room, sender=user)
+                msg.text = text # Дописываем текст к картинке
+                msg.save()
+            except ChatMessage.DoesNotExist:
+                # Если вдруг ID левый — создаем новое сообщение как фоллбек
+                msg = ChatMessage.objects.create(room=room, sender=user, text=text)
+        else:
+            # Обычное текстовое сообщение
+            msg = ChatMessage.objects.create(room=room, sender=user, text=text)
+        
+        # Обновляем "время последнего сообщения" в комнате
+        room.updated_at = msg.created_at
         room.save()
+        
         return msg

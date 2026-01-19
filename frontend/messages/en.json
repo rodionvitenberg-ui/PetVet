@@ -33,6 +33,77 @@
     "become_vet": "Become a Veterinarian",
     "become_vet_desc": "Accept patients and earn money.",
     "help_center": "Help Center",
-    "logout": "Log out"
+    "logout": "Log out",
+    "messages": "Messages",
+    "calendar_days": "Calendar"
+  },
+  "AboutProject": {
+    "archive_title": "Digital Archive",
+    "archive_desc": "Forget about lost certificates. Store tests, vaccinations, and prescriptions in the cloud.",
+    "passport_title": "PDF Passport",
+    "passport_desc": "Generate a full pet health report in one click. Perfect for traveling.",
+    "security_title": "Full Control",
+    "security_desc": "You decide who gets access to your pet's data: the vet, a relative, or a pet sitter."
+  },
+  "ForVeterinarians": {
+    "title": "Are you a Veterinarian?",
+    "description": "Join the platform, verify your qualification, and get convenient tools for patient management. Forget about paperwork.",
+    "button": "Become a Partner"
+  },
+  "Footer": {
+    "title": "careyour.pet",
+    "description": "A modern platform for caring for the health of your pets.",
+    "platform": "Platform",
+    "perscab": "Personal Account",
+    "findvet": "Find a Veterinarian",
+    "forspec": "For Specialists",
+    "rulinf": "Legal Information",
+    "policyconf": "Privacy Policy",
+    "uslisp": "Terms of Use",
+    "contacts": "Contacts",
+    "pravzash": "careyour.pet. All rights reserved."
+  },
+  "BeVet": {
+    "bever": "Get Verified",
+    "verdesc": "To access veterinary features, we need to verify your qualifications.",
+    "down": "What to upload?",
+    "photo": "A photo or scan of your veterinary diploma. The name in your profile must match the name on the document.",
+    "photo2": "Click to upload photo",
+    "photo3": "JPG, PNG up to 5MB",
+    "taptochange": "Click to change",
+    "ver": "Submit for review",
+    "ver1": "Application under review",
+    "ver2": "We are reviewing your documents. This usually takes up to 24 hours. You will receive a notification regarding the decision.",
+    "ver4": "You are verified!",
+    "ver5": "Your status is confirmed.",
+    "rettocab": "Go to Dashboard",
+    "gtfo": "Application rejected",
+    "gtfo2": "Unfortunately, we could not verify your status.",
+    "gtfo3": "Reason:",
+    "gtfo4": "Try again"
+  },
+  "FindVet": {
+    "downmap": "Загружаем карту...",
+    "verdesc": "Найти ветеринара",
+    "down": "Показываем ближайшие клиники."
+  },
+  "Login": {
+    "bever": "Get Verified",
+    "verdesc": "To access veterinary features, we need to verify your qualifications.",
+    "down": "What to upload?",
+    "photo": "A photo or scan of your veterinary diploma. The name in your profile must match the name on the document.",
+    "photo2": "Click to upload photo",
+    "photo3": "JPG, PNG up to 5MB",
+    "taptochange": "Click to change",
+    "ver": "Submit for review",
+    "ver1": "Application under review",
+    "ver2": "We are reviewing your documents. This usually takes up to 24 hours. You will receive a notification regarding the decision.",
+    "ver4": "You are verified!",
+    "ver5": "Your status is confirmed.",
+    "rettocab": "Go to Dashboard",
+    "gtfo": "Application rejected",
+    "gtfo2": "Unfortunately, we could not verify your status.",
+    "gtfo3": "Reason:",
+    "gtfo4": "Try again"
   }
 }

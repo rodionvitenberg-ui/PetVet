@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Notification
+from .models import Notification, NotificationSettings
 
 class NotificationSerializer(serializers.ModelSerializer):
     # Форматируем дату красиво
@@ -34,3 +34,18 @@ class NotificationSerializer(serializers.ModelSerializer):
                 'id': obj.object_id
             }
         return None
+    
+class NotificationSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationSettings
+        fields = [
+            'email_enabled',
+            'push_enabled',
+            'browser_enabled',
+            'sound_enabled',
+            'notify_medical',
+            'notify_care',
+            'notify_reproduction',
+            'notify_system',
+            'reminder_time_minutes'
+        ]

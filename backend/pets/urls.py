@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PetViewSet, CategoryViewSet, AttributeViewSet, PetEventViewSet, PetEventAttachmentViewSet, TagViewSet, EventTypeViewSet, AIConsultView
+from .views import PetViewSet, CategoryViewSet, AttributeViewSet, PetEventViewSet, PetEventAttachmentViewSet, TagViewSet, EventTypeViewSet, AIConsultView, PetImageViewSet
 
 # Создаем роутер
 router = DefaultRouter()
@@ -29,6 +29,7 @@ router.register(r'tags', TagViewSet, basename='tag')
 router.register(r'events', PetEventViewSet, basename='event')
 router.register(r'event-types', EventTypeViewSet, basename='event-type')
 router.register(r'event-attachments', PetEventAttachmentViewSet, basename='event-attachment')
+router.register(r'pet_images', PetImageViewSet, basename='pet-image')
 
 urlpatterns = [
     path('ai/consult/', AIConsultView.as_view(), name='ai-consult'),

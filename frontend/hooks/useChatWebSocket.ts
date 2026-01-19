@@ -9,28 +9,30 @@ interface UseChatWebSocketProps {
 
 export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSocketProps) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]); // Локальный стейт сообщений
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Храним колбек в рефе, чтобы его обновление не триггерило реконнект
   const onNewMessageRef = useRef(onNewMessage);
 
-  // Обновляем реф при каждом рендере
   useEffect(() => {
     onNewMessageRef.current = onNewMessage;
   }, [onNewMessage]);
 
+  // Очистка при смене комнаты
+  useEffect(() => {
+      setMessages([]);
+  }, [roomId]);
+
   const connect = useCallback(() => {
     if (!roomId || !token) return;
 
-    // Очищаем старые таймеры перед новым подключением
     if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
     }
 
-    // Закрываем старый сокет, если он есть
     if (socketRef.current) {
         socketRef.current.close();
     }
@@ -38,8 +40,6 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = process.env.NEXT_PUBLIC_WS_HOST || '127.0.0.1:8000';
     const wsUrl = `${protocol}//${host}/ws/chat/${roomId}/?token=${token}`;
-
-    console.log('Connecting to WS:', wsUrl);
 
     const ws = new WebSocket(wsUrl);
 
@@ -58,11 +58,13 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
             sender: data.sender_id,
             sender_name: data.sender_name,
             text: data.message,
+            attachment: data.attachment, // Принимаем вложение
             created_at: data.created_at,
             is_read: false
         };
         
-        // Вызываем функцию из рефа - это безопасно и не требует пересоздания сокета
+        setMessages((prev) => [...prev, message]);
+
         if (onNewMessageRef.current) {
             onNewMessageRef.current(message);
         }
@@ -74,7 +76,6 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
     ws.onclose = (event) => {
       console.log('WS Closed', event.code);
       setIsConnected(false);
-      // Если закрытие не штатное (не 1000) и мы все еще на той же комнате
       if (event.code !== 1000) { 
           reconnectTimeoutRef.current = setTimeout(connect, 3000);
       }
@@ -83,19 +84,17 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
     ws.onerror = (err) => {
       console.error('WS Error', err);
       setError('WebSocket error');
-      // Не закрываем вручную тут, onclose сработает сам
     };
 
     socketRef.current = ws;
   
-  // УБРАЛИ onNewMessage из зависимостей! Теперь реконнект только при смене комнаты или токена.
   }, [roomId, token]); 
 
   useEffect(() => {
     connect();
     return () => {
       if (socketRef.current) {
-        socketRef.current.close(1000); // 1000 = Normal Closure
+        socketRef.current.close(1000);
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -103,13 +102,17 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
     };
   }, [connect]);
 
-  const sendMessage = (text: string) => {
+  // Поддержка вложений
+  const sendMessage = (text: string, attachmentId?: number | string | null) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ message: text }));
+      socketRef.current.send(JSON.stringify({ 
+          message: text,
+          attachment_id: attachmentId 
+      }));
     } else {
       console.warn('WS not connected');
     }
   };
 
-  return { isConnected, error, sendMessage };
+  return { isConnected, error, sendMessage, messages, setMessages };
 };
