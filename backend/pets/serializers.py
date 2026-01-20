@@ -54,7 +54,7 @@ class AttributeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Attribute
-        fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
+        fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom', 'attr_type', 'options']
         # [FIX] Read-only поля
         read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom', 'sort_order']
 

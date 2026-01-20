@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import PetEvent, Tag # [FIX] Заменили HealthEvent на PetEvent
+from .models import PetEvent, Tag
 
-@receiver(post_save, sender=PetEvent) # [FIX] Слушаем новую модель
+@receiver(post_save, sender=PetEvent)
 def handle_event_completion(sender, instance, created, **kwargs):
     """
     Срабатывает при сохранении события.

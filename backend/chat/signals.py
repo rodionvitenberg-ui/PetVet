@@ -9,10 +9,6 @@ def create_chat_room_on_access(sender, instance, created, **kwargs):
     Автоматически создает чат-комнату, когда врачу предоставляется доступ к питомцу.
     """
     if created:
-        # instance - это созданный объект PetAccess
-        # instance.user - это ВРАЧ (кому дали доступ)
-        # instance.pet - это ПИТОМЕЦ
-        # instance.pet.owner - это ВЛАДЕЛЕЦ
         
         ChatRoom.objects.get_or_create(
             pet=instance.pet,

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+// [ВАЖНО] AttributeType теперь включает attr_type и options,
+// поэтому хук автоматически научится работать с новыми полями.
 import { 
   PetDetail, PetPayload, Category, PetTag, AttributeType 
 } from '@/types/pet'; 
@@ -11,7 +13,7 @@ export type PetFormMode = 'create_own' | 'create_patient' | 'edit';
 interface UsePetFormProps {
   mode: PetFormMode;
   initialData?: PetDetail | null;
-  onSuccess?: () => void;
+  onSuccess?: (data?: any) => void;
 }
 
 export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) => {
@@ -22,10 +24,10 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // УБРАНО: const [createdCredentials, setCreatedCredentials] ...
 
   // === DICTIONARIES ===
+  // Здесь хранятся определения атрибутов, которые приходят с бэкенда.
+  // Благодаря обновленному AttributeType, здесь уже будут лежать attr_type и options.
   const [dictionaries, setDictionaries] = useState({
     categories: [] as Category[],
     tags: [] as PetTag[],
@@ -43,6 +45,8 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
     selectedBreedId: null as number | null,
     
     tagSlugs: [] as string[],
+    // EAV-хранилище: ключ (slug) -> значение (строка).
+    // Даже для Checkbox ("true"/"false") или Number ("10.5") храним строку.
     attributeValues: {} as Record<string, string>,
     
     motherId: null as number | null,
@@ -96,6 +100,8 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   const createCustomAttribute = async (name: string, unit: string = '') => {
     try {
       const token = localStorage.getItem('access_token');
+      // При создании атрибута фронтендом, бэкенд выставит attr_type='text' по умолчанию.
+      // Если вы захотите дать юзеру выбор типа, нужно будет добавить поле attr_type в body.
       const res = await fetch(`${API_URL}/api/attributes/`, {
         method: 'POST',
         headers: {
@@ -107,6 +113,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
 
       if (res.ok) {
         const newAttr: AttributeType = await res.json();
+        // Добавляем новый атрибут в словарь, чтобы он сразу появился в форме
         setDictionaries(prev => ({ ...prev, attributes: [...prev.attributes, newAttr] }));
       }
     } catch (e) {
@@ -150,6 +157,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         const tagsData: PetTag[] = await tagsRes.json();
         const attrsData: AttributeType[] = await attrsRes.json();
 
+        // Здесь attrsData уже содержит attr_type и options, благодаря вашему сериализатору.
         setDictionaries(prev => ({
           ...prev,
           tags: tagsData,
@@ -166,6 +174,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
     const breedCat = pet.categories?.find(c => c.parent);
 
     const attrMap: Record<string, string> = {};
+    // Заполняем значения. Typescript не ругается, так как value всегда string.
     pet.attributes?.forEach(pa => {
       attrMap[pa.attribute.slug] = pa.value;
     });
@@ -261,6 +270,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         setError('Телефон владельца обязателен'); return false;
       }
     }
+    // Шаг 2 (Атрибуты) валидируем только если нужно. Сейчас они опциональны.
     return true;
   };
 
@@ -286,8 +296,12 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
     if (formData.selectedCategoryId) categoriesToSend.push(formData.selectedCategoryId);
     if (formData.selectedBreedId) categoriesToSend.push(formData.selectedBreedId);
 
+    // Сборка атрибутов для отправки.
+    // Фильтруем пустые значения, чтобы не слать мусор.
+    // Если тип checkbox ("true"/"false"), они не пустые, поэтому пройдут.
+    // Если тип number ("0"), он не пустой (строка "0"), поэтому пройдет.
     const attributesPayload = Object.entries(formData.attributeValues)
-      .filter(([_, val]) => val.trim() !== '')
+      .filter(([_, val]) => val.trim() !== '') 
       .map(([slug, val]) => ({ attribute_slug: slug, value: val }));
 
     const payload: PetPayload = {
@@ -309,7 +323,6 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
     };
 
     try {
-      let petId: number;
       const url = mode === 'edit' && initialData 
         ? `${API_URL}/api/pets/${initialData.id}/` 
         : `${API_URL}/api/pets/`;
@@ -327,12 +340,13 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
 
       if (!res.ok) {
         const errData = await res.json();
+        // Красивый вывод ошибок
         const msg = Object.values(errData).flat().join(', ');
         throw new Error(msg || 'Ошибка сохранения');
       }
 
       const responseData = await res.json();
-      petId = responseData.id;
+      const petId = responseData.id;
 
       // Upload Images
       if (files.length > 0) {
@@ -351,10 +365,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         }
       }
 
-      // [FIX] Полностью убрали логику показа логина/пароля.
-      // Сразу вызываем успех.
-      
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(responseData);
 
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка');

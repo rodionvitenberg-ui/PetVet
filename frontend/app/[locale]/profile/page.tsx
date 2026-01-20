@@ -1,13 +1,13 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { 
     Camera, Save, Lock, Trash2, Plus, 
     Phone, Mail, MessageCircle, Send, Instagram, Globe, 
-    Loader2, Briefcase, MapPin, User, AlertTriangle // <--- 1. Добавлена иконка
+    Loader2, Briefcase, MapPin, User, AlertTriangle, X 
 } from 'lucide-react';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
+import { addToast } from "@heroui/toast";
 
 // === ТИПЫ ===
 type ContactType = 'phone' | 'whatsapp' | 'telegram' | 'instagram' | 'email' | 'site' | 'vk' | 'other';
@@ -39,26 +39,24 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-  // === STATE: ОСНОВНОЙ ПРОФИЛЬ ===
+  
+  // Данные формы
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
-    phone: '',     // Основной (личный) телефон
+    phone: '',
     city: '',
     clinic_name: '',
-    about: '',     // О себе
+    about: '',
     email: '', 
   });
 
-  // === STATE: ПАРОЛИ ===
   const [passwords, setPasswords] = useState({
     password: '',
     confirm_password: ''
   });
 
-  // === STATE: КОНТАКТЫ ===
+  // Контакты
   const [contacts, setContacts] = useState<UserContact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(true);
   const [newContact, setNewContact] = useState<{ type: ContactType, value: string, label: string }>({
@@ -68,10 +66,12 @@ export default function ProfilePage() {
   });
   const [isAddingContact, setIsAddingContact] = useState(false);
 
-  // === STATE: УДАЛЕНИЕ АККАУНТА (NEW) ===
+  // [UX FIX] Состояние для удаления контакта (ID контакта, который ожидает подтверждения)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  // Удаление аккаунта
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
 
   // === ЗАГРУЗКА ДАННЫХ ===
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function ProfilePage() {
       }
   };
 
-  // === ЛОГИКА АВАТАРА ===
+  // === АВАТАР ===
   const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,24 +128,25 @@ export default function ProfilePage() {
         if (!res.ok) throw new Error('Ошибка загрузки фото');
         const updatedUser = await res.json();
         updateUser(updatedUser);
-        setMessage({ type: 'success', text: 'Фото обновлено!' });
+        
+        addToast({ title: "Фото обновлено", color: "success", variant: "flat" });
+        
     } catch (err) {
-        setMessage({ type: 'error', text: 'Не удалось загрузить фото' });
+        addToast({ title: "Не удалось загрузить фото", color: "danger", variant: "flat" });
     } finally {
         setLoading(false);
     }
   };
 
-  // === ЛОГИКА СОХРАНЕНИЯ ПРОФИЛЯ ===
+  // === СОХРАНЕНИЕ ПРОФИЛЯ ===
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
     setLoading(true);
 
     try {
         const token = localStorage.getItem('access_token');
         const payload: any = { ...formData };
-        delete payload.email;
+        delete payload.email; // Email менять нельзя через этот эндпоинт
 
         if (passwords.password) {
             if (passwords.password !== passwords.confirm_password) {
@@ -170,16 +171,22 @@ export default function ProfilePage() {
 
         const updatedUser = await res.json();
         updateUser(updatedUser);
-        setMessage({ type: 'success', text: 'Профиль сохранен!' });
+        
+        addToast({ title: "Профиль сохранен!", color: "success", variant: "flat" });
         setPasswords({ password: '', confirm_password: '' });
     } catch (err: any) {
-        setMessage({ type: 'error', text: err.message || 'Ошибка при сохранении' });
+        addToast({ 
+            title: "Ошибка", 
+            description: err.message || 'Не удалось сохранить профиль', 
+            color: "danger", 
+            variant: "flat" 
+        });
     } finally {
         setLoading(false);
     }
   };
 
-  // === ЛОГИКА КОНТАКТОВ (CRUD) ===
+  // === ДОБАВЛЕНИЕ КОНТАКТА ===
   const handleAddContact = async () => {
       if (!newContact.value) return;
       setIsAddingContact(true);
@@ -196,17 +203,33 @@ export default function ProfilePage() {
           
           if (res.ok) {
               await fetchContacts();
-              setNewContact({ type: 'phone', value: '', label: '' }); // Reset
+              setNewContact({ type: 'phone', value: '', label: '' });
+              addToast({ title: "Контакт добавлен", color: "success", variant: "flat" });
+          } else {
+              throw new Error();
           }
       } catch (e) {
-          alert("Ошибка добавления контакта");
+          addToast({ title: "Ошибка добавления контакта", color: "danger", variant: "flat" });
       } finally {
           setIsAddingContact(false);
       }
   };
 
-  const handleDeleteContact = async (id: number) => {
-      if (!confirm('Удалить этот контакт?')) return;
+  // === [UX FIX] УМНОЕ УДАЛЕНИЕ КОНТАКТА ===
+  const handleDeleteContactClick = (id: number) => {
+      if (deleteConfirmId === id) {
+          // Второе нажатие -> Удаляем реально
+          performDeleteContact(id);
+          setDeleteConfirmId(null);
+      } else {
+          // Первое нажатие -> Включаем режим подтверждения
+          setDeleteConfirmId(id);
+          // Автосброс через 3 секунды, если передумал
+          setTimeout(() => setDeleteConfirmId(null), 3000);
+      }
+  };
+
+  const performDeleteContact = async (id: number) => {
       try {
           const token = localStorage.getItem('access_token');
           await fetch(`${API_URL}/api/auth/contacts/${id}/`, {
@@ -214,19 +237,18 @@ export default function ProfilePage() {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           setContacts(prev => prev.filter(c => c.id !== id));
+          addToast({ title: "Контакт удален", color: "default", variant: "flat" });
       } catch (e) {
-          alert("Ошибка удаления");
+          addToast({ title: "Не удалось удалить", color: "danger", variant: "flat" });
       }
   };
 
-  // === ЛОГИКА УДАЛЕНИЯ АККАУНТА (NEW) ===
-// 1. Просто открываем модалку при клике на кнопку в "Опасной зоне"
-const handleDeleteClick = () => {
+  // === УДАЛЕНИЕ АККАУНТА (MODAL) ===
+  const handleDeleteClick = () => {
     setIsDeleteModalOpen(true);
-};
+  };
 
-// 2. Эта функция вызывается уже внутри модалки при подтверждении
-const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
         const token = localStorage.getItem('access_token');
@@ -242,17 +264,16 @@ const handleConfirmDelete = async () => {
             localStorage.removeItem('refresh_token');
             window.location.href = '/login'; 
         } else {
-            alert("Не удалось удалить аккаунт. Попробуйте позже.");
-            setIsDeleting(false); // Снимаем лоадер только если ошибка
-            setIsDeleteModalOpen(false); // Закрываем модалку
+            addToast({ title: "Ошибка удаления", description: "Попробуйте позже", color: "danger" });
+            setIsDeleting(false);
+            setIsDeleteModalOpen(false);
         }
     } catch (e) {
-        console.error("Delete error", e);
-        alert("Произошла ошибка соединения");
+        addToast({ title: "Ошибка сети", color: "danger" });
         setIsDeleting(false);
         setIsDeleteModalOpen(false);
     }
-};
+  };
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
@@ -265,16 +286,9 @@ const handleConfirmDelete = async () => {
         </div>
       </div>
 
-      {message && (
-        <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 border ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-            {message.type === 'success' ? <div className="w-2 h-2 rounded-full bg-green-500" /> : <div className="w-2 h-2 rounded-full bg-red-500" />}
-            {message.text}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* === ЛЕВАЯ КОЛОНКА (Аватар + Статус) === */}
+        {/* ЛЕВАЯ КОЛОНКА (Аватар) */}
         <div className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center relative overflow-hidden">
                 <div className="relative inline-block group cursor-pointer" onClick={handleAvatarClick}>
@@ -313,10 +327,10 @@ const handleConfirmDelete = async () => {
             </div>
         </div>
 
-        {/* === ПРАВАЯ КОЛОНКА (Формы) === */}
+        {/* ПРАВАЯ КОЛОНКА */}
         <div className="lg:col-span-2 space-y-8">
 
-            {/* 2. Личные данные */}
+            {/* ФОРМА: Личные данные */}
             <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                     <User size={20} className="text-blue-500" /> Личные данные
@@ -440,14 +454,14 @@ const handleConfirmDelete = async () => {
             </form>
 
 
-            {/* 1. Блок Контактов */}
+            {/* СПИСОК КОНТАКТОВ */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Phone size={20} className="text-blue-500" /> Каналы связи
                 </h3>
                 <p className="text-sm text-gray-500 mb-6">Добавьте способы связи, чтобы {user.is_veterinarian ? 'владельцы' : 'врачи'} могли связаться с вами.</p>
 
-                {/* Список контактов */}
+                {/* Рендер списка */}
                 <div className="space-y-3 mb-6">
                     {contactsLoading ? (
                         <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-300" /></div>
@@ -458,8 +472,10 @@ const handleConfirmDelete = async () => {
                     ) : (
                         contacts.map(c => {
                             const config = CONTACT_CONFIG[c.type] || CONTACT_CONFIG['other'];
+                            const isConfirming = deleteConfirmId === c.id;
+
                             return (
-                                <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border ${config.color} bg-opacity-30`}>
+                                <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${config.color} bg-opacity-30`}>
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm`}>
                                             {config.icon}
@@ -469,11 +485,24 @@ const handleConfirmDelete = async () => {
                                             <p className="font-medium text-gray-900 text-sm">{c.value}</p>
                                         </div>
                                     </div>
+                                    
+                                    {/* UX Button: превращается в красную кнопку подтверждения */}
                                     <button 
-                                        onClick={() => handleDeleteContact(c.id)}
-                                        className="p-2 text-gray-400 hover:text-red-500 transition"
+                                        onClick={() => handleDeleteContactClick(c.id)}
+                                        className={`p-2 rounded-lg transition-all flex items-center gap-2 ${
+                                            isConfirming 
+                                            ? 'bg-red-500 text-white shadow-md px-3' 
+                                            : 'text-gray-400 hover:text-red-500 hover:bg-white'
+                                        }`}
                                     >
-                                        <Trash2 size={16} />
+                                        {isConfirming ? (
+                                            <>
+                                                <span className="text-xs font-bold">Удалить?</span>
+                                                <Trash2 size={16} />
+                                            </>
+                                        ) : (
+                                            <Trash2 size={16} />
+                                        )}
                                     </button>
                                 </div>
                             );
@@ -481,7 +510,7 @@ const handleConfirmDelete = async () => {
                     )}
                 </div>
 
-                {/* Форма добавления контакта */}
+                {/* Форма добавления */}
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                         <select 
@@ -521,39 +550,36 @@ const handleConfirmDelete = async () => {
                 </div>
             </div>
 
-            {/* 3. ОПАСНАЯ ЗОНА (NEW) */}
+            {/* ОПАСНАЯ ЗОНА */}
             <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
                 <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
                     <AlertTriangle size={20} /> Опасная зона
                 </h3>
                 <p className="text-sm text-red-700/80 mb-6 leading-relaxed">
-                    Удаление аккаунта приведет к полному стиранию всех ваших личных данных, 
-                    профилей питомцев и истории медицинских записей. <br/>
-                    <span className="font-bold">Отменить это действие будет невозможно.</span>
+                    Удаление аккаунта приведет к полному стиранию всех ваших личных данных...
                 </p>
 
                 <div className="flex justify-end">
-{/* Внутри "Опасной зоны" меняем onClick */}
-<button 
-    onClick={handleDeleteClick} // <-- Теперь просто открываем модалку
-    // disabled={isDeleting} <-- Можно убрать disabled, так как лоадер теперь в модалке
-    className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition shadow-sm flex items-center gap-2"
->
-    <Trash2 size={18} />
-    Удалить аккаунт
-</button>
+                    <button 
+                        onClick={handleDeleteClick}
+                        className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition shadow-sm flex items-center gap-2"
+                    >
+                        <Trash2 size={18} />
+                        Удалить аккаунт
+                    </button>
                 </div>
             </div>
 
         </div>
       </div>
-      {/* МОДАЛЬНОЕ ОКНО */}
-    <DeleteAccountModal 
+      
+      {/* МОДАЛКА УДАЛЕНИЯ АККАУНТА */}
+      <DeleteAccountModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
-    />
+      />
     </div>
   );
 }

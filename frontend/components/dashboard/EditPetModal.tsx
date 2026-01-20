@@ -4,14 +4,13 @@ import React from 'react';
 import { usePetForm } from '@/hooks/usePetForm';
 import { ArrowLeft, X } from 'lucide-react';
 import { StepBasicInfo, StepDetails, StepPhotos } from '../pet-form/PetFormSteps';
-// [FIX] Убедитесь, что импорт правильный
 import { PetDetail } from '@/types/pet';
+import { addToast } from "@heroui/toast"; // <--- Импорт
 
 interface EditPetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  // [FIX] Явно разрешаем null, чтобы TS не ругался
   pet: PetDetail | null;
 }
 
@@ -26,6 +25,14 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
       mode: 'edit', 
       initialData: pet, 
       onSuccess: () => {
+          // [TOAST] Успех
+          addToast({ 
+              title: "Сохранено", 
+              description: `Данные питомца "${pet?.name}" обновлены`, 
+              color: "success", 
+              variant: "flat" 
+          });
+
           onSuccess();
           onClose();
       } 
@@ -34,6 +41,7 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
   if (!isOpen || !pet) return null;
 
   const finalStepIndex = 3;
+  // TypeScript Fix для onChange
   const handleFieldChange = (field: string, value: any) => updateField(field as any, value);
 
   const renderContent = () => {

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, Trash2, Plus, UploadCloud, ImageIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Trash2, Plus, UploadCloud, ImageIcon, AlertCircle } from 'lucide-react';
+import { addToast } from "@heroui/toast"; // <--- Импорт
 
 interface UpdateGalleryModalProps {
     isOpen: boolean;
@@ -21,14 +22,14 @@ const getMediaUrl = (url: string | null) => {
 
 export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onSuccess }: UpdateGalleryModalProps) {
     const [isUploading, setIsUploading] = useState(false);
-    const [deletingId, setDeletingId] = useState<number | null>(null); // ID фото, которое хотим удалить
-    const [error, setError] = useState<string | null>(null); // Текст ошибки
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!isOpen) return null;
 
-    // 1. Загрузка нового фото
+    // 1. Загрузка фото
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
@@ -38,35 +39,49 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
         const token = localStorage.getItem('access_token');
 
         try {
-            // Загружаем файлы по одному
+            let uploadedCount = 0;
             for (let i = 0; i < files.length; i++) {
                 const formData = new FormData();
                 formData.append('image', files[i]);
                 
                 const res = await fetch(`${API_URL}/api/pets/${petId}/upload_image/`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
 
-                if (res.status === 403) {
-                    throw new Error('У вас нет прав на редактирование этого питомца');
-                }
+                if (res.status === 403) throw new Error('У вас нет прав на редактирование этого питомца');
                 if (!res.ok) throw new Error('Ошибка загрузки. Проверьте формат файла.');
+                uploadedCount++;
             }
+            
+            // [TOAST] Успех загрузки
+            addToast({ 
+                title: "Фото загружены", 
+                description: `Добавлено изображений: ${uploadedCount}`, 
+                color: "success", 
+                variant: "flat" 
+            });
+
             onSuccess();
         } catch (error: any) {
             console.error(error);
             setError(error.message || "Не удалось загрузить изображения");
+            
+            // [TOAST] Ошибка
+            addToast({ 
+                title: "Ошибка загрузки", 
+                description: error.message, 
+                color: "danger", 
+                variant: "flat" 
+            });
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
-    // 2. Инициация удаления (открываем диалог)
+    // 2. Инициация удаления
     const requestDelete = (imageId: number) => {
         setError(null);
         setDeletingId(imageId);
@@ -80,24 +95,35 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
         try {
             const res = await fetch(`${API_URL}/api/pet_images/${deletingId}/`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (res.status === 403) {
-                throw new Error('Недостаточно прав для удаления этого фото.');
-            }
+            if (res.status === 403) throw new Error('Недостаточно прав.');
             if (res.ok) {
+                // [TOAST] Успех удаления
+                addToast({ 
+                    title: "Фото удалено", 
+                    color: "default", 
+                    variant: "flat" 
+                });
+
                 setDeletingId(null);
-                onSuccess(); // Обновляем список
+                onSuccess();
             } else {
                 throw new Error("Ошибка сервера при удалении.");
             }
         } catch (error: any) {
             console.error(error);
             setError(error.message || "Ошибка сети");
-            setDeletingId(null); // Закрываем диалог подтверждения, чтобы показать ошибку
+            setDeletingId(null);
+            
+            // [TOAST] Ошибка удаления
+            addToast({ 
+                title: "Не удалось удалить", 
+                description: error.message, 
+                color: "danger", 
+                variant: "flat" 
+            });
         }
     };
 
@@ -118,7 +144,7 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                     </button>
                 </div>
 
-                {/* Сообщения об ошибках (вместо alert) */}
+                {/* Ошибки (оставляем и встроенный блок для наглядности) */}
                 {error && (
                     <div className="bg-red-50 p-3 flex items-center gap-3 text-red-600 text-sm font-medium border-b border-red-100 animate-in fade-in slide-in-from-top-2">
                         <AlertCircle size={18} className="shrink-0" />
@@ -130,8 +156,6 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                 )}
 
                 <div className="p-6 overflow-y-auto custom-scrollbar relative">
-                    
-                    {/* Сетка фото */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {/* Кнопка загрузки */}
                         <label className={`aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -163,7 +187,6 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                                 
-                                {/* Кнопка удаления */}
                                 <button 
                                     onClick={() => requestDelete(img.id)}
                                     className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg shadow-md transition-all hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:transform sm:translate-y-2 sm:group-hover:translate-y-0"
@@ -181,7 +204,7 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                         ))}
                     </div>
 
-                    {/* Оверлей подтверждения удаления (Вместо window.confirm) */}
+                    {/* Оверлей подтверждения */}
                     {deletingId && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-200 rounded-xl">
                             <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200 max-w-sm w-full mx-4 text-center transform scale-100 animate-in zoom-in-95 duration-200">

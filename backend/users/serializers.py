@@ -11,7 +11,6 @@ from google.auth.transport import requests as google_requests
 from django.conf import settings
 
 User = get_user_model()
-# СТРОКУ UserContact = get_user_model() УДАЛИЛИ — она ломала логику
 
 class UserContactSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source='get_type_display', read_only=True)
@@ -98,50 +97,34 @@ class GoogleAuthSerializer(serializers.Serializer):
         return attrs
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(
-        required=True,
-        validators=[UniqueValidator(queryset=User.objects.all())]
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, 
+        required=True, 
+        validators=[validate_password],
+        style={'input_type': 'password'}
     )
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    confirm_password = serializers.CharField(write_only=True, required=True)
     
-    role = serializers.ChoiceField(choices=['owner', 'vet'], write_only=True)
-
     class Meta:
         model = User
-        fields = [
-            'username', 'email', 'password', 'confirm_password', 'role',
-            'first_name', 'last_name', 'phone', 'city', 'clinic_name'
-        ]
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({"password": "Пароли не совпадают"})
-
-        if attrs.get('role') == 'vet':
-            if not attrs.get('clinic_name'):
-                raise serializers.ValidationError({"clinic_name": "Для регистрации врача укажите название клиники."})
-            if not attrs.get('city'):
-                raise serializers.ValidationError({"city": "Для регистрации врача укажите город."})
-        
-        return attrs
+        fields = ('id', 'username', 'email', 'password', 'first_name', 'last_name')
+        extra_kwargs = {
+            'email': {'required': True},
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+        }
 
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
-        role = validated_data.pop('role')
-        is_vet = (role == 'vet')
-        
+        # Создаем пользователя, но делаем его неактивным
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            phone=validated_data.get('phone', ''),
-            city=validated_data.get('city', ''),
-            clinic_name=validated_data.get('clinic_name', ''),
-            is_veterinarian=is_vet,
+            # ВАЖНО:
+            is_active=False,       # Нельзя войти до подтверждения
+            is_veterinarian=False  # Все начинают как обычные юзеры
         )
         return user
     

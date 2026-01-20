@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, UploadCloud, FileText, Check, Trash2, Paperclip, Activity, Heart, Trophy, Sparkles, HelpCircle, ShoppingCart, Plus, Coins, Receipt } from 'lucide-react';
 import { EventType } from '@/types/event';
+import { addToast } from "@heroui/toast";
 
 // === ТИПЫ ===
 interface CatalogItem {
@@ -197,15 +198,25 @@ export default function CreateEventModal({
     };
 
     // 3. Сохранение
-    const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedTypeId) return alert("Выберите тип события");
+        
+        // [TOAST] Валидация типа события
+        if (!selectedTypeId) {
+            addToast({ 
+                title: "Тип события не выбран", 
+                description: "Пожалуйста, выберите тип из списка", 
+                color: "danger", 
+                variant: "flat" 
+            });
+            return;
+        }
 
         setIsSubmitting(true);
         const token = localStorage.getItem('access_token');
 
         try {
-            // ШАГ 1: Создаем Событие
+            // ШАГ 1: Создаем Событие (твоя логика с FormData сохранена)
             const eventPayload = new FormData();
             if (!initialData) eventPayload.append('pet', petId.toString());
             eventPayload.append('event_type_id', selectedTypeId.toString());
@@ -214,6 +225,8 @@ export default function CreateEventModal({
             eventPayload.append('date', formData.date.replace('T', ' '));
             eventPayload.append('description', formData.description);
             if (formData.next_date) eventPayload.append('next_date', formData.next_date.replace('T', ' '));
+            
+            // Файлы
             files.forEach(f => eventPayload.append('attachments', f));
 
             const eventUrl = initialData 
@@ -226,16 +239,20 @@ export default function CreateEventModal({
                 body: eventPayload
             });
 
-            if (!eventRes.ok) throw new Error('Ошибка сохранения события');
+            if (!eventRes.ok) {
+                const errData = await eventRes.json();
+                throw new Error(typeof errData === 'object' ? JSON.stringify(errData) : 'Ошибка сохранения события');
+            }
+            
             const eventData = await eventRes.json();
+            let invoiceCreated = false;
 
-            // ШАГ 2: Создаем Счет (Если есть товары и это не редактирование старого события)
-            // (Для редактирования логику нужно усложнять, пока делаем создание)
+            // ШАГ 2: Создаем Счет (Если есть товары и это не редактирование)
             if (invoiceItems.length > 0 && !initialData) {
                 const invoicePayload = {
                     pet: petId,
-                    event: eventData.id, // Связываем с только что созданным событием
-                    status: 'unpaid',    // По умолчанию "Ожидает оплаты"
+                    event: eventData.id,
+                    status: 'unpaid',
                     items: invoiceItems.map(i => ({
                         item_id: i.item_id,
                         quantity: i.quantity
@@ -251,21 +268,53 @@ export default function CreateEventModal({
                     body: JSON.stringify(invoicePayload)
                 });
                 
-                if (!invoiceRes.ok) console.error("Ошибка создания счета", await invoiceRes.json());
+                if (!invoiceRes.ok) {
+                    console.error("Ошибка создания счета", await invoiceRes.json());
+                    // Можно показать warning, что событие создано, но счет нет
+                    addToast({ title: "Внимание", description: "Событие создано, но возникла ошибка при создании счета", color: "warning", variant: "flat" });
+                } else {
+                    invoiceCreated = true;
+                }
             }
+
+            // [TOAST] УСПЕХ
+            const action = initialData ? "обновлено" : "создано";
+            const extraInfo = invoiceCreated ? ". Счет сформирован." : "";
+            
+            addToast({ 
+                title: `Событие ${action}`, 
+                description: `Запись успешно сохранена${extraInfo}`, 
+                color: "success", 
+                variant: "flat" 
+            });
 
             onSuccess();
             onClose();
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Произошла ошибка. Проверьте консоль.");
+            // [TOAST] ОШИБКА
+            // Пытаемся достать текст ошибки, если он пришел в JSON строке
+            let errorMsg = "Произошла ошибка при сохранении";
+            try {
+                // Если error.message это JSON (например от DRF), пробуем его распарсить для красоты
+                if (error.message.includes('{')) {
+                    errorMsg = "Ошибка валидации данных"; 
+                } else {
+                    errorMsg = error.message;
+                }
+            } catch {}
+
+            addToast({ 
+                title: "Ошибка", 
+                description: errorMsg, 
+                color: "danger", 
+                variant: "flat" 
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
-
-    if (!isOpen) return null;
 
     // Группировка типов
     const groupedTypes = eventTypes.reduce((acc, type) => {

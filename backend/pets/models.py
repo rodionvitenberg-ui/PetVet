@@ -79,6 +79,7 @@ class Tag(models.Model):
         return self.name
 
 class Attribute(models.Model):
+    # === ВАШИ СТАРЫЕ ПОЛЯ (НЕ ТРОГАЕМ) ===
     name = models.CharField(max_length=100, unique=True, verbose_name="Название атрибута")
     slug = models.SlugField(max_length=100, unique=True)
     unit = models.CharField(max_length=100, blank=True, verbose_name="Единица измерения")
@@ -91,11 +92,35 @@ class Attribute(models.Model):
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, # Если юзера удалят, атрибут останется (можно поменять на CASCADE)
+        on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
         related_name='custom_attributes', 
         verbose_name="Создатель (если кастомный)"
+    )
+
+    # === НОВЫЕ ПОЛЯ (ДЛЯ SERVER-DRIVEN UI) ===
+    
+    ATTR_TYPES = (
+        ('text', 'Текст (строка)'),
+        ('number', 'Число'),
+        ('select', 'Выбор из списка'),
+        ('checkbox', 'Да/Нет (Checkbox)'),
+        ('date', 'Дата'),
+    )
+
+    attr_type = models.CharField(
+        max_length=20, 
+        choices=ATTR_TYPES, 
+        default='text',  # ВАЖНО: По умолчанию всё остается текстом, ничего не ломается
+        verbose_name="Тип ввода"
+    )
+    
+    options = models.JSONField(
+        default=list,    # ВАЖНО: Пустой список, если это не Select
+        blank=True, 
+        verbose_name="Опции выбора",
+        help_text="Только для типа 'Выбор из списка'. Пример: ['Короткая', 'Длинная']"
     )
 
     class Meta:
@@ -104,7 +129,7 @@ class Attribute(models.Model):
         ordering = ['sort_order'] 
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.get_attr_type_display()})"
 
 class Pet(models.Model):
     owner = models.ForeignKey(

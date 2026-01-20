@@ -51,7 +51,8 @@ export interface Category {
     icon?: string | null;
     parent?: number | null;
     sort_order?: number;
-    children?: Category[]; // Для дерева категорий
+    children?: Category[];
+    attributes?: AttributeType[];
 }
 
 export interface PetTag {
@@ -72,6 +73,8 @@ export interface AttributeType {
     icon?: string | null;
     is_universal: boolean;
     is_custom: boolean;
+    attr_type: 'text' | 'number' | 'select' | 'checkbox' | 'date';
+    options?: string[];
 }
 
 // Атрибут внутри питомца (значение)

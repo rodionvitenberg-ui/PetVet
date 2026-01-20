@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { usePetForm, PetFormMode } from '@/hooks/usePetForm';
 import { PetDetail } from '@/types/pet';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Loader2 } from 'lucide-react';
 import { StepBasicInfo, StepDetails, StepPhotos } from './PetFormSteps';
 
 interface PetFormWizardProps {
@@ -10,7 +10,7 @@ interface PetFormWizardProps {
   initialData?: PetDetail | null;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: (data?: any) => void;
   isBreederMode?: boolean; 
 }
 
@@ -23,10 +23,9 @@ export default function PetFormWizard({
   isBreederMode = false 
 }: PetFormWizardProps) {
   
-  // [FIX] Теперь закрываем окно всегда, даже для create_patient
-  const handleSuccess = () => {
-      onSuccess(); // Обновление списка
-      onClose();   // Закрытие модалки
+  const handleSuccess = (data?: any) => {
+      if (onSuccess) onSuccess(data); 
+      onClose();   
   };
 
   const {
@@ -38,85 +37,103 @@ export default function PetFormWizard({
 
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Сброс формы при открытии
   useEffect(() => {
     if (isOpen && mode !== 'edit') {
         reset();
     }
   }, [isOpen, mode]);
 
-  // Скролл наверх
   useEffect(() => {
     if (contentRef.current) {
-      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        contentRef.current.scrollTop = 0;
     }
   }, [step]);
 
   if (!isOpen) return null;
 
-  // === ЛОГИКА ШАГОВ ===
-  const finalStepIndex = 3;
-
-  const handleFieldChange = (field: string, value: any) => {
-    updateField(field as any, value); 
+  const renderContent = () => {
+    switch (step) {
+        case 1:
+            return (
+                <StepBasicInfo 
+                    // [FIX] Передаем data вместо formData
+                    data={formData} 
+                    // [FIX] Разворачиваем categories из словаря
+                    categories={dictionaries.categories}
+                    // [FIX] Явная типизация для TS
+                    onChange={(field: any, value: any) => updateField(field, value)}
+                    onCategorySelect={handleCategorySelect}
+                    mode={mode}
+                />
+            );
+        case 2:
+            return (
+                <StepDetails 
+                    // [FIX] Передаем data вместо formData
+                    data={formData}
+                    // [FIX] Передаем конкретные списки
+                    attributes={dictionaries.attributes}
+                    tags={dictionaries.tags}
+                    
+                    // [FIX] Явная типизация: field это string, кастим к keyof formData
+                    onChange={(field: string, value: any) => updateField(field as any, value)}
+                    
+                    onAttributeChange={setAttributeValue}
+                    onCreateAttribute={createCustomAttribute}
+                    
+                    // [FIX] Добавили недостающие пропсы
+                    onTagToggle={toggleTag}
+                    onCreateTag={createCustomTag}
+                />
+            );
+        case 3:
+            return (
+                <StepPhotos 
+                    files={files}
+                    previewUrls={previewUrls}
+                    onFileChange={handleFileChange}
+                    onRemove={removeFile} // [FIX] Исправили имя пропа (было onRemoveFile)
+                />
+            );
+        default:
+            return null;
+    }
   };
 
   const handleFooterAction = () => {
-    if (step === finalStepIndex) {
-      submit();
-    } else {
-      nextStep();
-    }
+      if (step === 3) {
+          submit();
+      } else {
+          nextStep();
+      }
   };
 
-  // === РЕНДЕРИНГ КОНТЕНТА ===
-  const renderContent = () => {
-    if (step === 1) {
-       return <StepBasicInfo data={formData} onChange={handleFieldChange} categories={dictionaries.categories} onCategorySelect={handleCategorySelect} mode={mode} />;
-    }
-
-    if (step === 2) {
-        return (
-            <StepDetails 
-               data={formData} 
-               attributes={dictionaries.attributes} 
-               tags={dictionaries.tags}
-               onAttributeChange={setAttributeValue}
-               onTagToggle={toggleTag}
-               onChange={handleFieldChange}
-               onCreateTag={createCustomTag}
-               onCreateAttribute={createCustomAttribute}
-            />
-        );
-    }
-    
-    if (step === 3) {
-        return <StepPhotos files={files} previewUrls={previewUrls} onFileChange={handleFileChange} onRemove={removeFile} />;
-    }
-    
-    return null;
-  };
-
-  // Заголовок
   const getTitle = () => {
-      if (mode === 'edit') return 'Редактирование';
-      if (step === 1) return 'Новый питомец';
-      if (step === 3) return 'Фотографии';
-      return 'Детали и Особенности';
+      if (mode === 'edit') return 'Редактирование питомца';
+      if (mode === 'create_patient') return 'Новый пациент';
+      return 'Добавить питомца';
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-           <div className="flex items-center gap-2">
-              {step > 1 && (
-                  <button onClick={prevStep} className="p-1 hover:bg-gray-100 rounded-full text-gray-600 transition"><ArrowLeft size={20}/></button>
-              )}
-              <h2 className="text-xl font-bold text-gray-800">{getTitle()}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10">
+           <div className="flex items-center gap-3">
+               {step > 1 && (
+                   <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition">
+                       <ArrowLeft size={20}/>
+                   </button>
+               )}
+               <div>
+                   <h2 className="text-xl font-bold text-gray-900">{getTitle()}</h2>
+                   <div className="flex gap-1 mt-1">
+                       {[1, 2, 3].map(s => (
+                           <div key={s} className={`h-1.5 w-8 rounded-full transition-colors ${s <= step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                       ))}
+                   </div>
+               </div>
            </div>
            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"><X size={20}/></button>
         </div>
@@ -141,8 +158,8 @@ export default function PetFormWizard({
                 disabled={isSubmitting || isLoading}
                 className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2 shadow-lg shadow-blue-200"
             >
-                {isSubmitting && <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>}
-                {step === finalStepIndex ? 'Сохранить' : 'Далее'}
+                {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
+                {step === 3 ? (mode === 'edit' ? 'Сохранить изменения' : 'Создать карточку') : 'Далее'}
             </button>
         </div>
 

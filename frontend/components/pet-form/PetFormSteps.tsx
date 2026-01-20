@@ -1,17 +1,115 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Check, HelpCircle, Plus, Trash2, UserPlus, Phone, Globe, Lock, Search, X, ChevronDown 
+  Check, HelpCircle, Plus, Trash2, UserPlus, Phone, Globe, Lock, Search, X, ChevronDown, Calendar
 } from 'lucide-react';
 import { Category, PetTag, AttributeType } from '@/types/pet';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-// === HELPER: КОМПОНЕНТ ПОИСКА ПИТОМЦА ===
+// =========================================================================
+// 1. ВЫНЕСЕННЫЙ КОМПОНЕНТ ATTRIBUTE INPUT (ТЕПЕРЬ ОН ГЛОБАЛЬНЫЙ)
+// =========================================================================
+
+interface AttributeInputProps {
+  attr: AttributeType;
+  value: string; 
+  onChange: (value: string) => void;
+}
+
+const AttributeInput = ({ attr, value, onChange }: AttributeInputProps) => {
+  const baseClasses = "w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white focus:border-blue-500 border border-transparent outline-none transition text-sm font-medium";
+
+  switch (attr.attr_type) {
+    case 'select':
+      return (
+        <div className="relative">
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`${baseClasses} appearance-none cursor-pointer`}
+          >
+            <option value="">Не выбрано</option>
+            {attr.options?.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+        </div>
+      );
+
+    case 'checkbox':
+      const isChecked = value === 'true';
+      return (
+        <button
+          type="button"
+          onClick={() => onChange(isChecked ? 'false' : 'true')}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition w-full text-left ${
+            isChecked 
+              ? 'bg-blue-50 border-blue-500 text-blue-700' 
+              : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          <div className={`w-5 h-5 rounded border flex items-center justify-center transition flex-shrink-0 ${
+            isChecked ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+          }`}>
+            {isChecked && <Check size={12} className="text-white" />}
+          </div>
+          <span className="text-sm font-medium">
+            {isChecked ? 'Да' : 'Нет'}
+          </span>
+        </button>
+      );
+
+    case 'date':
+      return (
+        <div className="relative">
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`${baseClasses} appearance-none`}
+          />
+          {!value && <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />}
+        </div>
+      );
+
+    case 'number':
+      return (
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0"
+          className={baseClasses}
+          step="any"
+        />
+      );
+
+    case 'text':
+    default:
+      return (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="—"
+          className={baseClasses}
+        />
+      );
+  }
+};
+
+// =========================================================================
+// 2. КОМПОНЕНТ ПОИСКА ПИТОМЦА
+// =========================================================================
+
 interface PetSearchSelectProps {
   label: string;
   gender: 'M' | 'F';
   categoryId: number | null;
-  value: number | null; // ID выбранного родителя
+  value: number | null;
   onChange: (id: number | null) => void;
   placeholder?: string;
 }
@@ -25,7 +123,6 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
   
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Закрытие при клике вне
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -36,10 +133,8 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Поиск питомцев
   useEffect(() => {
     if (!isOpen) return;
-
     const fetchPets = async () => {
       setIsLoading(true);
       try {
@@ -66,7 +161,6 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
         setIsLoading(false);
       }
     };
-
     const debounce = setTimeout(fetchPets, 300);
     return () => clearTimeout(debounce);
   }, [search, isOpen, gender, categoryId]);
@@ -75,7 +169,7 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
       onChange(pet.id);
       setSelectedName(pet.name);
       setIsOpen(false);
-      setSearch(''); // Сброс поиска
+      setSearch('');
   };
 
   const handleClear = (e: React.MouseEvent) => {
@@ -85,7 +179,6 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
       setSearch('');
   };
 
-  // Попытка найти имя в загруженных опциях, если оно еще не установлено
   const displayValue = selectedName || options.find(o => o.id === value)?.name || (value ? `ID: ${value}` : '');
 
   return (
@@ -153,13 +246,16 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
   );
 };
 
-
-// === STEP 1: BASIC INFO ===
+// =========================================================================
+// 3. STEP 1: BASIC INFO (ОСТАВЛЯЕМ КАК ЕСТЬ)
+// =========================================================================
 export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mode }: any) => {
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4">
-      {/* Блок Владельца */}
-      {mode === 'create_patient' && (
+      {/* ... КОД ШАГА 1 (без изменений, скопируйте свой старый код) ... */}
+      {/* Для краткости я не дублирую здесь весь JSX StepBasicInfo, 
+          так как ошибка была не в нем. Просто оставьте его как было. */}
+       {mode === 'create_patient' && (
         <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
           <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
             <UserPlus size={16} />
@@ -274,16 +370,18 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
   );
 };
 
-// === STEP 2: DETAILS (ATTRIBUTES, TAGS, PARENTS) ===
+
+// =========================================================================
+// 4. STEP 2: DETAILS (ТЕПЕРЬ ВИДИТ ATTRIBUTE INPUT)
+// =========================================================================
+
 interface StepDetailsProps {
   data: any;
   onChange: (field: string, value: any) => void;
   onAttributeChange: (slug: string, value: string) => void;
   onTagToggle: (slug: string) => void;
-  
   onCreateTag: (name: string) => void;
   onCreateAttribute: (name: string, unit: string) => void;
-  
   attributes: AttributeType[];
   tags: PetTag[];
 }
@@ -326,25 +424,25 @@ export const StepDetails = ({
        {/* 1. Атрибуты */}
        <div className="space-y-3">
           <h3 className="text-sm font-bold text-gray-700">Характеристики</h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {attributes.map(attr => (
                 <div key={attr.id}>
-                    <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider flex items-center gap-2">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider flex items-center gap-2">
                         {attr.name} {attr.unit && <span className="text-gray-400 normal-case">({attr.unit})</span>}
                         {attr.is_custom && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 rounded-full normal-case">Custom</span>}
                     </label>
-                    <input 
-                        type="text"
+                    
+                    {/* Теперь AttributeInput доступен, так как он объявлен глобально выше */}
+                    <AttributeInput 
+                        attr={attr}
                         value={data.attributeValues[attr.slug] || ''}
-                        onChange={e => onAttributeChange(attr.slug, e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white focus:border-blue-500 border border-transparent outline-none transition text-sm font-medium"
-                        placeholder="—"
+                        onChange={(val) => onAttributeChange(attr.slug, val)}
                     />
                 </div>
             ))}
           </div>
           
-          {/* ФОРМА ИЛИ КНОПКА ДОБАВЛЕНИЯ - ВНИЗУ */}
+          {/* Кнопка добавления */}
           {isAddingAttr ? (
              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex gap-2 items-center animate-in fade-in zoom-in-95 mt-2">
                 <input autoFocus placeholder="Название" value={newAttrName} onChange={e => setNewAttrName(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-xs border border-blue-200 outline-none" />
@@ -393,7 +491,7 @@ export const StepDetails = ({
 
        <hr className="border-gray-100"/>
 
-       {/* 3. Родители (РЕАЛИЗОВАНО ЧЕРЕЗ ПОИСК) */}
+       {/* 3. Родители */}
        <div>
             <div className="flex items-center justify-between mb-3">
                  <h3 className="text-sm font-bold text-gray-700">Родители</h3>
@@ -432,7 +530,7 @@ export const StepDetails = ({
   );
 };
 
-// === STEP 3: PHOTOS ===
+// === STEP 3: PHOTOS (ОСТАВЛЯЕМ КАК ЕСТЬ) ===
 export const StepPhotos = ({ files, previewUrls, onFileChange, onRemove }: any) => {
     return (
         <div className="p-6 grid grid-cols-3 gap-3 animate-in slide-in-from-right-4">
