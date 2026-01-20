@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation'; // [UPD] Добавил useRouter
+import { useSearchParams, useRouter } from 'next/navigation'; 
+import Link from 'next/link'; // [UPD] Добавлен Link
 import { useAuth } from '@/components/providers/AuthProvider';
 import PlanboardCard from '@/components/planboard/PlanboardCard';
 import CreateEventModal from '@/components/dashboard/CreateEventModal';
@@ -9,7 +10,7 @@ import TimeModal from '@/components/planboard/TimeModal';
 import PlanModal from '@/components/planboard/PlanModal';
 import { PetEvent } from '@/types/event';
 import { PetBasic } from '@/types/pet';
-import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon, Users, PawPrint, LayoutGrid, List, FileText } from 'lucide-react'; // [UPD] Добавил FileText
+import { Plus, Loader2, AlertCircle, Calendar, CheckCircle2, ImageIcon, Users, PawPrint, LayoutGrid, List, FileText, Receipt } from 'lucide-react'; // [UPD] Добавил Receipt
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { DraggableCard, DroppableColumn } from '@/components/planboard/DnDComponents';
 
@@ -27,7 +28,7 @@ const getMediaUrl = (url: string | undefined | null) => {
 
 export default function PlanboardPage() {
     const { user } = useAuth();
-    const router = useRouter(); // [UPD] Инициализация роутера
+    const router = useRouter(); 
     const searchParams = useSearchParams();
     
     const [pets, setPets] = useState<PetBasic[]>([]);
@@ -259,7 +260,6 @@ export default function PlanboardPage() {
                                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                     {viewMode === 'my' ? 'Мои задачи' : 'Стационар'}
                                     <span className="text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                        {/* [UPD] Показываем кол-во видимых после фильтрации */}
                                         {visiblePets.length}
                                     </span>
                                 </h1>
@@ -277,6 +277,16 @@ export default function PlanboardPage() {
                                         <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}><Users size={14} /> Пациенты</button>
                                     </div>
                                 )}
+
+                                {/* [UPD] Новая кнопка СЧЕТА */}
+                                <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
+                                    <Link 
+                                        href="/billing/invoices"
+                                        className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <Receipt size={14} /> <span className="hidden sm:inline">Счета</span>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 

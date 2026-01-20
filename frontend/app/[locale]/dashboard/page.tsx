@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // [UPD] Добавил useSearchParams для работы с URL
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link'; // [UPD] Добавлен Link для навигации
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Users, PawPrint, LayoutGrid, Grid3x3 } from 'lucide-react';
+import { Users, PawPrint, LayoutGrid, Grid3x3, BookText } from 'lucide-react'; // [UPD] Добавлена иконка BookText
 import PetCard from '@/components/dashboard/PetCard';
 import CreatePetModal from '@/components/dashboard/CreatePetModal';
 import CreatePatientModal from '@/components/dashboard/CreatePatientModal';
@@ -12,7 +13,6 @@ import PetsActionBar from '@/components/dashboard/PetsActionBar';
 import { PetBasic } from '@/types/pet';
 import AuthGuard from '@/components/providers/AuthGuard';
 
-// [UPD] Импорт компонентов фильтрации, которые мы создали ранее
 import SearchInput from '@/components/ui/SearchInput';
 import PetFilters from '@/components/dashboard/PetFilters';
 
@@ -21,7 +21,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 export default function DashboardPage() {
     const { user } = useAuth(); 
     const router = useRouter();
-    const searchParams = useSearchParams(); // [UPD] Хук для чтения параметров URL (search, gender, species)
+    const searchParams = useSearchParams(); 
     
     const [pets, setPets] = useState<PetBasic[]>([]);
     const [isPetsLoading, setIsPetsLoading] = useState(true); 
@@ -42,8 +42,6 @@ export default function DashboardPage() {
             const token = localStorage.getItem('access_token');
             if (!token) return;
 
-            // [UPD] Превращаем параметры URL в строку запроса для API
-            // Например: ?search=Bobik&species=dog
             const queryString = searchParams.toString(); 
             
             const res = await fetch(`${API_URL}/api/pets/?${queryString}`, {
@@ -65,14 +63,12 @@ export default function DashboardPage() {
         if (user) {
             fetchPets();
         }
-    // [UPD] Добавили searchParams в зависимости: при изменении URL (фильтрации) перезапрашиваем данные
     }, [user, searchParams]);
 
     const myPets = pets.filter(p => p.owner === user?.id);
     const patients = pets.filter(p => p.owner !== user?.id);
     const displayedPets = viewMode === 'my' ? myPets : patients;
     
-    // Определяем, применены ли фильтры (для текста "Ничего не найдено")
     const hasFilters = searchParams.toString().length > 0;
 
     useEffect(() => {
@@ -100,7 +96,7 @@ export default function DashboardPage() {
                         <PetsActionBar />
                     </div>
                     
-                    {/* [UPD] Обновленный HEADER с блоком фильтров */}
+                    {/* HEADER с блоком фильтров */}
                     <header className="flex flex-col gap-5 mb-8 max-w-7xl mx-auto w-full">
                         {/* Верхний ряд: Заголовок и Тогглы вида */}
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -151,18 +147,25 @@ export default function DashboardPage() {
                                             }`}
                                         >
                                             <Users size={16} /> <span className="hidden sm:inline">Пациенты</span>
-                                            {patients.length > 0 && (
-                                                <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1.5 rounded-full">
-                                                    {patients.length}
+                                                <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1 rounded-full">
                                                 </span>
-                                            )}
                                         </button>
                                     </div>
                                 )}
+
+                                {/* [UPD] Новая кнопка КАТАЛОГ */}
+                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                    <Link 
+                                        href="/dashboard/catalog"
+                                        className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <BookText size={16} /> <span className="hidden sm:inline">Каталог</span>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
-                        {/* [UPD] Нижний ряд: Поиск и Фильтры */}
+                        {/* Нижний ряд: Поиск и Фильтры */}
                         <div className="flex flex-col sm:flex-row gap-3 w-full">
                             <SearchInput 
                                 placeholder={viewMode === 'my' 
@@ -241,7 +244,6 @@ export default function DashboardPage() {
                         {displayedPets.length === 0 && viewMode === 'patients' && (
                             <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
                                 <Users size={48} className="mx-auto mb-3 opacity-50" />
-                                {/* [UPD] Адаптивный текст для пустого состояния */}
                                 {hasFilters ? (
                                     <>
                                         <p>Пациенты не найдены.</p>
