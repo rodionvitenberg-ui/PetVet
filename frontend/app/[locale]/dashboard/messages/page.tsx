@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
-// [NEW] 1. Импортируем хук чата для обновления счетчика
 import { useChat } from '@/components/providers/ChatProvider';
 import { ChatRoom, ChatMessage } from '@/types/chat';
 import { 
@@ -28,7 +27,6 @@ const ALLOWED_TYPES = [
 
 export default function MessagesPage() {
   const { user } = useAuth(); 
-  // [NEW] 2. Достаем функцию обновления
   const { refreshUnreadCount } = useChat(); 
 
   const [token, setToken] = useState<string | null>(null);
@@ -43,7 +41,8 @@ export default function MessagesPage() {
   const [attachment, setAttachment] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // [FIX] 1. Ссылка теперь на контейнер сообщений, а не на конец списка
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -82,22 +81,39 @@ export default function MessagesPage() {
         const msgs = Array.isArray(data) ? data : data.results || [];
         setMessages(msgs.reverse()); 
         setHistoryLoaded(true);
-        scrollToBottom();
+        
+        // [FIX] Скроллим вниз мгновенно после загрузки истории, без анимации страницы
+        requestAnimationFrame(() => scrollToBottom(true));
 
-        // [NEW] 3. Обновляем счетчик непрочитанных, так как мы открыли чат
         refreshUnreadCount();
     })
     .catch(console.error);
   }, [selectedRoomId, token, setMessages, refreshUnreadCount]);
 
+  // Скролл при новом сообщении (плавный)
   useEffect(() => {
-      scrollToBottom();
-  }, [messages]);
+      if (historyLoaded) {
+          scrollToBottom(false);
+      }
+  }, [messages, historyLoaded]);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  // [FIX] Логика скролла переписана, чтобы не дергать окно браузера
+  const scrollToBottom = (instant: boolean = false) => {
+    if (messagesContainerRef.current) {
+        const { scrollHeight, clientHeight } = messagesContainerRef.current;
+        const maxScroll = scrollHeight - clientHeight;
+        
+        if (instant) {
+            // Мгновенный переход (для загрузки истории)
+            messagesContainerRef.current.scrollTop = maxScroll;
+        } else {
+            // Плавный переход (для новых сообщений)
+            messagesContainerRef.current.scrollTo({
+                top: maxScroll,
+                behavior: 'smooth'
+            });
+        }
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +229,7 @@ export default function MessagesPage() {
       </div>
 
       {/* CHAT AREA */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-white h-full relative">
         {selectedRoomId ? (
           <>
             <div className="p-4 border-b border-gray-100 flex items-center gap-3 shadow-sm z-10 bg-white">
@@ -225,7 +241,11 @@ export default function MessagesPage() {
                 </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 custom-scrollbar">
+            {/* [FIX] Добавили ref сюда и убрали messagesEndRef */}
+            <div 
+                ref={messagesContainerRef} 
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 custom-scrollbar"
+            >
               {!historyLoaded ? (
                  <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-500" /></div>
               ) : (
@@ -242,7 +262,6 @@ export default function MessagesPage() {
                         {msg.attachment && (
                             <div className="mt-2 p-1 bg-black/5 rounded-lg overflow-hidden">
                                 {['jpg','png','jpeg','webp','gif'].some(ext => msg.attachment?.toLowerCase().endsWith(ext)) ? (
-                                    // [NEW] 4. Кликабельная картинка
                                     <a 
                                       href={getFullUrl(msg.attachment)!} 
                                       target="_blank" 
@@ -277,7 +296,6 @@ export default function MessagesPage() {
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             <div className="p-4 bg-white border-t border-gray-100">
@@ -334,11 +352,12 @@ export default function MessagesPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-slate-50">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
+          /* [FIX] Заглушка теперь точно по центру */
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-slate-50 h-full w-full">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
                 <UserIcon className="w-10 h-10 opacity-20" />
             </div>
-            <p className="font-medium">Выберите чат</p>
+            <p className="font-medium text-gray-500">Выберите чат для начала общения</p>
           </div>
         )}
       </div>
