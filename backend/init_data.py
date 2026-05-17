@@ -1,12 +1,13 @@
 import os
 import django
+
+# 1. СНАЧАЛА указываем настройки и запускаем Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from pets.models import Category, Tag, Attribute, EventType
-
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
 
 class Command(BaseCommand):
     help = 'ULTIMATE INIT: Энциклопедическое наполнение БД (Домашние, Ферма, Экзоты, Птицы, Насекомые)'
