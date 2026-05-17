@@ -103,7 +103,7 @@ export default function VetMap() {
 
       // [FIX] Проверка на ошибки сервера (504, 500 и т.д.) перед парсингом JSON
       if (!response.ok) {
-          throw new Error(`Ошибка сервера карт: ${response.status}`);
+          throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -112,7 +112,7 @@ export default function VetMap() {
         id: el.id,
         lat: el.lat || el.center?.lat, 
         lon: el.lon || el.center?.lon,
-        name: el.tags?.name || 'Ветеринарная клиника',
+        name: el.tags?.name || 'Veterinary Clinic',
         street: el.tags?.['addr:street'],
         housenumber: el.tags?.['addr:housenumber'],
         phone: el.tags?.phone || el.tags?.['contact:phone'],
@@ -134,9 +134,9 @@ export default function VetMap() {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
                   <Navigation size={32} />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Доступ к геопозиции запрещен</h2>
+              <h2 className="text-xl font-bold text-gray-900">Access to geolocation denied</h2>
               <p className="text-gray-500 mt-2 max-w-md">
-                  Мы не можем найти ближайшие клиники, так как вы запретили доступ к местоположению.
+                  We cannot find nearby clinics because you have denied access to your location.
               </p>
           </div>
       )
@@ -146,7 +146,7 @@ export default function VetMap() {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-gray-50/50 rounded-3xl animate-pulse">
         <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-3" />
-        <p className="text-gray-400 font-medium">Определяем местоположение...</p>
+        <p className="text-gray-400 font-medium">Determining location...</p>
       </div>
     );
   }
@@ -189,7 +189,7 @@ export default function VetMap() {
                 
                 {clinic.website && (
                     <a href={clinic.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center text-xs text-gray-400 hover:text-blue-500 hover:underline">
-                        Перейти на сайт
+                        Go to Website
                     </a>
                 )}
                 
@@ -199,7 +199,7 @@ export default function VetMap() {
                    rel="noreferrer"
                    className="mt-2 text-[10px] text-gray-400 block text-center border-t pt-1"
                 >
-                    Открыть в Навигаторе
+                    Open in Navigator
                 </a>
               </div>
             </Popup>
@@ -208,7 +208,7 @@ export default function VetMap() {
       </MapContainer>
       
       <div className="absolute bottom-6 left-6 z-[400] bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-gray-100 text-xs font-bold text-gray-700">
-          Найдено клиник рядом: {clinics.length}
+          Found clinics nearby: {clinics.length}
       </div>
     </div>
   );

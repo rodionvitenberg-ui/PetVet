@@ -121,12 +121,12 @@ export default function MessagesPage() {
       if (!file) return;
 
       if (file.size > MAX_FILE_SIZE) {
-          alert('Файл слишком большой. Максимум 10 МБ.');
+          alert('File too large. Maximum 10 MB.');
           return;
       }
 
       if (!ALLOWED_TYPES.includes(file.type)) {
-          alert('Неподдерживаемый формат. Используйте изображения, PDF или Word.');
+          alert('Unsupported format. Use images, PDF or Word documents.');
           return;
       }
 
@@ -153,7 +153,7 @@ export default function MessagesPage() {
             if (selectedRoomId) {
                 formData.append('room_id', selectedRoomId.toString());
             } else {
-                throw new Error("Не выбрана комната");
+                throw new Error("No room selected");
             }
             
             const res = await fetch(`${API_URL}/api/chat/attachments/upload/`, {
@@ -162,13 +162,13 @@ export default function MessagesPage() {
                 body: formData
             });
 
-            if (!res.ok) throw new Error('Ошибка загрузки файла');
+            if (!res.ok) throw new Error('Failed to upload file');
             
             const data = await res.json();
             attachmentId = data.id; 
         } catch (error) {
             console.error('Upload failed:', error);
-            alert('Не удалось загрузить файл');
+            alert('Failed to upload file');
             setIsUploading(false);
             return;
         }
@@ -192,13 +192,13 @@ export default function MessagesPage() {
       {/* SIDEBAR: ROOMS */}
       <div className="w-1/3 border-r border-gray-100 bg-gray-50 flex flex-col">
         <div className="p-4 border-b border-gray-200 bg-white">
-            <h2 className="font-bold text-lg text-gray-800">Сообщения</h2>
+            <h2 className="font-bold text-lg text-gray-800">Messages</h2>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
             {isLoadingRooms ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
             ) : rooms.length === 0 ? (
-                <div className="p-4 text-center text-gray-400 text-sm">Нет активных чатов</div>
+                <div className="p-4 text-center text-gray-400 text-sm">No active chats</div>
             ) : (
                 rooms.map(room => {
                     const otherUser = room.vet?.id === user?.id ? room.owner : room.vet;
@@ -217,9 +217,9 @@ export default function MessagesPage() {
                             </div>
                             <div className="overflow-hidden">
                                 <p className="font-bold text-gray-900 truncate text-sm">
-                                    {otherUser?.first_name || otherUser?.username || 'Пользователь'}
+                                    {otherUser?.first_name || otherUser?.username || 'User'}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{room.last_message?.text || 'Нет сообщений'}</p>
+                                <p className="text-xs text-gray-500 truncate">{room.last_message?.text || 'No messages'}</p>
                             </div>
                         </div>
                     );
@@ -270,7 +270,7 @@ export default function MessagesPage() {
                                     >
                                         <img 
                                             src={getFullUrl(msg.attachment)!} 
-                                            alt="Вложение"
+                                            alt="Attachment"
                                             className="rounded-md max-h-60 w-full object-cover hover:opacity-95 transition" 
                                         />
                                     </a>
@@ -282,7 +282,7 @@ export default function MessagesPage() {
                                       className={`flex items-center gap-2 text-xs font-bold px-2 py-1.5 rounded hover:underline ${isMe ? 'text-white' : 'text-blue-600'}`}
                                     >
                                         <FileText size={16} />
-                                        Скачать файл
+                                        Download File
                                     </a>
                                 )}
                             </div>
@@ -357,7 +357,7 @@ export default function MessagesPage() {
             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
                 <UserIcon className="w-10 h-10 opacity-20" />
             </div>
-            <p className="font-medium text-gray-500">Выберите чат для начала общения</p>
+            <p className="font-medium text-gray-500">Choose a chat to start messaging</p>
           </div>
         )}
       </div>

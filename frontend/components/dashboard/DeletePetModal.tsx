@@ -29,16 +29,16 @@ export default function DeletePetModal({ isOpen, onClose, onConfirm, petName, is
                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
                         <AlertTriangle size={32} strokeWidth={2.5} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900">Удалить питомца?</h3>
+                    <h3 className="text-xl font-bold text-gray-900">Delete Pet?</h3>
                     <p className="text-sm text-gray-500 mt-2">
-                        Вы собираетесь удалить профиль <span className="font-bold text-gray-800">"{petName}"</span>. 
+                        You are about to delete the profile of <span className="font-bold text-gray-800">"{petName}"</span>. 
                     </p>
                 </div>
 
                 {/* Предупреждение */}
                 <div className="px-6 py-4">
                     <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700 leading-relaxed text-center font-medium">
-                        Это действие нельзя отменить. Все данные: история болезней, фотографии и события будут удалены безвозвратно.
+                        This action cannot be undone. All data: medical history, photos and events will be deleted permanently.
                     </div>
                 </div>
 
@@ -49,7 +49,7 @@ export default function DeletePetModal({ isOpen, onClose, onConfirm, petName, is
                         disabled={isDeleting}
                         className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors disabled:opacity-50"
                     >
-                        Отмена
+                        Cancel
                     </button>
                     <button 
                         onClick={onConfirm}
@@ -60,7 +60,7 @@ export default function DeletePetModal({ isOpen, onClose, onConfirm, petName, is
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                <Trash2 size={18} /> Удалить
+                                <Trash2 size={18} /> Delete
                             </>
                         )}
                     </button>

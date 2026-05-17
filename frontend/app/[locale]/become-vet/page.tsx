@@ -127,13 +127,13 @@ export default function BecomeVetPage() {
                 {/* 3. Контент (поднимаем выше с relative z-10) */}
                 <div className="relative z-10 max-w-2xl mx-auto">
                     <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition">
-                        <ChevronLeft size={20} /> <span className="text-white">Назад</span>
+                        <ChevronLeft size={20} /> <span className="text-white">Go Back</span>
                     </button>
 
                     <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Пройти верификацию</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Verification</h1>
                         <p className="text-gray-500 mb-8">
-                            Для доступа к функциям врача нам необходимо подтвердить вашу квалификацию.
+                            To access veterinarian features, we need to verify your qualifications.
                         </p>
 
                         {request ? (
@@ -145,8 +145,8 @@ export default function BecomeVetPage() {
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-900">Заявка на проверке</h3>
                                         <p className="text-gray-600 mt-2">
-                                            Мы проверяем ваши документы. Обычно это занимает до 24 часов. 
-                                            Вам придет уведомление о решении.
+                                            We are checking your documents. Usually, this takes up to 24 hours. 
+                                            You will receive a notification about the decision.
                                         </p>
                                     </div>
                                 )}
@@ -156,12 +156,12 @@ export default function BecomeVetPage() {
                                         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <CheckCircle size={32} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900">Вы верифицированы!</h3>
+                                        <h3 className="text-xl font-bold text-gray-900">You are verified!</h3>
                                         <p className="text-gray-600 mt-2">
-                                            Ваш статус подтвержден. Вам доступны инструменты для работы с пациентами.
+                                            Your status has been verified. You now have access to tools for working with patients.
                                         </p>
                                         <button onClick={() => router.push('/dashboard')} className="mt-4 px-6 py-2 bg-green-600 text-white rounded-xl font-bold">
-                                            Перейти в кабинет
+                                            Go to dashboard
                                         </button>
                                     </div>
                                 )}
@@ -171,20 +171,20 @@ export default function BecomeVetPage() {
                                         <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <XCircle size={32} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900">Заявка отклонена</h3>
+                                        <h3 className="text-xl font-bold text-gray-900">Request Rejected</h3>
                                         <p className="text-gray-600 mt-2">
-                                            К сожалению, мы не смогли подтвердить ваш статус.
+                                            Unfortunately, we could not verify your status.
                                         </p>
                                         {request.rejection_reason && (
                                             <div className="mt-4 p-3 bg-white rounded-xl text-sm font-medium text-red-600 border border-red-100">
-                                                Причина: {request.rejection_reason}
+                                                Reason: {request.rejection_reason}
                                             </div>
                                         )}
                                         <button 
                                             onClick={() => { setRequest(null); setFile(null); setPreviewUrl(null); }} 
                                             className="mt-6 text-blue-600 font-bold hover:underline"
                                         >
-                                            Попробовать снова
+                                            Try Again
                                         </button>
                                     </div>
                                 )}
@@ -194,10 +194,10 @@ export default function BecomeVetPage() {
                                 <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
                                     <div className="shrink-0 text-blue-500"><FileText size={24} /></div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900">Что нужно загрузить?</h4>
+                                        <h4 className="font-bold text-gray-900">What needs to be uploaded?</h4>
                                         <p className="text-sm text-gray-600 mt-1">
-                                            Фотографию или скан <b>диплома о ветеринарном образовании</b>. 
-                                            Ваше имя в профиле должно совпадать с именем в документе.
+                                            A photo or scan of your <b>veterinary degree</b>. 
+                                            Your name in the profile must match the name in the document.
                                         </p>
                                     </div>
                                 </div>
@@ -211,14 +211,14 @@ export default function BecomeVetPage() {
                                             <div className="relative w-full h-48">
                                                 <img src={previewUrl} className="w-full h-full object-contain rounded-xl" alt="Preview" />
                                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold opacity-0 hover:opacity-100 transition rounded-xl">
-                                                    Нажмите, чтобы изменить
+                                                    Click to change
                                                 </div>
                                             </div>
                                         ) : (
                                             <>
                                                 <Upload className="text-gray-400 mb-3" size={40} />
-                                                <span className="font-bold text-gray-700">Нажмите для загрузки фото</span>
-                                                <span className="text-xs text-gray-400 mt-1">JPG, PNG до 5MB</span>
+                                                <span className="font-bold text-gray-700">Click to upload photo</span>
+                                                <span className="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</span>
                                             </>
                                         )}
                                         <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -229,7 +229,7 @@ export default function BecomeVetPage() {
                                         disabled={!file || isSubmitting}
                                         className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isSubmitting ? 'Отправляем...' : 'Отправить на проверку'}
+                                        {isSubmitting ? 'Sending...' : 'Submit for Review'}
                                     </button>
                                 </div>
                             </div>

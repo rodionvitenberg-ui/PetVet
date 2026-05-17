@@ -88,7 +88,7 @@ export default function TemplatesTab() {
                     onClick={() => setIsCreating(true)}
                     className="w-full mb-4 py-3 border-2 border-dashed border-purple-200 rounded-xl text-purple-600 font-bold hover:bg-purple-50 transition flex justify-center items-center gap-2"
                 >
-                    <Plus size={20} /> Создать шаблон
+                    <Plus size={20} /> Create Template
                 </button>
 
                 <div className="space-y-3">
@@ -102,7 +102,7 @@ export default function TemplatesTab() {
                                 {t.description_template || 'Без текста'}
                             </div>
                             <div className="mt-2 text-xs font-bold text-gray-400 bg-gray-50 inline-block px-2 py-1 rounded-md">
-                                {t.items.length} товаров/услуг
+                                {t.items.length} items/services
                             </div>
                             
                             <button onClick={() => handleDelete(t.id)} className="absolute top-3 right-3 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
@@ -118,44 +118,44 @@ export default function TemplatesTab() {
                 {!isCreating ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400">
                         <Sparkles size={48} className="mb-4 opacity-20" />
-                        <p>Выберите "Создать шаблон", чтобы добавить новый макрос</p>
+                        <p>Select "Create Template" to add a new macro</p>
                     </div>
                 ) : (
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col">
                         <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-purple-700">
-                            <Sparkles size={20} /> Новый макрос
+                            <Sparkles size={20} /> New Macro
                         </h2>
 
                         <div className="space-y-4 flex-1 overflow-y-auto pr-2">
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase">Название шаблона</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase">Template Name</label>
                                 <input 
                                     className="w-full border rounded-xl p-3 mt-1 outline-none focus:ring-2 focus:ring-purple-100" 
-                                    placeholder="Например: Стерилизация кошки"
+                                    placeholder="For example: Cat Sterilization"
                                     value={formData.name}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
                                 />
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase">Авто-текст описания</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase">Auto-Description Text</label>
                                 <textarea 
                                     rows={4}
                                     className="w-full border rounded-xl p-3 mt-1 resize-none outline-none focus:ring-2 focus:ring-purple-100 text-sm" 
-                                    placeholder="Этот текст автоматически вставится в поле Описание..."
+                                    placeholder="This text will be automatically inserted into the Description field..."
                                     value={formData.description_template}
                                     onChange={e => setFormData({...formData, description_template: e.target.value})}
                                 />
                             </div>
 
                             <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                <label className="text-xs font-bold text-purple-700 uppercase mb-2 block">Авто-добавление в чек</label>
+                                <label className="text-xs font-bold text-purple-700 uppercase mb-2 block">Auto-Add to Receipt</label>
                                 
                                 <select 
                                     className="w-full p-2 mb-3 rounded-lg border border-purple-200 text-sm"
                                     onChange={(e) => { addItemToTemplate(e.target.value); e.target.value=""; }}
                                 >
-                                    <option value="">+ Добавить услугу или товар...</option>
+                                    <option value="">+ Add Service or Product...</option>
                                     {catalog.map(c => (
                                         <option key={c.id} value={c.id}>{c.name} ({c.price} €)</option>
                                     ))}
@@ -171,15 +171,15 @@ export default function TemplatesTab() {
                                             </div>
                                         </div>
                                     ))}
-                                    {selectedItems.length === 0 && <div className="text-xs text-gray-400 italic">Список пуст</div>}
+                                    {selectedItems.length === 0 && <div className="text-xs text-gray-400 italic">List is empty</div>}
                                 </div>
                             </div>
                         </div>
 
                         <div className="mt-6 flex gap-3 pt-4 border-t border-gray-100">
-                            <button onClick={() => setIsCreating(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition">Отмена</button>
+                            <button onClick={() => setIsCreating(false)} className="px-6 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition">Cancel</button>
                             <button onClick={handleSave} className="flex-1 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition shadow-lg shadow-purple-200 flex justify-center items-center gap-2">
-                                <Check size={18} /> Сохранить шаблон
+                                <Check size={18} /> Save Template
                             </button>
                         </div>
                     </div>

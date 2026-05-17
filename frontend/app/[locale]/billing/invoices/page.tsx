@@ -116,7 +116,7 @@ export default function InvoicesPage() {
             }
         } catch (e) {
             console.error(e);
-            alert("Ошибка соединения");
+            alert("Error updating invoice status. Please try again.");
         } finally {
             setIsPaySubmitting(false);
         }
@@ -151,11 +151,11 @@ export default function InvoicesPage() {
         return (
             <div className="relative">
                 <select value={currentStatus} onChange={(e) => handleChange(e.target.value)} className="pl-3 pr-8 py-2.5 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100 appearance-none cursor-pointer min-w-[150px]">
-                    <option value="">Все статусы</option>
-                    <option value="unpaid">Ожидают оплаты</option>
-                    <option value="paid">Оплачены</option>
-                    <option value="draft">Черновики</option>
-                    <option value="cancelled">Отменены</option>
+                    <option value="">All Statuses</option>
+                    <option value="unpaid">Awaiting Payment</option>
+                    <option value="paid">Paid</option>
+                    <option value="draft">Drafts</option>
+                    <option value="cancelled">Cancelled</option>
                 </select>
                 {currentStatus ? (
                     <button onClick={() => handleChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X size={14} /></button>
@@ -172,22 +172,22 @@ export default function InvoicesPage() {
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Счета и Оплаты</h1>
-                        <p className="text-gray-500 text-sm">Финансовый контроль клиники</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Invoices and Payments</h1>
+                        <p className="text-gray-500 text-sm">Financial control of the clinic</p>
                     </div>
                     
                     <div className="flex gap-4">
                         <div className="bg-white p-3 pr-6 rounded-xl border border-red-100 shadow-sm flex items-center gap-3">
                             <div className="p-2 bg-red-50 text-red-600 rounded-lg"><AlertCircle size={20} /></div>
                             <div>
-                                <div className="text-xs text-gray-500 font-bold uppercase">Долг клиентов</div>
+                                <div className="text-xs text-gray-500 font-bold uppercase">Client Debts</div>
                                 <div className="text-lg font-bold text-gray-900">{stats.unpaid.toFixed(2)} €</div>
                             </div>
                         </div>
                         <div className="bg-white p-3 pr-6 rounded-xl border border-green-100 shadow-sm flex items-center gap-3">
                             <div className="p-2 bg-green-50 text-green-600 rounded-lg"><CheckCircle2 size={20} /></div>
                             <div>
-                                <div className="text-xs text-gray-500 font-bold uppercase">Оплачено</div>
+                                <div className="text-xs text-gray-500 font-bold uppercase">Paid</div>
                                 <div className="text-lg font-bold text-gray-900">{stats.paid.toFixed(2)} €</div>
                             </div>
                         </div>
@@ -195,10 +195,10 @@ export default function InvoicesPage() {
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4">
-                    <SearchInput placeholder="Поиск по номеру счета, клиенту..." />
+                    <SearchInput placeholder="Search by invoice number, client..." />
                     <StatusFilter />
                     <button className="ml-auto flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium px-4 py-2 hover:bg-gray-50 rounded-lg transition">
-                        <Download size={18} /> <span className="hidden sm:inline">Экспорт CSV</span>
+                        <Download size={18} /> <span className="hidden sm:inline">Export CSV</span>
                     </button>
                 </div>
 
@@ -207,11 +207,11 @@ export default function InvoicesPage() {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4">Счет</th>
-                                    <th className="px-6 py-4">Клиент / Пациент</th>
-                                    <th className="px-6 py-4">Сумма</th>
-                                    <th className="px-6 py-4">Статус</th>
-                                    <th className="px-6 py-4 text-right">Действия</th>
+                                    <th className="px-6 py-4">Invoice</th>
+                                    <th className="px-6 py-4">Client / Patient</th>
+                                    <th className="px-6 py-4">Amount</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -229,7 +229,7 @@ export default function InvoicesPage() {
                                     <tr>
                                         <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                                             <FileText size={48} className="mx-auto mb-3 opacity-20" />
-                                            Счета не найдены
+                                            Invoices not found
                                         </td>
                                     </tr>
                                 ) : (
@@ -258,14 +258,14 @@ export default function InvoicesPage() {
                                             
                                             <td className="px-6 py-4 align-top">
                                                 <div className="font-mono font-bold text-gray-900 text-lg">{inv.total_amount} €</div>
-                                                <div className="text-xs text-gray-400">{inv.items.length} поз.</div>
+                                                <div className="text-xs text-gray-400">{inv.items.length} items</div>
                                             </td>
                                             
                                             <td className="px-6 py-4 align-top">
-                                                {inv.status === 'paid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700"><CheckCircle2 size={12} /> Оплачен</span>}
-                                                {inv.status === 'unpaid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 animate-pulse"><Clock size={12} /> Ожидает</span>}
-                                                {inv.status === 'draft' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600"><FileText size={12} /> Черновик</span>}
-                                                {inv.status === 'cancelled' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600"><Ban size={12} /> Отменен</span>}
+                                                {inv.status === 'paid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700"><CheckCircle2 size={12} /> Paid</span>}
+                                                {inv.status === 'unpaid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 animate-pulse"><Clock size={12} /> Unpaid</span>}
+                                                {inv.status === 'draft' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600"><FileText size={12} /> Draft</span>}
+                                                {inv.status === 'cancelled' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600"><Ban size={12} /> Cancelled</span>}
                                             </td>
                                             
                                             <td className="px-6 py-4 text-right align-top">
@@ -274,7 +274,7 @@ export default function InvoicesPage() {
                                                     {inv.status === 'unpaid' && (
                                                         <button 
                                                             onClick={() => openPaymentModal(inv.id, inv.total_amount)}
-                                                            title="Отметить как Оплаченный"
+                                                            title="Mark as Paid"
                                                             className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition"
                                                         >
                                                             <CreditCard size={18} />
@@ -301,7 +301,7 @@ export default function InvoicesPage() {
                                                     <button 
                                                         onClick={() => handleOpenDetails(inv)}
                                                         disabled={isEventLoading}
-                                                        title="Перейти к услугам и товарам"
+                                                        title="Go to Services and Products"
                                                         className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
                                                     >
                                                         {isEventLoading ? <Loader2 size={18} className="animate-spin"/> : <ArrowUpRight size={18} />}

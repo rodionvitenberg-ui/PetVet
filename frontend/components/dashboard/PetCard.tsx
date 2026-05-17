@@ -58,7 +58,7 @@ export default function PetCard({
         </div>
         <span className={`font-bold text-gray-500 group-hover:text-blue-500 transition text-center px-2
             ${isCompact ? 'text-xs' : 'text-base'}`}>
-            {addButtonText || 'Добавить питомца'}
+            {addButtonText || 'Add Pet'}
         </span>
       </div>
     );
@@ -95,7 +95,7 @@ export default function PetCard({
               }
           });
 
-          if (!res.ok) throw new Error('Ошибка получения токена');
+          if (!res.ok) throw new Error('Error generating share link');
           const data = await res.json();
           
           const fullLink = `${window.location.origin}/share?token=${data.token}`;
@@ -103,7 +103,7 @@ export default function PetCard({
 
       } catch (error) {
           console.error("Failed to generate share link:", error);
-          alert("Не удалось создать ссылку");
+          alert("Cannot generate share link. Please try again later.");
           setIsShareModalOpen(false);
       } finally {
           setIsLoadingLink(false);
@@ -154,7 +154,7 @@ export default function PetCard({
                 onClick={handleShareClick}
                 className={`bg-white text-blue-600 shadow-md hover:bg-blue-50 hover:scale-110 transition-all duration-300 group/btn rounded-full
                     ${isCompact ? 'p-1.5' : 'p-2.5'}`}
-                title="Поделиться профилем"
+                title="Share Profile"
             >
                 <Share2 size={isCompact ? 14 : 18} className="transition-transform group-hover/btn:-rotate-12" />
             </button>
@@ -171,7 +171,7 @@ export default function PetCard({
                       {pet.name}
                   </h3>
                   <p className={`text-white/80 font-medium ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                      {pet.age || 'Возраст не указан'}
+                      {pet.age || 'Age not specified'}
                   </p>
               </div>
               
@@ -215,7 +215,7 @@ export default function PetCard({
                   <div className="flex justify-between items-center mb-5">
                       <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                           <Share2 className="text-blue-500" size={20} />
-                          Доступ к профилю {pet.name}
+                          Access to {pet.name}'s Profile
                       </h3>
                       <button onClick={() => setIsShareModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 transition">
                           <X size={20} />
@@ -224,17 +224,17 @@ export default function PetCard({
                   {isLoadingLink ? (
                       <div className="py-8 flex flex-col items-center justify-center text-gray-500 gap-3">
                           <Share2 className="animate-bounce text-blue-300" size={24} />
-                          <p className="text-sm font-medium">Генерируем безопасную ссылку...</p>
+                          <p className="text-sm font-medium">Generating a secure link...</p>
                       </div>
                   ) : shareLink ? (
                       <div className="space-y-4">
-                          <p className="text-sm text-gray-600 leading-relaxed">Отправьте эту ссылку ветеринару...</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">Send this link to your veterinarian...</p>
                           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 break-all text-sm text-gray-800 font-mono select-all relative group">{shareLink}</div>
                           <button onClick={copyToClipboard} className={`w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl transition-all duration-200 ${isCopied ? 'bg-green-500 text-white shadow-md shadow-green-200' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'}`}>
-                              {isCopied ? <><Check size={18} /> Скопировано!</> : <><Copy size={18} /> Скопировать ссылку</>}
+                              {isCopied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Link</>}
                           </button>
                       </div>
-                  ) : (<div className="py-4 text-center text-red-500 text-sm">Не удалось получить ссылку.</div>)}
+                  ) : (<div className="py-4 text-center text-red-500 text-sm">Failed to generate link.</div>)}
               </div>
           </div>
       )}

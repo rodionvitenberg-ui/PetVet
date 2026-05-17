@@ -119,11 +119,11 @@ export default function PetsActionBar() {
   
             <div className="flex flex-col flex-1 overflow-hidden">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider truncate">
-                  {isLoading ? 'Загрузка...' : 'Кого проверяем?'}
+                  {isLoading ? 'Loading...' : 'Who are we checking?'}
               </span>
               <div className="flex items-center gap-1">
                   <span className="text-sm font-bold text-gray-800 truncate max-w-[120px]">
-                      {selectedPet ? selectedPet.name : 'Нет питомцев'}
+                      {selectedPet ? selectedPet.name : 'No pets'}
                   </span>
                   <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </div>
@@ -159,7 +159,7 @@ export default function PetsActionBar() {
                   {/* Кнопка добавления (опционально) */}
                   <div className="border-t border-gray-100 mt-1 pt-1">
                        <a href="/pets/create" className="block px-4 py-3 text-xs font-bold text-blue-600 hover:bg-blue-50 text-center">
-                          + Добавить питомца
+                          + Add pet
                        </a>
                   </div>
               </div>
@@ -174,7 +174,7 @@ export default function PetsActionBar() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                  placeholder={selectedPet ? `Что беспокоит ${selectedPet.name}?` : "Выберите питомца..."}
+                  placeholder={selectedPet ? `What's bothering ${selectedPet.name}?` : "Select a pet..."}
                   disabled={!selectedPet || isLoading}
                   className="w-full bg-transparent border-none outline-none text-gray-800 placeholder:text-gray-400 text-base font-medium h-full disabled:opacity-50"
               />
@@ -194,7 +194,7 @@ export default function PetsActionBar() {
                   {/* Убрали спиннер отсюда, так как загрузка теперь внутри модалки */}
                   <Sparkles size={18} fill="black" className="opacity-75" />
                   <span className="hidden sm:inline">
-                      Анализ
+                      Analyze
                   </span>
               </button>
           </div>

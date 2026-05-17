@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider';
 // [ВАЖНО] AttributeType теперь включает attr_type и options,
 // поэтому хук автоматически научится работать с новыми полями.
 import { 
@@ -7,6 +8,7 @@ import {
 } from '@/types/pet'; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const STORAGE_KEY = 'pendingPetCreation';
 
 export type PetFormMode = 'create_own' | 'create_patient' | 'edit';
 
@@ -18,6 +20,7 @@ interface UsePetFormProps {
 
 export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) => {
   const router = useRouter();
+  const { user } = useAuth();
 
   // === UI STATES ===
   const [step, setStep] = useState(1);
@@ -26,8 +29,6 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   const [error, setError] = useState<string | null>(null);
 
   // === DICTIONARIES ===
-  // Здесь хранятся определения атрибутов, которые приходят с бэкенда.
-  // Благодаря обновленному AttributeType, здесь уже будут лежать attr_type и options.
   const [dictionaries, setDictionaries] = useState({
     categories: [] as Category[],
     tags: [] as PetTag[],
@@ -45,8 +46,6 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
     selectedBreedId: null as number | null,
     
     tagSlugs: [] as string[],
-    // EAV-хранилище: ключ (slug) -> значение (строка).
-    // Даже для Checkbox ("true"/"false") или Number ("10.5") храним строку.
     attributeValues: {} as Record<string, string>,
     
     motherId: null as number | null,
@@ -60,6 +59,27 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   const [formData, setFormData] = useState(initialFormState);
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+  // === [LOGIC 1] ВОССТАНОВЛЕНИЕ ДАННЫХ ===
+  useEffect(() => {
+    // Если мы в режиме создания и пользователь авторизован
+    if (mode === 'create_own' && user) {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                setFormData(parsed); // Восстанавливаем данные
+                setStep(3); // [!!!] Сразу прыгаем на шаг фото
+                
+                // Важно: Удаляем из стора, чтобы не всплывало вечно
+                // Но можно удалять и после успешного submit
+                // localStorage.removeItem(STORAGE_KEY); 
+            } catch (e) {
+                console.error("Error restoring data", e);
+            }
+        }
+    }
+  }, [user, mode]);
 
   // === RESET FUNCTION ===
   const reset = () => {
@@ -93,7 +113,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         toggleTag(newTag.slug);
       }
     } catch (e) {
-      console.error("Ошибка создания тега", e);
+      console.error("Error creating tag", e);
     }
   };
 
@@ -117,7 +137,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         setDictionaries(prev => ({ ...prev, attributes: [...prev.attributes, newAttr] }));
       }
     } catch (e) {
-      console.error("Ошибка создания атрибута", e);
+      console.error("Error creating attribute", e);
     }
   };
 
@@ -137,7 +157,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
 
       } catch (err) {
         console.error(err);
-        setError('Ошибка загрузки справочников');
+        setError('Error loading dictionaries');
       } finally {
         setIsLoading(false);
       }
@@ -244,7 +264,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
       const validFiles = newFiles.filter(f => f.size <= 5 * 1024 * 1024);
       
       if (files.length + validFiles.length > 5) {
-        setError("Максимум 5 фотографий");
+        setError("Maximum 5 photos allowed");
         return;
       }
 
@@ -262,12 +282,12 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   // === NAVIGATION ===
   const validateStep = (currentStep: number): boolean => {
     if (currentStep === 1) {
-      if (!formData.name) { setError('Введите кличку'); return false; }
-      if (!formData.gender) { setError('Выберите пол'); return false; }
-      if (!formData.selectedCategoryId) { setError('Выберите вид животного'); return false; }
+      if (!formData.name) { setError('Enter name'); return false; }
+      if (!formData.gender) { setError('Choose gender'); return false; }
+      if (!formData.selectedCategoryId) { setError('Choose animal type'); return false; }
       
       if (mode === 'create_patient' && !formData.tempOwnerPhone) {
-        setError('Телефон владельца обязателен'); return false;
+        setError('Owner phone is required'); return false;
       }
     }
     // Шаг 2 (Атрибуты) валидируем только если нужно. Сейчас они опциональны.
@@ -276,6 +296,18 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
 
   const nextStep = () => {
     if (validateStep(step)) {
+      
+      // [!!!] ПЕРЕХВАТ ПЕРЕД 3 ШАГОМ
+      if (step === 2 && !user && mode === 'create_own') {
+          // 1. Сохраняем то, что есть
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+          
+          // 2. Редирект на регистрацию
+          // Передаем returnUrl, чтобы после логина вернуло в Dashboard
+          router.push('/register?returnUrl=/dashboard'); 
+          return;
+      }
+
       setStep(prev => prev + 1);
       setError(null);
     }
@@ -287,6 +319,10 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
 
   // === SUBMIT ===
   const submit = async () => {
+    if (!user) {
+        setError("Authorization is required");
+        return;
+    }
     setIsSubmitting(true);
     setError(null);
 
@@ -342,7 +378,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
         const errData = await res.json();
         // Красивый вывод ошибок
         const msg = Object.values(errData).flat().join(', ');
-        throw new Error(msg || 'Ошибка сохранения');
+        throw new Error(msg || 'Error saving');
       }
 
       const responseData = await res.json();
@@ -364,6 +400,8 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
           });
         }
       }
+
+      localStorage.removeItem(STORAGE_KEY);
 
       if (onSuccess) onSuccess(responseData);
 

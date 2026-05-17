@@ -91,7 +91,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Props) {
             <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                        <Bell className="text-blue-500" /> Настройки уведомлений
+                        <Bell className="text-blue-500" /> Settings
                     </h3>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-400"><X size={20} /></button>
                 </div>
@@ -100,44 +100,44 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Props) {
                     
                     {/* КАНАЛЫ */}
                     <section>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Где уведомлять?</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Where to notify?</h4>
                         <div className="space-y-2">
-                            <Toggle label="Браузер (Всплывашки)" icon={Monitor} field="browser_enabled" />
-                            <Toggle label="Мобильный Push" icon={Smartphone} field="push_enabled" />
-                            <Toggle label="Звук" icon={Volume2} field="sound_enabled" />
+                            <Toggle label="Browser (Pop-ups)" icon={Monitor} field="browser_enabled" />
+                            <Toggle label="Mobile Push" icon={Smartphone} field="push_enabled" />
+                            <Toggle label="Sound" icon={Volume2} field="sound_enabled" />
                         </div>
                     </section>
 
                     {/* КАТЕГОРИИ */}
                     <section>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">О чем сообщать?</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">What to notify about?</h4>
                         <div className="space-y-2">
-                            <Toggle label="Здоровье и Процедуры" icon={Activity} field="notify_medical" />
-                            <Toggle label="Уход (Груминг)" icon={ShieldCheck} field="notify_care" />
-                            <Toggle label="Репродукция" icon={Heart} field="notify_reproduction" />
+                            <Toggle label="Health and Procedures" icon={Activity} field="notify_medical" />
+                            <Toggle label="Grooming" icon={ShieldCheck} field="notify_care" />
+                            <Toggle label="Reproduction" icon={Heart} field="notify_reproduction" />
                         </div>
                     </section>
 
                     {/* ВРЕМЯ */}
                     <section>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Когда напоминать?</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">When to remind?</h4>
                         <select 
                             value={settings.reminder_time_minutes}
                             onChange={(e) => updateSetting('reminder_time_minutes', Number(e.target.value))}
                             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value={15}>За 15 минут</option>
-                            <option value={30}>За 30 минут</option>
-                            <option value={60}>За 1 час</option>
-                            <option value={120}>За 2 часа</option>
-                            <option value={1440}>За 24 часа</option>
+                            <option value={15}>15 minutes before</option>
+                            <option value={30}>30 minutes before</option>
+                            <option value={60}>1 hour before</option>
+                            <option value={120}>2 hours before</option>
+                            <option value={1440}>24 hours before</option>
                         </select>
                     </section>
                 </div>
 
                 <div className="p-4 border-t border-gray-100 bg-gray-50">
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                        Готово
+                        Done
                     </button>
                 </div>
             </div>

@@ -1,11 +1,11 @@
-import {defineRouting} from 'next-intl/routing';
-import {createNavigation} from 'next-intl/navigation'; // <-- Было createSharedPathnamesNavigation
+import { defineRouting } from 'next-intl/routing';
+import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
-  locales: ['ru', 'en'],
-  defaultLocale: 'en'
+  locales: ['en'], 
+  defaultLocale: 'en',
+  // Говорим next-intl вообще никогда не добавлять префиксы в URL:
+  localePrefix: 'never' 
 });
 
-// Используем createNavigation вместо createSharedPathnamesNavigation
-export const {Link, redirect, usePathname, useRouter, getPathname} =
-  createNavigation(routing);
+export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);

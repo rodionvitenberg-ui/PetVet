@@ -57,13 +57,13 @@ export default function CatalogTab() {
                 setFormData({ name: '', code: '', item_type: 'service', price: '', stock_quantity: 0 });
                 fetchItems();
             } else {
-                alert("Ошибка. Возможно, такой код уже существует.");
+                alert("Error. Perhaps such a code already exists.");
             }
         } catch (e) { console.error(e); }
     };
 
     const handleDelete = async (id: number) => {
-        if(!confirm('Удалить позицию?')) return;
+        if(!confirm('Delete item?')) return;
         const token = localStorage.getItem('access_token');
         await fetch(`${API_URL}/api/billing/catalog/${id}/`, {
             method: 'DELETE',
@@ -85,7 +85,7 @@ export default function CatalogTab() {
                     <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                     <input 
                         type="text" 
-                        placeholder="Поиск по названию или коду..." 
+                        placeholder="Search by name or code..." 
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100"
@@ -95,7 +95,7 @@ export default function CatalogTab() {
                     onClick={() => setIsModalOpen(true)}
                     className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"
                 >
-                    <Plus size={18} /> Добавить позицию
+                    <Plus size={18} /> Add Item
                 </button>
             </div>
 
@@ -104,12 +104,12 @@ export default function CatalogTab() {
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                         <tr>
-                            <th className="px-6 py-3">Код</th>
-                            <th className="px-6 py-3">Название</th>
-                            <th className="px-6 py-3">Тип</th>
-                            <th className="px-6 py-3 text-right">Цена</th>
-                            <th className="px-6 py-3 text-center">Остаток</th>
-                            <th className="px-6 py-3 text-right">Действия</th>
+                            <th className="px-6 py-3">Code</th>
+                            <th className="px-6 py-3">Name</th>
+                            <th className="px-6 py-3">Type</th>
+                            <th className="px-6 py-3 text-right">Price</th>
+                            <th className="px-6 py-3 text-center">Stock</th>
+                            <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -119,7 +119,7 @@ export default function CatalogTab() {
                                 <td className="px-6 py-3 font-medium text-gray-900">{item.name}</td>
                                 <td className="px-6 py-3">
                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${item.item_type === 'service' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                                        {item.item_type === 'service' ? 'Услуга' : 'Товар'}
+                                        {item.item_type === 'service' ? 'Service' : 'Good'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-3 text-right font-bold text-gray-700">{item.price} €</td>
@@ -136,7 +136,7 @@ export default function CatalogTab() {
                     </tbody>
                 </table>
                 {filteredItems.length === 0 && (
-                    <div className="p-10 text-center text-gray-400">Ничего не найдено</div>
+                    <div className="p-10 text-center text-gray-400">No items found</div>
                 )}
             </div>
 
@@ -144,47 +144,47 @@ export default function CatalogTab() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl">
-                        <h2 className="text-lg font-bold mb-4">Новая позиция</h2>
+                        <h2 className="text-lg font-bold mb-4">New Item</h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Тип</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Type</label>
                                     <select 
                                         value={formData.item_type}
                                         onChange={e => setFormData({...formData, item_type: e.target.value as any})}
                                         className="w-full border rounded-lg p-2.5 bg-gray-50"
                                     >
-                                        <option value="service">Услуга</option>
-                                        <option value="good">Товар</option>
+                                        <option value="service">Service</option>
+                                        <option value="good">Good</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Код (GOT)</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Code (GOT)</label>
                                     <input required className="w-full border rounded-lg p-2.5" placeholder="A-101" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
                                 </div>
                             </div>
                             
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase">Название</label>
-                                <input required className="w-full border rounded-lg p-2.5" placeholder="Например: Вакцинация" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                <label className="text-xs font-bold text-gray-400 uppercase">Name</label>
+                                <input required className="w-full border rounded-lg p-2.5" placeholder="e.g.: Vaccination" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Цена (€)</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Price (€)</label>
                                     <input required type="number" step="0.01" className="w-full border rounded-lg p-2.5" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                                 </div>
                                 {formData.item_type === 'good' && (
                                     <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Остаток</label>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Stock</label>
                                         <input type="number" className="w-full border rounded-lg p-2.5" value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: Number(e.target.value)})} />
                                     </div>
                                 )}
                             </div>
 
                             <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold text-gray-600">Отмена</button>
-                                <button type="submit" className="flex-1 py-2.5 bg-blue-600 rounded-xl font-bold text-white">Создать</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold text-gray-600">Cancel</button>
+                                <button type="submit" className="flex-1 py-2.5 bg-blue-600 rounded-xl font-bold text-white">Create</button>
                             </div>
                         </form>
                     </div>

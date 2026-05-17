@@ -63,16 +63,16 @@ export default function PetFilters() {
             onChange={(e) => handleFilter('gender', e.target.value)}
             value={currentGender}
           >
-            <option value="">Пол (Все)</option>
-            <option value="M">Самец (M)</option>
-            <option value="F">Самка (F)</option>
+            <option value="">Gender</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
           </select>
           
           {currentGender && (
               <button 
                 onClick={() => handleFilter('gender', "")}
                 className={clearBtnClasses}
-                title="Сбросить пол"
+                title="Reset gender"
               >
                 <X size={14} />
               </button>
@@ -87,7 +87,7 @@ export default function PetFilters() {
             value={currentSpecies}
             disabled={loading}
         >
-            <option value="">Вид (Все)</option>
+            <option value="">Species</option>
             {categories.map(cat => (
                 <option key={cat.id} value={cat.slug}>{cat.name}</option>
             ))}
@@ -101,7 +101,7 @@ export default function PetFilters() {
             <button 
                 onClick={() => handleFilter('species', "")}
                 className={clearBtnClasses}
-                title="Сбросить вид"
+                title="Reset species"
             >
                 <X size={14} />
             </button>

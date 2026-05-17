@@ -165,7 +165,7 @@ export default function CreateEventModal({
         
         setInvoiceItems(prev => [...prev, ...newItems]);
         
-        alert(`Применен шаблон "${tmpl.name}": добавлено описание и ${newItems.length} позиций в счет.`);
+        alert(`Applied template "${tmpl.name}": description added and ${newItems.length} items added to invoice.`);
     };
 
     // 2. Добавление товара вручную
@@ -204,8 +204,8 @@ const handleSubmit = async (e: React.FormEvent) => {
         // [TOAST] Валидация типа события
         if (!selectedTypeId) {
             addToast({ 
-                title: "Тип события не выбран", 
-                description: "Пожалуйста, выберите тип из списка", 
+                title: "Event type not selected", 
+                description: "Please select a type from the list", 
                 color: "danger", 
                 variant: "flat" 
             });
@@ -241,7 +241,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
             if (!eventRes.ok) {
                 const errData = await eventRes.json();
-                throw new Error(typeof errData === 'object' ? JSON.stringify(errData) : 'Ошибка сохранения события');
+                throw new Error(typeof errData === 'object' ? JSON.stringify(errData) : 'Error saving event');
             }
             
             const eventData = await eventRes.json();
@@ -269,21 +269,21 @@ const handleSubmit = async (e: React.FormEvent) => {
                 });
                 
                 if (!invoiceRes.ok) {
-                    console.error("Ошибка создания счета", await invoiceRes.json());
+                    console.error("Error creating invoice", await invoiceRes.json());
                     // Можно показать warning, что событие создано, но счет нет
-                    addToast({ title: "Внимание", description: "Событие создано, но возникла ошибка при создании счета", color: "warning", variant: "flat" });
+                    addToast({ title: "Warning", description: "Event created, but there was an error creating the invoice", color: "warning", variant: "flat" });
                 } else {
                     invoiceCreated = true;
                 }
             }
 
             // [TOAST] УСПЕХ
-            const action = initialData ? "обновлено" : "создано";
-            const extraInfo = invoiceCreated ? ". Счет сформирован." : "";
+            const action = initialData ? "updated" : "created";
+            const extraInfo = invoiceCreated ? ". Invoice generated." : "";
             
             addToast({ 
-                title: `Событие ${action}`, 
-                description: `Запись успешно сохранена${extraInfo}`, 
+                title: `Event ${action}`, 
+                description: `Record saved successfully${extraInfo}`, 
                 color: "success", 
                 variant: "flat" 
             });
@@ -295,18 +295,18 @@ const handleSubmit = async (e: React.FormEvent) => {
             console.error(error);
             // [TOAST] ОШИБКА
             // Пытаемся достать текст ошибки, если он пришел в JSON строке
-            let errorMsg = "Произошла ошибка при сохранении";
+            let errorMsg = "An error occurred while saving";
             try {
                 // Если error.message это JSON (например от DRF), пробуем его распарсить для красоты
                 if (error.message.includes('{')) {
-                    errorMsg = "Ошибка валидации данных"; 
+                    errorMsg = "Validation error"; 
                 } else {
                     errorMsg = error.message;
                 }
             } catch {}
 
             addToast({ 
-                title: "Ошибка", 
+                title: "Error", 
                 description: errorMsg, 
                 color: "danger", 
                 variant: "flat" 
@@ -335,7 +335,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <div className="px-6 py-4 flex justify-between items-center">
                         <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                             {activeTab === 'info' ? <FileText className="text-blue-500" /> : <Receipt className="text-green-500" />}
-                            {initialData ? 'Редактирование' : 'Новое событие'}
+                            {initialData ? 'Editing' : 'New Event'}
                         </h2>
                         <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><X size={20} /></button>
                     </div>
@@ -346,13 +346,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                             onClick={() => setActiveTab('info')}
                             className={`pb-3 text-sm font-bold border-b-2 transition ${activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            Основное
+                            Main
                         </button>
                         <button 
                             onClick={() => setActiveTab('billing')}
                             className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${activeTab === 'billing' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            Счет и Товары
+                            Invoice and Items
                             {invoiceItems.length > 0 && (
                                 <span className="bg-green-100 text-green-700 px-1.5 rounded-md text-[10px]">{invoiceItems.length}</span>
                             )}
@@ -376,9 +376,9 @@ const handleSubmit = async (e: React.FormEvent) => {
                                             className="bg-transparent text-sm font-bold text-gray-700 outline-none w-full cursor-pointer"
                                             defaultValue=""
                                         >
-                                            <option value="" disabled>✨ Выбрать быстрый шаблон (Макрос)...</option>
+                                            <option value="" disabled>✨ Select a quick template (Macro)...</option>
                                             {templates.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name} ({t.items.length} услуг)</option>
+                                                <option key={t.id} value={t.id}>{t.name} ({t.items.length} services)</option>
                                             ))}
                                         </select>
                                     </div>
@@ -386,7 +386,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                                 {/* ТИПЫ СОБЫТИЙ */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Тип события</label>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Event Type</label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {Object.entries(groupedTypes).map(([catKey, types]) => {
                                              const catConfig = CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.other;
@@ -415,23 +415,23 @@ const handleSubmit = async (e: React.FormEvent) => {
                                 {/* ПОЛЯ */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Дата</label>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Date</label>
                                         <input type="datetime-local" required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full border rounded-lg p-2 text-sm mt-1" />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Заголовок</label>
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Title</label>
                                         <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border rounded-lg p-2 text-sm mt-1" />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Описание</label>
-                                    <textarea rows={4} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full border rounded-lg p-2 text-sm mt-1 resize-none" placeholder="Анамнез, жалобы, лечение..." />
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
+                                    <textarea rows={4} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full border rounded-lg p-2 text-sm mt-1 resize-none" placeholder="Anamnesis, complaints, treatment..." />
                                 </div>
                                 
                                 {/* Файлы (упрощенно) */}
                                 <div onClick={() => fileInputRef.current?.click()} className="border-dashed border-2 border-gray-200 rounded-xl p-4 flex justify-center items-center gap-2 cursor-pointer hover:bg-gray-50 text-gray-500 text-sm">
-                                    <Paperclip size={16} /> Прикрепить файлы ({files.length})
+                                    <Paperclip size={16} /> Attach Files ({files.length})
                                     <input type="file" multiple className="hidden" ref={fileInputRef} onChange={e => e.target.files && setFiles(Array.from(e.target.files))} />
                                 </div>
                             </div>
@@ -447,7 +447,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                                         onChange={(e) => { addInvoiceItem(e.target.value); e.target.value = ""; }}
                                         className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-200 appearance-none cursor-pointer"
                                     >
-                                        <option value="">🔍 Найти услугу или товар...</option>
+                                        <option value="">🔍 Find a service or product...</option>
                                         {catalog.map(item => (
                                             <option key={item.id} value={item.id}>
                                                 {item.name} — {item.price} €
@@ -461,15 +461,15 @@ const handleSubmit = async (e: React.FormEvent) => {
                                     {invoiceItems.length === 0 ? (
                                         <div className="h-40 flex flex-col items-center justify-center text-gray-400 text-sm">
                                             <Coins size={32} className="mb-2 opacity-20" />
-                                            Список услуг пуст
+                                            Service list is empty
                                         </div>
                                     ) : (
                                         <table className="w-full text-sm text-left">
                                             <thead className="bg-gray-50 text-gray-500 font-bold text-xs uppercase">
                                                 <tr>
-                                                    <th className="px-4 py-3">Название</th>
-                                                    <th className="px-2 py-3 w-20 text-center">Кол-во</th>
-                                                    <th className="px-4 py-3 text-right">Сумма</th>
+                                                    <th className="px-4 py-3">Name</th>
+                                                    <th className="px-2 py-3 w-20 text-center">Quantity</th>
+                                                    <th className="px-4 py-3 text-right">Total</th>
                                                     <th className="w-10"></th>
                                                 </tr>
                                             </thead>
@@ -497,7 +497,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                                 {/* ИТОГО */}
                                 <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-100">
-                                    <span className="text-green-800 font-bold uppercase text-xs">Итого к оплате</span>
+                                    <span className="text-green-800 font-bold uppercase text-xs">Total to Pay</span>
                                     <span className="text-2xl font-bold text-green-700">{calculateTotal().toFixed(2)} €</span>
                                 </div>
                             </div>
@@ -510,7 +510,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     {/* Если мы в биллинге, покажем кнопку "Назад" */}
                     {activeTab === 'billing' && (
                         <button onClick={() => setActiveTab('info')} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition">
-                            Назад
+                            Back
                         </button>
                     )}
                     
@@ -519,10 +519,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                         disabled={isSubmitting}
                         className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center gap-2"
                     >
-                        {isSubmitting ? 'Сохранение...' : (
+                        {isSubmitting ? 'Saving...' : (
                             <>
                                 <Check size={18} />
-                                {invoiceItems.length > 0 ? 'Сохранить и Выставить счет' : 'Сохранить'}
+                                {invoiceItems.length > 0 ? 'Save and Issue Invoice' : 'Save'}
                             </>
                         )}
                     </button>

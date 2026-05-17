@@ -58,8 +58,8 @@ export default function VerifyPage() {
                 {status === 'loading' && (
                     <div className="py-10">
                         <Loader2 className="animate-spin w-16 h-16 text-blue-500 mx-auto mb-6" />
-                        <h2 className="text-xl font-bold text-gray-900">Активация аккаунта...</h2>
-                        <p className="text-gray-500 mt-2">Пожалуйста, подождите</p>
+                        <h2 className="text-xl font-bold text-gray-900">Activating account...</h2>
+                        <p className="text-gray-500 mt-2">Please wait</p>
                     </div>
                 )}
 
@@ -69,15 +69,15 @@ export default function VerifyPage() {
                         <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                             <CheckCircle2 size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Успешно!</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Successfully!</h2>
                         <p className="text-gray-500 mb-8">
-                            Ваш аккаунт активирован. Теперь вы можете войти в систему и настроить профиль.
+                            Your account has been activated. You can now log in to the system and configure your profile.
                         </p>
                         <Link 
                             href="/login" 
                             className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
                         >
-                            Войти в аккаунт
+                            Log in to your account
                         </Link>
                     </div>
                 )}
@@ -88,16 +88,16 @@ export default function VerifyPage() {
                         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                             <XCircle size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Ошибка активации</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Activation Error</h2>
                         <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl text-sm border border-red-100">
                             {message}
                         </p>
                         <div className="flex flex-col gap-3">
                             <Link href="/register" className="text-blue-600 font-bold hover:bg-blue-50 py-3 rounded-xl transition">
-                                Зарегистрироваться заново
+                                Register again
                             </Link>
                             <Link href="/login" className="text-gray-400 text-sm hover:text-gray-600">
-                                Вернуться на главную
+                                Return to homepage
                             </Link>
                         </div>
                     </div>

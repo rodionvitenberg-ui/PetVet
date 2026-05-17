@@ -69,8 +69,8 @@ export default function PlanModal({ isOpen, onClose, onConfirm }: PlanModalProps
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     <div className="text-sm text-gray-500 text-center leading-relaxed">
-                         Вы откладываете задачу в <span className="font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded">ПЛАНЫ</span><br/>
-                         На какую дату?
+                         You are rescheduling the task to <span className="font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded">PLANS</span><br/>
+                         What date?
                     </div>
 
                     <input 
@@ -88,21 +88,21 @@ export default function PlanModal({ isOpen, onClose, onConfirm }: PlanModalProps
                             onClick={() => handleQuickSet(1)} 
                             className={`${baseBtnClass} ${activeButton === 1 ? activeClass : inactiveClass}`}
                         >
-                            Завтра
+                            Tomorrow
                         </button>
                         <button 
                             type="button" 
                             onClick={() => handleQuickSet(2)} 
                             className={`${baseBtnClass} ${activeButton === 2 ? activeClass : inactiveClass}`}
                         >
-                            Послезавтра
+                            The day after tomorrow
                         </button>
                         <button 
                             type="button" 
                             onClick={() => handleQuickSet(7)} 
                             className={`${baseBtnClass} ${activeButton === 7 ? activeClass : inactiveClass}`}
                         >
-                            Через неделю
+                            In a week
                         </button>
                     </div>
 
@@ -111,7 +111,7 @@ export default function PlanModal({ isOpen, onClose, onConfirm }: PlanModalProps
                             type="submit" 
                             className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2 text-base"
                         >
-                            <Check size={20} /> Перенести
+                            <Check size={20} /> Reschedule
                         </button>
                     </div>
                 </form>

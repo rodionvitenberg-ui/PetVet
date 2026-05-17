@@ -211,38 +211,52 @@ export default function PetDetailsPage() {
     <div className="min-h-screen bg-gray-50 pb-20 pt-20 lg:pt-24">
         {/* МОДАЛКИ */}
         <>
-            <EditPetModal 
-                isOpen={isEditOpen} 
-                onClose={() => setIsEditOpen(false)}
-                pet={pet}
-                onSuccess={fetchPetData} 
-            />
-            <UpdateGalleryModal 
-                isOpen={isGalleryOpen} 
-                onClose={() => setIsGalleryOpen(false)}
-                petId={pet.id}
-                images={pet.images || []} 
-                onSuccess={fetchPetData} 
-            />
-            <CreateEventModal
-                isOpen={isEventModalOpen}
-                onClose={() => setIsEventModalOpen(false)}
-                petId={pet.id}
-                onSuccess={fetchPetData}
-                initialData={editingEvent} 
-            />
-            <DeletePetModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={confirmDelete}
-                petName={pet.name}
-                isDeleting={isDeleting}
-            />
-             <UserProfileModal 
-                 isOpen={!!selectedUserProfile}
-                 onClose={() => setSelectedUserProfile(null)}
-                 user={selectedUserProfile}
-             />
+            {isEditOpen && (
+                <EditPetModal 
+                    isOpen={isEditOpen} 
+                    onClose={() => setIsEditOpen(false)}
+                    pet={pet}
+                    onSuccess={fetchPetData} 
+                />
+            )}
+
+            {isGalleryOpen && (
+                <UpdateGalleryModal 
+                    isOpen={isGalleryOpen} 
+                    onClose={() => setIsGalleryOpen(false)}
+                    petId={pet.id}
+                    images={pet.images || []} 
+                    onSuccess={fetchPetData} 
+                />
+            )}
+
+            {isEventModalOpen && (
+                <CreateEventModal
+                    isOpen={isEventModalOpen}
+                    onClose={() => setIsEventModalOpen(false)}
+                    petId={pet.id}
+                    onSuccess={fetchPetData}
+                    initialData={editingEvent} 
+                />
+            )}
+
+            {isDeleteModalOpen && (
+                <DeletePetModal
+                    isOpen={isDeleteModalOpen}
+                    onClose={() => setIsDeleteModalOpen(false)}
+                    onConfirm={confirmDelete}
+                    petName={pet.name}
+                    isDeleting={isDeleting}
+                />
+            )}
+
+            {selectedUserProfile && (
+                <UserProfileModal 
+                    isOpen={!!selectedUserProfile}
+                    onClose={() => setSelectedUserProfile(null)}
+                    user={selectedUserProfile}
+                />
+            )}
         </>
 
         <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-none sm:rounded-[2rem] overflow-hidden min-h-[calc(100vh-6rem)] flex flex-col">

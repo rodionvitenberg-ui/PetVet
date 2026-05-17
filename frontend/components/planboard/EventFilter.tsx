@@ -32,11 +32,11 @@ export default function EventFilter() {
                     } else if (data.results && Array.isArray(data.results)) {
                         setTypes(data.results); // DRF Pagination
                     } else {
-                        console.error("Неизвестный формат данных типов событий:", data);
+                        console.error("Unknown format of event types data:", data);
                         setTypes([]);
                     }
                 } else {
-                    console.error("Ошибка загрузки типов:", res.status);
+                    console.error("Error loading event types:", res.status);
                 }
             } catch (error) {
                 console.error(error);
@@ -74,7 +74,7 @@ export default function EventFilter() {
                 value={currentType}
                 disabled={loading}
             >
-                <option value="">Все задачи</option>
+                <option value="">All Tasks</option>
                 {types.map(t => (
                     <option key={t.id} value={t.slug}>{t.name}</option>
                 ))}
@@ -90,7 +90,7 @@ export default function EventFilter() {
                 <button 
                     onClick={() => handleFilter("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                    title="Сбросить фильтр"
+                    title="Reset filter"
                 >
                     <X size={14} />
                 </button>

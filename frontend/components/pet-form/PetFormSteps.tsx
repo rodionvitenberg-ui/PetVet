@@ -28,7 +28,7 @@ const AttributeInput = ({ attr, value, onChange }: AttributeInputProps) => {
             onChange={(e) => onChange(e.target.value)}
             className={`${baseClasses} appearance-none cursor-pointer`}
           >
-            <option value="">Не выбрано</option>
+            <option value="">Not specified</option>
             {attr.options?.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
@@ -57,7 +57,7 @@ const AttributeInput = ({ attr, value, onChange }: AttributeInputProps) => {
             {isChecked && <Check size={12} className="text-white" />}
           </div>
           <span className="text-sm font-medium">
-            {isChecked ? 'Да' : 'Нет'}
+            {isChecked ? 'Yes' : 'No'}
           </span>
         </button>
       );
@@ -197,7 +197,7 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
                         {displayValue}
                     </span>
                 ) : (
-                    <span className="text-sm text-gray-400 truncate">{placeholder || "Выбрать..."}</span>
+                    <span className="text-sm text-gray-400 truncate">{placeholder || "Select..."}</span>
                 )}
              </div>
              
@@ -218,13 +218,13 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
                         autoFocus
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Поиск по кличке..."
+                        placeholder="Search by name..."
                         className="w-full text-sm outline-none px-2 py-1"
                       />
                   </div>
                   <div className="max-h-48 overflow-y-auto custom-scrollbar">
                       {isLoading ? (
-                          <div className="p-4 text-center text-xs text-gray-400">Загрузка...</div>
+                          <div className="p-4 text-center text-xs text-gray-400">Loading...</div>
                       ) : options.length > 0 ? (
                           options.map(pet => (
                               <button 
@@ -237,7 +237,7 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
                               </button>
                           ))
                       ) : (
-                          <div className="p-4 text-center text-xs text-gray-400">Ничего не найдено</div>
+                          <div className="p-4 text-center text-xs text-gray-400">No results found</div>
                       )}
                   </div>
               </div>
@@ -252,19 +252,16 @@ const PetSearchSelect = ({ label, gender, categoryId, value, onChange, placehold
 export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mode }: any) => {
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4">
-      {/* ... КОД ШАГА 1 (без изменений, скопируйте свой старый код) ... */}
-      {/* Для краткости я не дублирую здесь весь JSX StepBasicInfo, 
-          так как ошибка была не в нем. Просто оставьте его как было. */}
        {mode === 'create_patient' && (
         <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
           <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
             <UserPlus size={16} />
-            Данные владельца
+            Owner Data
           </div>
           <div className="grid grid-cols-1 gap-3">
             <input 
               type="text"
-              placeholder="Имя (например: Анна)"
+              placeholder="Name (e.g., Anna)"
               value={data.tempOwnerName}
               onChange={e => onChange('tempOwnerName', e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-100 focus:border-blue-400 outline-none text-sm transition"
@@ -273,7 +270,7 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
               <Phone size={16} className="absolute left-3 top-3 text-gray-400" />
               <input 
                 type="tel"
-                placeholder="Телефон (обязательно)"
+                placeholder="Phone (required)"
                 value={data.tempOwnerPhone}
                 onChange={e => onChange('tempOwnerPhone', e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-blue-100 focus:border-blue-400 outline-none text-sm transition font-medium"
@@ -285,7 +282,7 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
 
       {/* Выбор Вида */}
       <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">Вид животного</label>
+        <label className="block text-sm font-bold text-gray-700 mb-2">Species</label>
         <div className="grid grid-cols-3 gap-3">
           {categories.filter((c: any) => !c.parent).map((cat: any) => {
             const isActive = data.selectedCategoryId === cat.id;
@@ -311,41 +308,52 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
 
       {/* Выбор Породы */}
       {data.selectedCategoryId && categories.some((c: any) => c.parent === data.selectedCategoryId) && (
-        <div className="animate-in fade-in slide-in-from-top-2">
-           <label className="block text-sm font-bold text-gray-700 mb-2">Порода</label>
-           <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-              {categories.filter((c: any) => c.parent === data.selectedCategoryId).map((breed: any) => (
-                 <button 
-                   key={breed.id} 
-                   onClick={() => onChange('selectedBreedId', breed.id)}
-                   className={`px-3 py-2 text-sm rounded-xl border text-left transition truncate ${
-                      data.selectedBreedId === breed.id 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold' 
-                      : 'border-gray-200 bg-white hover:border-gray-400 text-gray-700'
-                   }`}
-                 >
-                   {breed.name}
-                 </button>
-              ))}
-              <button onClick={() => onChange('selectedBreedId', null)} className="px-3 py-2 text-sm rounded-xl border border-dashed border-gray-300 text-gray-500">
-                 Другая / Не знаю
-              </button>
-           </div>
-        </div>
-      )}
+  <div className="animate-in fade-in slide-in-from-top-2">
+     <label className="block text-sm font-bold text-gray-700 mb-2">Breed</label>
+     <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+        
+        {/* Рендер существующих пород */}
+        {categories.filter((c: any) => c.parent === data.selectedCategoryId).map((breed: any) => (
+           <button 
+             key={breed.id} 
+             onClick={() => onChange('selectedBreedId', breed.id)}
+             className={`px-3 py-2 text-sm rounded-xl border text-left transition truncate ${
+                data.selectedBreedId === breed.id 
+                ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold' 
+                : 'border-gray-200 bg-white hover:border-gray-400 text-gray-700'
+             }`}
+           >
+             {breed.name}
+           </button>
+        ))}
 
+        {/* НОВАЯ ДИНАМИЧЕСКАЯ КНОПКА ЗАГЛУШКА */}
+        <button 
+           onClick={() => onChange('selectedBreedId', null)} 
+           className={`px-3 py-2 text-sm rounded-xl border transition text-left ${
+              !data.selectedBreedId 
+              ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold shadow-sm' 
+              : 'border-dashed border-gray-300 bg-white text-gray-500 hover:border-blue-400 hover:text-blue-500'
+           }`}
+        >
+           Other / Don't know
+        </button>
+
+     </div>
+  </div>
+)}
       {/* Пол, Имя, Дата */}
       <div className="grid grid-cols-2 gap-4">
          <div className="col-span-2">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Кличка</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Name</label>
             <input type="text" value={data.name} onChange={e => onChange('name', e.target.value)} 
                 className="w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition" />
          </div>
-         <button onClick={() => onChange('gender', 'M')} className={`py-3 rounded-xl border-2 font-medium transition ${data.gender === 'M' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'bg-gray-50 border-transparent'}`}>Мальчик</button>
-         <button onClick={() => onChange('gender', 'F')} className={`py-3 rounded-xl border-2 font-medium transition ${data.gender === 'F' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'bg-gray-50 border-transparent'}`}>Девочка</button>
+         <button onClick={() => onChange('gender', 'M')} className={`py-3 rounded-xl border-2 font-medium transition ${data.gender === 'M' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'bg-gray-50 border-transparent'}`}>Male</button>
+         <button onClick={() => onChange('gender', 'F')} className={`py-3 rounded-xl border-2 font-medium transition ${data.gender === 'F' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'bg-gray-50 border-transparent'}`}>Female</button>
          
          <div className="col-span-2">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Дата рождения</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Birth Date</label>
             <input type="date" value={data.birth_date} onChange={e => onChange('birth_date', e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition" />
          </div>
@@ -360,9 +368,9 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
              <div>
                  <div className="font-bold text-sm text-gray-800 flex items-center gap-2">
                      {data.is_public ? <Globe size={16} className="text-blue-600" /> : <Lock size={16} className="text-gray-500" />}
-                     {data.is_public ? 'Публичный профиль' : 'Приватный профиль'}
+                     {data.is_public ? 'Public Profile' : 'Private Profile'}
                  </div>
-                 <p className="text-xs text-gray-500 mt-1">Виден в общей ленте и поиске.</p>
+                 <p className="text-xs text-gray-500 mt-1">Visible in the general feed and search.</p>
              </div>
          </div>
       )}
@@ -423,7 +431,7 @@ export const StepDetails = ({
        
        {/* 1. Атрибуты */}
        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-700">Характеристики</h3>
+          <h3 className="text-sm font-bold text-gray-700">Characteristics</h3>
           <div className="space-y-4">
             {attributes.map(attr => (
                 <div key={attr.id}>
@@ -445,14 +453,14 @@ export const StepDetails = ({
           {/* Кнопка добавления */}
           {isAddingAttr ? (
              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex gap-2 items-center animate-in fade-in zoom-in-95 mt-2">
-                <input autoFocus placeholder="Название" value={newAttrName} onChange={e => setNewAttrName(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-xs border border-blue-200 outline-none" />
-                <input placeholder="Ед.изм" value={newAttrUnit} onChange={e => setNewAttrUnit(e.target.value)} className="w-16 px-3 py-2 rounded-lg text-xs border border-blue-200 outline-none" />
+                <input autoFocus placeholder="Name" value={newAttrName} onChange={e => setNewAttrName(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-xs border border-blue-200 outline-none" />
+                <input placeholder="Unit" value={newAttrUnit} onChange={e => setNewAttrUnit(e.target.value)} className="w-16 px-3 py-2 rounded-lg text-xs border border-blue-200 outline-none" />
                 <button onClick={handleSaveAttr} className="p-2 bg-blue-600 text-white rounded-lg"><Check size={14}/></button>
                 <button onClick={() => setIsAddingAttr(false)} className="p-2 text-gray-500 hover:bg-white rounded-lg"><X size={14}/></button>
              </div>
           ) : (
              <button onClick={() => setIsAddingAttr(true)} className="w-full py-3 rounded-xl border border-dashed border-gray-300 text-gray-500 text-xs font-bold hover:border-blue-400 hover:text-blue-500 transition flex items-center justify-center gap-2 mt-2">
-                <Plus size={14} /> Добавить свою характеристику
+                <Plus size={14} /> Add Custom Characteristic
              </button>
           )}
        </div>
@@ -461,7 +469,7 @@ export const StepDetails = ({
 
        {/* 2. Теги */}
        <div>
-          <h3 className="text-sm font-bold text-gray-700 mb-3">Особенности</h3>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">Features</h3>
           <div className="flex flex-wrap gap-2">
               {filteredTags.map(tag => {
                   const isSelected = data.tagSlugs.includes(tag.slug);
@@ -477,13 +485,13 @@ export const StepDetails = ({
               
               {isAddingTag ? (
                  <div className="flex items-center gap-1 animate-in fade-in zoom-in-95">
-                    <input autoFocus value={newTagName} onChange={e => setNewTagName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveTag()} placeholder="Новый тег..." className="w-32 px-3 py-2 rounded-full text-xs border border-blue-300 outline-none" />
+                    <input autoFocus value={newTagName} onChange={e => setNewTagName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveTag()} placeholder="New tag..." className="w-32 px-3 py-2 rounded-full text-xs border border-blue-300 outline-none" />
                     <button onClick={handleSaveTag} className="p-1.5 bg-blue-600 text-white rounded-full"><Check size={12}/></button>
                     <button onClick={() => setIsAddingTag(false)} className="p-1.5 text-gray-400 hover:text-red-500"><X size={12}/></button>
                  </div>
               ) : (
                  <button onClick={() => setIsAddingTag(true)} className="px-3 py-2 rounded-full text-xs font-bold border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition flex items-center gap-1">
-                    <Plus size={12} /> Свой тег
+                    <Plus size={12} /> Custom Tag
                  </button>
               )}
           </div>
@@ -494,35 +502,35 @@ export const StepDetails = ({
        {/* 3. Родители */}
        <div>
             <div className="flex items-center justify-between mb-3">
-                 <h3 className="text-sm font-bold text-gray-700">Родители</h3>
-                 <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Опционально</span>
+                 <h3 className="text-sm font-bold text-gray-700">Parents</h3>
+                 <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Optional</span>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
                 <div>
                    <PetSearchSelect 
-                      label="Мать"
+                      label="Mother"
                       gender="F"
                       categoryId={data.selectedCategoryId}
                       value={data.motherId}
                       onChange={(id) => onChange('motherId', id)}
-                      placeholder="Найти маму..."
+                      placeholder="Search mother..."
                    />
                 </div>
                 <div>
                    <PetSearchSelect 
-                      label="Отец"
+                      label="Father"
                       gender="M"
                       categoryId={data.selectedCategoryId}
                       value={data.fatherId}
                       onChange={(id) => onChange('fatherId', id)}
-                      placeholder="Найти папу..."
+                      placeholder="Search father..."
                    />
                 </div>
             </div>
             
             <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-               Поиск работает по базе ваших животных. Родитель должен быть того же вида.
+               Search works on your database of animals. Parent must be of the same breed.
             </p>
        </div>
 

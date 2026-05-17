@@ -36,14 +36,14 @@ export default function ForClinicsPage() {
               transition={{ duration: 0.5 }}
             >
               <span className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6 tracking-wide uppercase">
-                Для владельцев ветеринарных клиник
+                For Veterinary Clinics
               </span>
               <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
-                Собственный цифровой инструмент <br className="hidden md:block"/>
-                для вашей клиники — <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500">careyour.pet</span>
+                Your Own Digital Tool <br className="hidden md:block"/>
+                for Your Clinic — <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500">careyour.pet</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-                Мы развернем вашу личную White-Label платформу. Управляйте питомцами, ведите карты, планируйте процедуры и общайтесь с клиентами в одной экосистеме под вашим брендом.
+                We will deploy your personal White-Label platform. Manage pets, maintain records, plan procedures, and communicate with clients in one ecosystem under your brand.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -53,13 +53,13 @@ export default function ForClinicsPage() {
                   className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
                 >
                   <Rocket size={20} />
-                  Заказать Пилот за 700€
+                  Order Pilot for 700€
                 </Link>
                 <Link 
                   href="/dashboard" 
                   className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-700 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                 >
-                  Смотреть демо
+                  View Demo
                 </Link>
               </div>
             </motion.div>
@@ -74,32 +74,32 @@ export default function ForClinicsPage() {
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold mb-4">Почему клиники теряют деньги?</h2>
+              <h2 className="text-3xl font-bold mb-4">Why do clinics lose money?</h2>
               <p className="text-slate-500">
-                Рутина и отсутствие централизованного контроля съедают до 30% рабочего времени врачей.
+                Routines and lack of centralized control consume up to 30% of veterinarians' working time.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <PainCard 
                 icon={<XCircle className="text-red-500" size={32} />}
-                title="Хаос в записях"
-                desc="Бумажные журналы, Excel-таблицы, потерянные анализы. История болезни собирается по крупицам."
+                title="Chaos in Records"
+                desc="Paper journals, Excel tables, lost tests. The medical history is collected in pieces."
               />
               <PainCard 
                 icon={<Activity className="text-red-500" size={32} />}
-                title="Нет контроля"
-                desc="Вы не видите полную картину по пациентам. Кто вернулся на повторный прием, а кто забыл?"
+                title="No Control"
+                desc="You don't see the full picture of your patients. Who returned for a follow-up visit, and who forgot?"
               />
               <PainCard 
                 icon={<Calendar className="text-red-500" size={32} />}
-                title="Потеря времени"
-                desc="Врачи тратят часы на заполнение однотипных бумаг вместо того, чтобы лечить животных."
+                title="Time Loss"
+                desc="Doctors spend hours filling out similar forms instead of treating animals."
               />
               <PainCard 
                 icon={<MessageCircle className="text-red-500" size={32} />}
-                title="Сложная связь"
-                desc="Клиенты пишут в WhatsApp, звонят, теряют назначения. Нет единого канала общения."
+                title="Complex Communication"
+                desc="Clients message on WhatsApp, call, and lose appointments. No single communication channel."
               />
             </div>
           </div>
@@ -109,9 +109,9 @@ export default function ForClinicsPage() {
         <section id="solution" className="py-20 bg-slate-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <span className="text-emerald-600 font-bold uppercase tracking-wider text-sm">Ваше решение</span>
+              <span className="text-emerald-600 font-bold uppercase tracking-wider text-sm">Your Solution</span>
               <h2 className="text-3xl md:text-4xl font-bold mt-2">
-                Полностью ваш бренд. Ваши правила.
+                Fully your brand. Your rules.
               </h2>
             </div>
 
@@ -119,26 +119,26 @@ export default function ForClinicsPage() {
               {/* Feature 1 */}
               <FeatureBlock 
                 badge="White-Label"
-                title="Ваш логотип, ваш домен, ваши цвета"
-                desc="Мы не продаем вам доступ к чужому сервису. Мы разворачиваем отдельный экземпляр платформы специально для вас. Клиенты видят только ваш бренд."
+                title="Your logo, your domain, your colors"
+                desc="We don't sell you access to someone else's service. We deploy a separate instance of the platform specifically for you. Clients see only your brand."
                 image="/bg/bg1.jpg" // Замените на реальный скриншот дашборда с логотипом
                 reversed={false}
               />
               
               {/* Feature 2 */}
               <FeatureBlock 
-                badge="Электронная медкарта"
-                title="Полный контроль над пациентами"
-                desc="Создание карточек, история болезней, загрузка анализов и снимков. Вся жизнь питомца как на ладони. Доступно и врачу, и владельцу (в режиме чтения)."
+                badge="Digital Patient Profiles"
+                title="Full Control Over Patients"
+                desc="Creating profiles, medical history, uploading tests and images. The entire life of the pet at your fingertips. Accessible to both the veterinarian and the owner (in read-only mode)."
                 image="/bg/bg2.webp" // Замените на скриншот профиля питомца
                 reversed={true}
               />
 
               {/* Feature 3 */}
               <FeatureBlock 
-                badge="Канбан-доска"
-                title="Планирование без накладок"
-                desc="Визуальная доска задач для стационара и процедур. Перетаскивайте карточки, меняйте статусы, назначайте ответственных. Ничего не потеряется."
+                badge="Kanban Board"
+                title="Planning Without Hurdles"
+                desc="Visual task board for the clinic and procedures. Drag and drop cards, change statuses, assign responsibilities. Nothing will be lost."
                 image="/bg/71oMv1ybi9L.jpg" // Замените на скриншот канбана
                 reversed={false}
               />
@@ -150,9 +150,9 @@ export default function ForClinicsPage() {
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Простые и прозрачные условия</h2>
+              <h2 className="text-3xl font-bold mb-4">Simple and Transparent Terms</h2>
               <p className="text-slate-500 max-w-2xl mx-auto">
-                Начните с пилота, чтобы оценить ценность без больших вложений.
+                Start with a pilot to evaluate the value without large investments.
               </p>
             </div>
 
@@ -163,17 +163,17 @@ export default function ForClinicsPage() {
                 <div className="absolute top-0 right-0 bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl text-xs uppercase">
                   Старт
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Пилот / Демо</h3>
-                <div className="text-4xl font-extrabold text-blue-600 mb-6">700€ <span className="text-lg font-normal text-slate-400">/ разово</span></div>
-                
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Pilot / Demo</h3>
+                <div className="text-4xl font-extrabold text-blue-600 mb-6">700€ <span className="text-lg font-normal text-slate-400">/ once</span></div>
+
                 <p className="text-slate-600 mb-8 h-12">
-                  Идеально, чтобы попробовать инструмент в бою в течение 10 дней.
+                  Perfect for trying the tool in production for 10 days.
                 </p>
 
                 <ul className="space-y-4 mb-8">
-                  <CheckItem text="10 дней тестового использования" />
-                  <CheckItem text="Базовый функционал (карты, записи)" />
-                  <CheckItem text="Оценка удобства интерфейса" />
+                  <CheckItem text="10 days of testing" />
+                  <CheckItem text="Basic functionality (cards, records)" />
+                  <CheckItem text="Evaluation of interface usability" />
                   <CheckItem text="Быстрый запуск" />
                 </ul>
 
@@ -182,21 +182,21 @@ export default function ForClinicsPage() {
                    target="_blank"
                    className="block w-full py-4 text-center rounded-xl font-bold border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition"
                 >
-                  Запустить пилот
+                  Launch Pilot
                 </Link>
               </div>
 
               {/* Full Version Card */}
               <div className="border-2 border-emerald-500 rounded-3xl p-8 shadow-2xl relative bg-emerald-50/10 scale-105 z-10">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white font-bold px-4 py-1 rounded-full text-sm shadow-md">
-                  Рекомендуемый выбор
+                  Recommended Choice
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">White-Label Версия</h3>
-                <div className="text-4xl font-extrabold text-emerald-600 mb-2">2000€ <span className="text-lg font-normal text-slate-400">/ сетап</span></div>
-                <div className="text-sm text-slate-500 mb-6">+ 100€/мес поддержка</div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">White-Label Version</h3>
+                <div className="text-4xl font-extrabold text-emerald-600 mb-2">2000€ <span className="text-lg font-normal text-slate-400">/ setup</span></div>
+                <div className="text-sm text-slate-500 mb-6">+ 100€/month support</div>
 
                 <p className="text-slate-600 mb-8 h-12">
-                  Ваша собственная независимая платформа. Веб-версия + PWA.
+                  Your own independent platform. Web version + PWA.
                 </p>
 
                 <ul className="space-y-4 mb-8">
@@ -212,7 +212,7 @@ export default function ForClinicsPage() {
                    target="_blank"
                    className="block w-full py-4 text-center rounded-xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:shadow-lg hover:-translate-y-1 transition-all"
                 >
-                  Обсудить внедрение
+                  Discuss Implementation
                 </Link>
               </div>
 
@@ -224,17 +224,17 @@ export default function ForClinicsPage() {
         <section className="py-16 bg-slate-900 text-white text-center">
           <div className="container mx-auto px-4">
             <p className="text-slate-400 uppercase tracking-widest text-sm font-bold mb-8">
-              Платформа, на которой работает
+              Platform where it works
             </p>
             <div className="flex justify-center items-center opacity-70 hover:opacity-100 transition-opacity">
                {/* Здесь должен быть ваш логотип PetVet, использую текст для примера */}
                <div className="flex items-center gap-2 text-3xl font-bold">
                  <ShieldCheck size={40} className="text-emerald-400" />
-                 <span>PetVet</span>
+                 <span>Careyour.pet</span>
                </div>
             </div>
             <p className="mt-6 text-slate-400 text-sm">
-              Careyour.pet — это демонстрация того, как может работать ваша клиника.
+              Careyour.pet — this is a demonstration of how your clinic can work.
             </p>
           </div>
         </section>
@@ -243,17 +243,17 @@ export default function ForClinicsPage() {
         <section className="py-24 bg-blue-600 relative overflow-hidden">
           <div className="container mx-auto px-4 text-center relative z-10">
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-              Готовы к цифровой трансформации?
+              Ready for digital transformation?
             </h2>
             <p className="text-blue-100 text-xl max-w-2xl mx-auto mb-10">
-              Не откладывайте модернизацию. Свяжитесь с нами сегодня и получите готовый инструмент для работы.
+              Don't delay modernization. Contact us today and get a ready-made tool for work.
             </p>
             <Link 
               href="https://t.me/rodionvitenberg"
               target="_blank"
               className="inline-flex items-center gap-2 px-10 py-5 bg-white text-blue-600 font-extrabold text-lg rounded-full shadow-2xl hover:bg-blue-50 transition-all transform hover:-translate-y-1"
             >
-              Получить пилот за 700€ <ArrowRight size={20} />
+              Get Pilot for 700€ <ArrowRight size={20} />
             </Link>
           </div>
           

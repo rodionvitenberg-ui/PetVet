@@ -9,7 +9,7 @@ const VetMap = dynamic(() => import('@/components/map/VetMap'), {
   loading: () => (
     <div className="flex flex-col items-center justify-center h-[600px] bg-gray-50 rounded-3xl">
        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-       <p className="text-gray-400 text-sm mt-2">Загружаем карту...</p>
+       <p className="text-gray-400 text-sm mt-2">Loading map...</p>
     </div>
   ),
 });
@@ -20,8 +20,8 @@ export default function FindVetPage() {
         <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)]">
             <div className="flex flex-col h-full space-y-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Найти ветеринара</h1>
-                    <p className="text-gray-500">Показываем ближайшие клиники на основе открытых данных OpenStreetMap.</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Find Veterinarian</h1>
+                    <p className="text-gray-500">Showing nearby clinics based on open data from OpenStreetMap.</p>
                 </div>
                 
                 <div className="flex-1">

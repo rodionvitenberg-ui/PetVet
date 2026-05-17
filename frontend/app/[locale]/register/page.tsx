@@ -28,9 +28,9 @@ export default function RegisterPage() {
 
     // Валидация на клиенте
     if (formData.password !== formData.confirm_password) {
-      const msg = 'Пароли не совпадают';
+      const msg = 'Passwords do not match';
       setError(msg);
-      addToast({ title: "Ошибка", description: msg, color: "danger", variant: "flat" });
+      addToast({ title: "Error", description: msg, color: "danger", variant: "flat" });
       return;
     }
 
@@ -60,17 +60,17 @@ export default function RegisterPage() {
 
       // УСПЕХ
       addToast({ 
-          title: "Аккаунт создан!", 
-          description: "Проверьте почту для активации", 
+          title: "Account created!", 
+          description: "Check your email for activation", 
           color: "success", 
           variant: "flat" 
       });
       setIsSuccess(true);
 
     } catch (err: any) {
-      const msg = err.message || 'Произошла ошибка';
+      const msg = err.message || 'An error occurred';
       setError(msg);
-      addToast({ title: "Ошибка регистрации", description: msg, color: "danger", variant: "flat" });
+      addToast({ title: "Registration Error", description: msg, color: "danger", variant: "flat" });
     } finally {
       setLoading(false);
     }
@@ -84,15 +84,15 @@ export default function RegisterPage() {
                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Mail size={32} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Проверьте почту</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
                 <p className="text-gray-500 mb-8 leading-relaxed">
-                    Мы отправили ссылку для активации на <br/>
+                    We have sent an activation link to <br/>
                     <span className="font-bold text-gray-800">{formData.email}</span>. 
-                    <br/>Перейдите по ней, чтобы завершить регистрацию.
+                    <br/>Click the link to complete your registration.
                 </p>
                 <div className="space-y-4">
                     <Link href="/login" className="text-blue-600 font-bold hover:bg-blue-50 py-3 px-6 rounded-xl transition flex items-center justify-center gap-2">
-                        Вернуться к входу <ArrowRight size={18}/>
+                        Return to Login <ArrowRight size={18}/>
                     </Link>
                 </div>
             </div>
@@ -105,12 +105,12 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Регистрация
+          Registration
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Уже есть аккаунт?{' '}
+          Already have an account?{' '}
           <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500 transition">
-            Войти
+            Sign in
           </Link>
         </p>
       </div>
@@ -122,12 +122,12 @@ export default function RegisterPage() {
             {/* Оставляем inline-ошибку тоже, это хороший тон для форм */}
             {error && (
                 <div className="bg-red-50 text-red-600 text-sm p-4 rounded-xl border border-red-100 flex items-start gap-2 animate-in slide-in-from-top-2">
-                    <span className="font-bold">Ошибка:</span> {error}
+                    <span className="font-bold">Error:</span> {error}
                 </div>
             )}
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Никнейм</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Username</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User size={18} className="text-gray-400"/>
@@ -138,7 +138,7 @@ export default function RegisterPage() {
                   value={formData.username}
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   className="block w-full pl-10 px-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition sm:text-sm"
-                  placeholder="Придумайте логин"
+                  placeholder="Choose a username"
                 />
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Пароль</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Lock size={18} className="text-gray-400"/>
@@ -178,7 +178,7 @@ export default function RegisterPage() {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Подтверждение</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirm Password</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Lock size={18} className="text-gray-400"/>
@@ -201,7 +201,7 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all items-center gap-2"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : 'Зарегистрироваться'}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : 'Register'}
               </button>
             </div>
           </form>

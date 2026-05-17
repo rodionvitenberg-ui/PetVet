@@ -59,7 +59,7 @@ export default function NotificationsDropdown() {
         setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
       }
     } catch (error) {
-      console.error("Ошибка загрузки уведомлений:", error);
+      console.error("Error fetching notifications:", error);
     }
   };
 
@@ -126,7 +126,7 @@ export default function NotificationsDropdown() {
     <div className="w-[300px] sm:w-[360px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
       
       <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 backdrop-blur-sm">
-        <h3 className="font-bold text-gray-700 text-sm">Уведомления</h3>
+        <h3 className="font-bold text-gray-700 text-sm">Notifications</h3>
         {unreadCount > 0 && (
            <button 
              onClick={markAllRead}
@@ -134,14 +134,14 @@ export default function NotificationsDropdown() {
              className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 disabled:opacity-50"
            >
              {loading && <Loader2 size={10} className="animate-spin"/>}
-             Прочитать все
+             Mark all as read
            </button>
         )}
         {/* 3. ВОТ ЭТА КНОПКА (Шестеренка) */}
              <button 
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition"
-                title="Настройки уведомлений"
+                title="Notification Settings"
              >
                 <Settings size={16} />
              </button>
@@ -152,7 +152,7 @@ export default function NotificationsDropdown() {
         {notifications.length === 0 ? (
             <div className="py-12 px-6 text-center text-gray-400">
                 <Bell size={32} className="mx-auto mb-2 opacity-20" />
-                <p className="text-sm">Нет новых уведомлений</p>
+                <p className="text-sm">No new notifications</p>
             </div>
         ) : (
             notifications.map((note) => {
@@ -187,7 +187,7 @@ export default function NotificationsDropdown() {
                                       markAsRead(note.id); 
                                   }}
                                   className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
-                                  title="Пометить как прочитанное"
+                                  title="Mark as read"
                               >
                                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                               </button>

@@ -90,12 +90,12 @@ export default function PetMedicalHistoryPage() {
                         </button>
                         <div>
                             <h1 className="text-2xl font-bold flex items-center gap-2">
-                                История болезни: {pet.name}
+                                Medical History: {pet.name}
                                 <span className="text-sm font-normal text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-                                    {pet.species || 'Питомец'}
+                                    {pet.species || 'Pet'}
                                 </span>
                             </h1>
-                            <p className="text-gray-500 text-sm">Владелец: {pet.owner_info?.name || pet.temp_owner_name}</p>
+                            <p className="text-gray-500 text-sm">Owner: {pet.owner_info?.name || pet.temp_owner_name}</p>
                         </div>
                     </div>
 
@@ -104,7 +104,7 @@ export default function PetMedicalHistoryPage() {
                         onClick={handleCreateClick}
                         className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
                     >
-                        <Plus size={18} /> Добавить запись
+                        <Plus size={18} /> Add Event
                     </button>
                 </div>
 
@@ -122,16 +122,16 @@ export default function PetMedicalHistoryPage() {
                             </div>
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Возраст</span>
+                                    <span className="text-gray-500">Age</span>
                                     <span className="font-bold">{pet.age || '-'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Пол</span>
-                                    <span className="font-bold">{pet.gender === 'M' ? 'Самец' : 'Самка'}</span>
+                                    <span className="text-gray-500">Gender</span>
+                                    <span className="font-bold">{pet.gender === 'M' ? 'Male' : 'Female'}</span>
                                 </div>
                                 <div className="pt-3 border-t border-gray-100">
-                                    <div className="text-xs font-bold text-gray-400 uppercase mb-1">Заметки</div>
-                                    <p className="text-gray-600 italic text-xs leading-relaxed">{pet.description || 'Нет заметок'}</p>
+                                    <div className="text-xs font-bold text-gray-400 uppercase mb-1">Notes</div>
+                                    <p className="text-gray-600 italic text-xs leading-relaxed">{pet.description || 'No notes'}</p>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +139,7 @@ export default function PetMedicalHistoryPage() {
                         {/* [UPD] СПИСОК ВСЕХ ФАЙЛОВ */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-800">
-                                <Paperclip size={18} className="text-blue-500"/> Документы ({allAttachments.length})
+                                <Paperclip size={18} className="text-blue-500"/> Documents ({allAttachments.length})
                             </h3>
                             
                             <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
@@ -164,7 +164,7 @@ export default function PetMedicalHistoryPage() {
                                         <Download size={14} className="text-gray-300 group-hover:text-blue-500" />
                                     </a>
                                 )) : (
-                                    <div className="text-sm text-gray-400 italic text-center py-4">Нет прикрепленных файлов</div>
+                                    <div className="text-sm text-gray-400 italic text-center py-4">No attached files</div>
                                 )}
                             </div>
                         </div>
@@ -204,7 +204,7 @@ export default function PetMedicalHistoryPage() {
                                                     <button 
                                                         onClick={() => handleEditClick(ev)}
                                                         className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                        title="Редактировать запись"
+                                                        title="Edit Event"
                                                     >
                                                         <Edit2 size={16} />
                                                     </button>
@@ -233,7 +233,7 @@ export default function PetMedicalHistoryPage() {
                                                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide
                                                             ${ev.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}
                                                         >
-                                                            {ev.status === 'completed' ? 'Выполнено' : 'Запланировано'}
+                                                            {ev.status === 'completed' ? 'Completed' : 'Scheduled'}
                                                         </span>
                                                     </div>
 
@@ -270,12 +270,12 @@ export default function PetMedicalHistoryPage() {
                         {events.length === 0 && (
                             <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
                                 <Activity size={48} className="mx-auto text-gray-300 mb-4" />
-                                <p className="text-gray-500 font-medium">История болезни пока пуста</p>
+                                <p className="text-gray-500 font-medium">Disease history is currently empty</p>
                                 <button 
                                     onClick={handleCreateClick}
                                     className="mt-4 text-blue-600 font-bold text-sm hover:underline"
                                 >
-                                    Создать первую запись
+                                    Create first record
                                 </button>
                             </div>
                         )}
@@ -284,13 +284,13 @@ export default function PetMedicalHistoryPage() {
             </div>
 
             {/* Модальное окно редактирования/создания */}
-            {pet && (
+            {pet && isModalOpen && (
                 <CreateEventModal 
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    onSuccess={fetchData} // Перезагружаем данные после сохранения
+                    onSuccess={fetchData} 
                     petId={pet.id}
-                    initialData={editingEvent} // Передаем данные для редактирования
+                    initialData={editingEvent}
                 />
             )}
         </div>

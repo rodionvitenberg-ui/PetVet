@@ -32,11 +32,11 @@ export default function DeleteAccountModal({ isOpen, onClose, onConfirm, isLoadi
                     </div>
                     
                     {/* Заголовок */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Удалить аккаунт?</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Account?</h3>
                     
                     {/* Текст предупреждения */}
                     <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                        Это действие <b>необратимо</b>. Все ваши данные, профили питомцев и история болезней будут удалены без возможности восстановления.
+                        This action is <b>irreversible</b>. All your data, pet profiles and medical history will be deleted without the possibility of recovery.
                     </p>
 
                     {/* Кнопки */}
@@ -47,7 +47,7 @@ export default function DeleteAccountModal({ isOpen, onClose, onConfirm, isLoadi
                             className="w-full py-3 px-4 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                            Да, удалить навсегда
+                            Yes, delete
                         </button>
                         
                         <button 
@@ -55,7 +55,7 @@ export default function DeleteAccountModal({ isOpen, onClose, onConfirm, isLoadi
                             disabled={isLoading}
                             className="w-full py-3 px-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
                         >
-                            Отмена
+                            Cancel
                         </button>
                     </div>
                 </div>

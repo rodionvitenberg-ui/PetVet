@@ -16,11 +16,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 // Конфиг иконок (тот же, для консистентности)
 const CATEGORY_CONFIG: Record<string, { label: string, icon: any, color: string }> = {
-    medical: { label: 'Медицина', icon: Activity, color: 'text-red-500 bg-red-50' },
-    reproduction: { label: 'Репродукция', icon: Heart, color: 'text-pink-500 bg-pink-50' },
-    show: { label: 'Документы', icon: Trophy, color: 'text-amber-500 bg-amber-50' },
-    care: { label: 'Груминг', icon: Sparkles, color: 'text-purple-500 bg-purple-50' },
-    other: { label: 'Другое', icon: HelpCircle, color: 'text-gray-500 bg-gray-50' },
+    medical: { label: 'Medicine', icon: Activity, color: 'text-red-500 bg-red-50' },
+    reproduction: { label: 'Reproduction', icon: Heart, color: 'text-pink-500 bg-pink-50' },
+    show: { label: 'Documents', icon: Trophy, color: 'text-amber-500 bg-amber-50' },
+    care: { label: 'Grooming', icon: Sparkles, color: 'text-purple-500 bg-purple-50' },
+    other: { label: 'Other', icon: HelpCircle, color: 'text-gray-500 bg-gray-50' },
 };
 
 export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, initialDate, initialData }: CreateCalendarEventModalProps) {
@@ -183,13 +183,13 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                         {(!initialData?.pet) && (
                             <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 space-y-3">
                                 <div className="flex items-center gap-2 text-orange-700 font-bold text-xs uppercase mb-1">
-                                    <User size={14} /> Клиент (Гость)
+                                    <User size={14} /> Client (Guest)
                                 </div>
                                 
                                 <input 
                                     type="text" 
                                     required={!initialData} // Обязательно при создании
-                                    placeholder="Имя клиента"
+                                    placeholder="Client Name"
                                     value={formData.guest_name}
                                     onChange={e => setFormData({...formData, guest_name: e.target.value})}
                                     className="w-full border border-orange-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200"
@@ -198,7 +198,7 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                                     <Phone size={16} className="absolute left-3 top-3 text-gray-400" />
                                     <input 
                                         type="tel" 
-                                        placeholder="Телефон"
+                                        placeholder="Phone"
                                         value={formData.guest_phone}
                                         onChange={e => setFormData({...formData, guest_phone: e.target.value})}
                                         className="w-full border border-orange-200 rounded-lg pl-9 p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-200"
@@ -210,13 +210,13 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                         {/* Если редактируем событие ПИТОМЦА - покажем инфо-блок */}
                         {initialData?.pet && (
                             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-blue-800 text-sm flex items-center gap-2">
-                                <span className="font-bold">Пациент:</span> {initialData.pet_info?.name || 'Питомец'}
+                                <span className="font-bold">Patient:</span> {initialData.pet_info?.name || 'Pet'}
                             </div>
                         )}
 
                         {/* 2. ТИП СОБЫТИЯ */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase">Тип приема</label>
+                            <label className="text-xs font-bold text-gray-400 uppercase">Event Type</label>
                             <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl p-2">
                                 {Object.entries(groupedTypes).map(([catKey, types]) => {
                                     const catConfig = CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.other;
@@ -248,7 +248,7 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                         {/* 3. ДЕТАЛИ */}
                         <div className="space-y-3">
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Время</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Time</label>
                                 <input 
                                     type="datetime-local" 
                                     required
@@ -259,11 +259,11 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Заголовок / Причина</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Title / Reason</label>
                                 <input 
                                     type="text" 
                                     required
-                                    placeholder="Краткое описание"
+                                    placeholder="Brief description"
                                     value={formData.title}
                                     onChange={e => setFormData({...formData, title: e.target.value})}
                                     className="w-full border border-gray-300 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
@@ -271,7 +271,7 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Комментарий</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Comment</label>
                                 <textarea 
                                     rows={2}
                                     value={formData.description}
@@ -289,7 +289,7 @@ export default function CreateCalendarEventModal({ isOpen, onClose, onSuccess, i
                         disabled={isSubmitting}
                         className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                     >
-                        {isSubmitting ? <span className="animate-pulse">Сохранение...</span> : <><Check size={18} /> Записать</>}
+                        {isSubmitting ? <span className="animate-pulse">Saving...</span> : <><Check size={18} /> Save</>}
                     </button>
                 </div>
             </div>

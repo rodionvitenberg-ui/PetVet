@@ -125,14 +125,14 @@ export default function ProfilePage() {
             body: uploadData
         });
 
-        if (!res.ok) throw new Error('Ошибка загрузки фото');
+        if (!res.ok) throw new Error('Error');
         const updatedUser = await res.json();
         updateUser(updatedUser);
         
-        addToast({ title: "Фото обновлено", color: "success", variant: "flat" });
+        addToast({ title: "Picture updated", color: "success", variant: "flat" });
         
     } catch (err) {
-        addToast({ title: "Не удалось загрузить фото", color: "danger", variant: "flat" });
+        addToast({ title: "Failed to upload picture", color: "danger", variant: "flat" });
     } finally {
         setLoading(false);
     }
@@ -172,12 +172,12 @@ export default function ProfilePage() {
         const updatedUser = await res.json();
         updateUser(updatedUser);
         
-        addToast({ title: "Профиль сохранен!", color: "success", variant: "flat" });
+        addToast({ title: "Profile saved!", color: "success", variant: "flat" });
         setPasswords({ password: '', confirm_password: '' });
     } catch (err: any) {
         addToast({ 
-            title: "Ошибка", 
-            description: err.message || 'Не удалось сохранить профиль', 
+            title: "Error", 
+            description: err.message || 'Failed to save profile', 
             color: "danger", 
             variant: "flat" 
         });
@@ -204,12 +204,12 @@ export default function ProfilePage() {
           if (res.ok) {
               await fetchContacts();
               setNewContact({ type: 'phone', value: '', label: '' });
-              addToast({ title: "Контакт добавлен", color: "success", variant: "flat" });
+              addToast({ title: "Contact added", color: "success", variant: "flat" });
           } else {
               throw new Error();
           }
       } catch (e) {
-          addToast({ title: "Ошибка добавления контакта", color: "danger", variant: "flat" });
+          addToast({ title: "Error adding contact", color: "danger", variant: "flat" });
       } finally {
           setIsAddingContact(false);
       }
@@ -237,9 +237,9 @@ export default function ProfilePage() {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           setContacts(prev => prev.filter(c => c.id !== id));
-          addToast({ title: "Контакт удален", color: "default", variant: "flat" });
+          addToast({ title: "Contact deleted", color: "default", variant: "flat" });
       } catch (e) {
-          addToast({ title: "Не удалось удалить", color: "danger", variant: "flat" });
+          addToast({ title: "Failed to delete contact", color: "danger", variant: "flat" });
       }
   };
 
@@ -264,12 +264,12 @@ export default function ProfilePage() {
             localStorage.removeItem('refresh_token');
             window.location.href = '/login'; 
         } else {
-            addToast({ title: "Ошибка удаления", description: "Попробуйте позже", color: "danger" });
+            addToast({ title: "Error deleting account", description: "Try again later", color: "danger" });
             setIsDeleting(false);
             setIsDeleteModalOpen(false);
         }
     } catch (e) {
-        addToast({ title: "Ошибка сети", color: "danger" });
+        addToast({ title: "Network error", color: "danger" });
         setIsDeleting(false);
         setIsDeleteModalOpen(false);
     }
@@ -278,12 +278,8 @@ export default function ProfilePage() {
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 pt-24 pb-12">
+    <div className="max-w-6xl mx-auto p-4 sm:p-16 pt-24 pb-12">
       <div className="flex items-center justify-between mb-8">
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900">Настройки профиля</h1>
-            <p className="text-gray-500 mt-1">Управляйте личной информацией и контактами</p>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -333,12 +329,12 @@ export default function ProfilePage() {
             {/* ФОРМА: Личные данные */}
             <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <User size={20} className="text-blue-500" /> Личные данные
+                    <User size={20} className="text-blue-500" /> Personal Information
                 </h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Имя</label>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">First Name</label>
                         <input 
                             type="text" 
                             className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition"
@@ -347,7 +343,7 @@ export default function ProfilePage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Фамилия</label>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Last Name</label>
                         <input 
                             type="text" 
                             className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition"
@@ -358,19 +354,19 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mb-4">
-                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">О себе / Специализация</label>
+                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">About / Specialization</label>
                      <textarea 
                         rows={3}
                         className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition resize-none"
                         value={formData.about}
-                        placeholder={user.is_veterinarian ? "Расскажите о своем опыте и услугах..." : "Пара слов о вас..."}
+                        placeholder={user.is_veterinarian ? "Tell us about your experience and services..." : "A few words about you..."}
                         onChange={(e) => setFormData({...formData, about: e.target.value})}
                     />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Город</label>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">City</label>
                         <div className="relative">
                             <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400" />
                             <input 
@@ -382,7 +378,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Основной телефон</label>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Main Phone</label>
                         <div className="relative">
                             <Phone size={16} className="absolute left-3 top-3.5 text-gray-400" />
                             <input 
@@ -390,7 +386,7 @@ export default function ProfilePage() {
                                 className="w-full border border-gray-300 rounded-xl p-3 pl-10 focus:ring-2 focus:ring-blue-200 outline-none transition"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                placeholder="Для входа в аккаунт"
+                                placeholder="For account login"
                             />
                         </div>
                     </div>
@@ -399,14 +395,14 @@ export default function ProfilePage() {
                 {user.is_veterinarian && (
                     <div className="mb-8 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
                          <label className="block text-xs font-bold text-emerald-700 mb-1 uppercase flex items-center gap-1">
-                            <Briefcase size={14} /> Место работы
+                            <Briefcase size={14} /> Work Location
                          </label>
                          <input 
                             type="text" 
                             className="w-full border border-emerald-200 bg-white rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition text-emerald-900"
                             value={formData.clinic_name}
                             onChange={(e) => setFormData({...formData, clinic_name: e.target.value})}
-                            placeholder="Название клиники"
+                            placeholder="Clinic Name"
                         />
                     </div>
                 )}
@@ -414,14 +410,14 @@ export default function ProfilePage() {
                 {/* Смена пароля */}
                 <div className="pt-6 border-t border-gray-100">
                     <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Lock size={16} className="text-gray-400" /> Смена пароля
+                        <Lock size={16} className="text-gray-400" /> Change Password
                     </h3>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <input 
                                 type="password" 
-                                placeholder="Новый пароль"
+                                placeholder="New Password"
                                 className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
                                 value={passwords.password}
                                 onChange={(e) => setPasswords({...passwords, password: e.target.value})}
@@ -431,7 +427,7 @@ export default function ProfilePage() {
                         <div>
                             <input 
                                 type="password" 
-                                placeholder="Подтвердите пароль"
+                                placeholder="Confirm Password"
                                 className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
                                 value={passwords.confirm_password}
                                 onChange={(e) => setPasswords({...passwords, confirm_password: e.target.value})}
@@ -448,7 +444,7 @@ export default function ProfilePage() {
                         className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center gap-2"
                     >
                         {loading ? <Loader2 className="animate-spin" /> : <Save size={18} />}
-                        Сохранить изменения
+                        Save Changes
                     </button>
                 </div>
             </form>

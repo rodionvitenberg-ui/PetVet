@@ -195,34 +195,45 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
     <>
         {pet && (
             <>
-                <EditPetModal 
-                    isOpen={isEditOpen} 
-                    onClose={() => setIsEditOpen(false)}
-                    pet={pet as PetDetail}
-                    onSuccess={fetchPetData} 
-                />
-                <UpdateGalleryModal 
-                    isOpen={isGalleryOpen} 
-                    onClose={() => setIsGalleryOpen(false)}
-                    petId={pet.id}
-                    images={pet.images || []}
-                    onSuccess={fetchPetData} 
-                />
-                <CreateEventModal
-                    isOpen={isHealthModalOpen}
-                    onClose={() => setIsHealthModalOpen(false)}
-                    petId={pet.id}
-                    onSuccess={fetchPetData}
-                    initialData={editingEvent} 
-                />
-                {/* [NEW] Модалка удаления */}
-                <DeletePetModal
-                    isOpen={isDeleteModalOpen}
-                    onClose={() => setIsDeleteModalOpen(false)}
-                    onConfirm={confirmDelete}
-                    petName={pet.name}
-                    isDeleting={isDeleting}
-                />
+                {/* [FIX] Оборачиваем в условия, чтобы они не рендерились поверх основного окна */}
+                {isEditOpen && (
+                    <EditPetModal 
+                        isOpen={isEditOpen} 
+                        onClose={() => setIsEditOpen(false)}
+                        pet={pet as PetDetail}
+                        onSuccess={fetchPetData} 
+                    />
+                )}
+                
+                {isGalleryOpen && (
+                    <UpdateGalleryModal 
+                        isOpen={isGalleryOpen} 
+                        onClose={() => setIsGalleryOpen(false)}
+                        petId={pet.id}
+                        images={pet.images || []}
+                        onSuccess={fetchPetData} 
+                    />
+                )}
+
+                {isHealthModalOpen && (
+                    <CreateEventModal
+                        isOpen={isHealthModalOpen}
+                        onClose={() => setIsHealthModalOpen(false)}
+                        petId={pet.id}
+                        onSuccess={fetchPetData}
+                        initialData={editingEvent} 
+                    />
+                )}
+
+                {isDeleteModalOpen && (
+                    <DeletePetModal
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => setIsDeleteModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        petName={pet.name}
+                        isDeleting={isDeleting}
+                    />
+                )}
             </>
         )}
 

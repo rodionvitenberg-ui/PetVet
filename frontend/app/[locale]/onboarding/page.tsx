@@ -20,11 +20,11 @@ export default function OnboardingPage() {
     // Валидация пароля (если пользователь решил его ввести)
     if (passwords.password || passwords.confirm_password) {
         if (passwords.password !== passwords.confirm_password) {
-            setError('Пароли не совпадают');
+            setError('Passwords do not match');
             return;
         }
         if (passwords.password.length < 6) {
-             setError('Пароль слишком короткий');
+             setError('Password is too short');
              return;
         }
     }
@@ -58,12 +58,12 @@ export default function OnboardingPage() {
       } else {
         const errData = await res.json();
         // Пытаемся красиво вывести ошибку от Django
-        const msg = Object.values(errData).flat().join(', ') || 'Ошибка сохранения данных';
+        const msg = Object.values(errData).flat().join(', ') || 'Error saving data';
         setError(msg);
       }
     } catch (e) {
         console.error(e);
-        setError('Сетевая ошибка');
+        setError('Network error');
     } finally {
         setLoading(false);
     }
@@ -72,8 +72,8 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50 py-10">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Добро пожаловать! 👋</h1>
-        <p className="text-gray-600 mb-6 text-center">Настройте свой профиль для начала работы</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Welcome! 👋</h1>
+        <p className="text-gray-600 mb-6 text-center">Set up your profile to get started</p>
 
         {error && (
             <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm text-center">
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
         )}
 
         <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Выберите роль:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Choose your role:</label>
             <div className="grid grid-cols-2 gap-4">
                 <div 
                     onClick={() => setRole('owner')}
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
                     }`}
                 >
                     <div className="text-3xl mb-1">🐱</div>
-                    <div className="font-bold text-gray-700">Владелец</div>
+                    <div className="font-bold text-gray-700">Owner</div>
                 </div>
 
                 <div 
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
                     }`}
                 >
                     <div className="text-3xl mb-1">👨‍⚕️</div>
-                    <div className="font-bold text-gray-700">Ветеринар</div>
+                    <div className="font-bold text-gray-700">Veterinarian</div>
                 </div>
             </div>
         </div>
@@ -109,24 +109,24 @@ export default function OnboardingPage() {
         {/* Секция данных Ветеринара */}
         {role === 'vet' && (
             <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-100 animate-fade-in">
-                <h3 className="text-green-800 font-semibold mb-3 text-sm">Данные специалиста</h3>
+                <h3 className="text-green-800 font-semibold mb-3 text-sm">Veterinarian Details</h3>
                 <div className="space-y-3">
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Город</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
                         <input 
                             type="text" 
                             className="w-full border border-gray-300 rounded p-2 text-sm text-black"
-                            placeholder="Москва"
+                            placeholder="Berlin"
                             value={details.city}
                             onChange={(e) => setDetails({...details, city: e.target.value})}
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Название клиники</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Clinic Name</label>
                         <input 
                             type="text" 
                             className="w-full border border-gray-300 rounded p-2 text-sm text-black"
-                            placeholder="ВетКлиника №1"
+                            placeholder="Veterinary Clinic №1"
                             value={details.clinic_name}
                             onChange={(e) => setDetails({...details, clinic_name: e.target.value})}
                         />
@@ -137,20 +137,20 @@ export default function OnboardingPage() {
 
         {/* Секция Пароля */}
         <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-            <h3 className="text-gray-800 font-semibold mb-1 text-sm">Создайте пароль</h3>
-            <p className="text-xs text-gray-500 mb-3">Это необязательно, но позволит вам входить без Google.</p>
+            <h3 className="text-gray-800 font-semibold mb-1 text-sm">Create Password</h3>
+            <p className="text-xs text-gray-500 mb-3">This is optional but will allow you to log in without Google.</p>
             <div className="space-y-3">
                 <input 
                     type="password" 
                     className="w-full border border-gray-300 rounded p-2 text-sm text-black"
-                    placeholder="Новый пароль"
+                    placeholder="New Password"
                     value={passwords.password}
                     onChange={(e) => setPasswords({...passwords, password: e.target.value})}
                 />
                 <input 
                     type="password" 
                     className="w-full border border-gray-300 rounded p-2 text-sm text-black"
-                    placeholder="Подтвердите пароль"
+                    placeholder="Confirm Password"
                     value={passwords.confirm_password}
                     onChange={(e) => setPasswords({...passwords, confirm_password: e.target.value})}
                 />
@@ -162,7 +162,7 @@ export default function OnboardingPage() {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
         >
-            {loading ? 'Сохранение...' : 'Завершить настройку'}
+            {loading ? 'Saving...' : 'Complete Setup'}
         </button>
       </div>
     </div>

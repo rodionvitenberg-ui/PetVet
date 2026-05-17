@@ -68,7 +68,7 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                     <h3 className="font-bold text-gray-800 flex items-center gap-2">
                         <CalendarClock className="text-red-500" size={20} />
-                        Укажите время
+                        Specify time
                     </h3>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500">
                         <X size={20} />
@@ -77,8 +77,8 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     <div className="text-sm text-gray-500 text-center leading-relaxed">
-                        Вы переносите задачу в <span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">СРОЧНО</span><br/>
-                        Когда её нужно выполнить?
+                        You are rescheduling the task to <span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">URGENT</span><br/>
+                        When should it be completed?
                     </div>
 
                     <input 
@@ -96,21 +96,21 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
                             onClick={() => handleQuickSet(1)} 
                             className={`${baseBtnClass} ${activeButton === 1 ? activeClass : inactiveClass}`}
                         >
-                            +1 Час
+                            +1 Hour
                         </button>
                         <button 
                             type="button" 
                             onClick={() => handleQuickSet(3)} 
                             className={`${baseBtnClass} ${activeButton === 3 ? activeClass : inactiveClass}`}
                         >
-                            +3 Часа
+                            +3 Hours
                         </button>
                         <button 
                             type="button" 
                             onClick={handleMorningSet} 
                             className={`${baseBtnClass} ${activeButton === 'morning' ? activeClass : inactiveClass}`}
                         >
-                            Завтра 9:00
+                            Tomorrow 9:00
                         </button>
                     </div>
 
@@ -119,7 +119,7 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
                             type="submit" 
                             className="w-full bg-red-600 text-white py-3.5 rounded-xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-200 flex items-center justify-center gap-2 text-base"
                         >
-                            <Check size={20} /> Подтвердить
+                            <Check size={20} /> Confirm
                         </button>
                     </div>
                 </form>

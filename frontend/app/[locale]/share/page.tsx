@@ -87,13 +87,13 @@ export default function SharePage() {
                     <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <AlertTriangle size={32} />
                     </div>
-                    <h1 className="text-xl font-bold text-gray-900 mb-2">Ошибка ссылки</h1>
-                    <p className="text-gray-500 mb-6">Ссылка некорректна или отсутствует токен доступа.</p>
+                    <h1 className="text-xl font-bold text-gray-900 mb-2">Error</h1>
+                    <p className="text-gray-500 mb-6">The link is incorrect or the access token is missing.</p>
                     <button 
                         onClick={() => router.push('/')}
                         className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
                     >
-                        На главную
+                        To Home
                     </button>
                 </div>
             </div>
@@ -114,8 +114,8 @@ export default function SharePage() {
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-3 shadow-inner ring-4 ring-white/10">
                             <Stethoscope size={32} className="text-white" />
                         </div>
-                        <h1 className="text-2xl font-bold">Ветеринарный доступ</h1>
-                        <p className="text-blue-100 text-sm mt-1">Система обмена данными PetVet</p>
+                        <h1 className="text-2xl font-bold">Veterinary Access</h1>
+                        <p className="text-blue-100 text-sm mt-1">PetVet Data Exchange System</p>
                     </div>
                 </div>
 
@@ -127,15 +127,15 @@ export default function SharePage() {
                             <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-left flex items-start gap-4">
                                 <ShieldCheck className="text-blue-600 shrink-0 mt-1" size={24} />
                                 <div>
-                                    <h3 className="font-bold text-gray-900">Входящий запрос</h3>
+                                    <h3 className="font-bold text-gray-900">Incoming Request</h3>
                                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                                        Владелец питомца предоставил вам временную ссылку для доступа к медицинской карте.
+                                        The pet owner has provided you with a temporary link to access the medical record.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Вы вошли как</p>
+                                <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">You are logged in as</p>
                                 <div className="font-medium text-gray-900 bg-gray-50 py-2 px-4 rounded-lg inline-block mx-auto border border-gray-200">
                                     {user?.email}
                                 </div>
@@ -146,14 +146,14 @@ export default function SharePage() {
                                 className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
                             >
                                 <CheckCircle2 size={20} />
-                                Принять пациента
+                                Accept Patient
                             </button>
                             
                             <button
                                 onClick={() => router.push('/dashboard')}
                                 className="text-gray-400 hover:text-gray-600 text-sm font-medium transition"
                             >
-                                Отказаться и выйти
+                                Decline and Exit
                             </button>
                         </div>
                     )}
@@ -161,8 +161,8 @@ export default function SharePage() {
                     {status === 'processing' && (
                         <div className="py-10 flex flex-col items-center justify-center text-center space-y-4">
                             <Loader2 className="animate-spin text-blue-600" size={48} />
-                            <h3 className="text-lg font-bold text-gray-900">Проверка доступа...</h3>
-                            <p className="text-gray-500 text-sm">Пожалуйста, подождите, мы проверяем цифровую подпись.</p>
+                            <h3 className="text-lg font-bold text-gray-900">Checking Access...</h3>
+                            <p className="text-gray-500 text-sm">Please wait while we verify the digital signature.</p>
                         </div>
                     )}
 
@@ -171,13 +171,13 @@ export default function SharePage() {
                             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
                                 <CheckCircle2 size={40} />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Доступ получен!</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Access Granted!</h2>
                             <p className="text-gray-600">
-                                Вы успешно подключились к медкарте питомца <br />
+                                You have successfully connected to the pet's medical record <br />
                                 <span className="font-bold text-gray-900 text-lg">"{petInfo?.name}"</span>
                             </p>
                             <div className="flex items-center gap-2 text-blue-600 text-sm font-bold mt-4 animate-pulse">
-                                Переход в кабинет <ArrowRight size={14} />
+                                Transition to Dashboard <ArrowRight size={14} />
                             </div>
                         </div>
                     )}
@@ -188,14 +188,14 @@ export default function SharePage() {
                                 <AlertTriangle size={32} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">Ошибка доступа</h3>
+                                <h3 className="text-xl font-bold text-gray-900">Access Error</h3>
                                 <p className="text-gray-500 mt-2 text-sm">{errorMessage}</p>
                             </div>
                             <button
                                 onClick={() => router.push('/dashboard')}
                                 className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
                             >
-                                Вернуться в дашборд
+                                Return to Dashboard
                             </button>
                         </div>
                     )}

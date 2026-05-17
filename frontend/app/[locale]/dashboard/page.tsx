@@ -102,7 +102,7 @@ export default function DashboardPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">
-                                    {viewMode === 'my' ? 'Профили ваших любимых питомцев' : 'Профили ваших пациентов'}
+                                    {viewMode === 'my' ? 'My Pets' : 'Patients'}
                                 </h1>
                             </div>
 
@@ -111,14 +111,14 @@ export default function DashboardPage() {
                                 <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
                                     <button 
                                         onClick={() => setDensity('comfortable')}
-                                        title="Крупные карточки"
+                                        title="View as comfortable grid"
                                         className={`p-2 rounded-lg transition-all ${!isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                                     >
                                         <LayoutGrid size={20} />
                                     </button>
                                     <button 
                                         onClick={() => setDensity('compact')}
-                                        title="Компактный список"
+                                        title="View as compact list"
                                         className={`p-2 rounded-lg transition-all ${isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                                     >
                                         <Grid3x3 size={20} />
@@ -136,7 +136,7 @@ export default function DashboardPage() {
                                                 : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
-                                            <PawPrint size={16} /> <span className="hidden sm:inline">Личные</span>
+                                            <PawPrint size={16} /> <span className="hidden sm:inline">My Pets</span>
                                         </button>
                                         <button
                                             onClick={() => setViewMode('patients')}
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                                                 : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
-                                            <Users size={16} /> <span className="hidden sm:inline">Пациенты</span>
+                                            <Users size={16} /> <span className="hidden sm:inline">Patients</span>
                                                 <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1 rounded-full">
                                                 </span>
                                         </button>
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                                         href="/dashboard/catalog"
                                         className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                                     >
-                                        <BookText size={16} /> <span className="hidden sm:inline">Каталог</span>
+                                        <BookText size={16} /> <span className="hidden sm:inline">Catalog</span>
                                     </Link>
                                 </div>
                             </div>
@@ -169,8 +169,8 @@ export default function DashboardPage() {
                         <div className="flex flex-col sm:flex-row gap-3 w-full">
                             <SearchInput 
                                 placeholder={viewMode === 'my' 
-                                    ? "Поиск по кличке..." 
-                                    : "Кличка, фамилия владельца, телефон..."
+                                    ? "Search by nickname..." 
+                                    : "Search by name, owner's last name, phone..."
                                 } 
                             />
                             <PetFilters />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                             <PetCard 
                                 isAddButton 
                                 variant={density}
-                                addButtonText={isCompact ? "Добавить" : "Добавить питомца"}
+                                addButtonText={isCompact ? "Add" : "Add Pet"}
                                 onClick={() => {
                                     const isMobile = window.innerWidth < 768;
                                     if (isMobile) {
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                             <PetCard 
                                 isAddButton
                                 variant={density}
-                                addButtonText={isCompact ? "Новый" : "Новый пациент"}
+                                addButtonText={isCompact ? "New" : "New Patient"}
                                 onClick={() => {
                                     const isMobile = window.innerWidth < 768;
                                     if (isMobile) {
@@ -246,13 +246,13 @@ export default function DashboardPage() {
                                 <Users size={48} className="mx-auto mb-3 opacity-50" />
                                 {hasFilters ? (
                                     <>
-                                        <p>Пациенты не найдены.</p>
-                                        <p className="text-sm mt-1">Попробуйте изменить параметры поиска.</p>
+                                        <p>Patients not found.</p>
+                                        <p className="text-sm mt-1">Try changing the search parameters.</p>
                                     </>
                                 ) : (
                                     <>
-                                        <p>У вас пока нет пациентов.</p>
-                                        <p className="text-sm mt-1">Попросите владельца отправить вам ссылку доступа.</p>
+                                        <p>You don't have any patients yet.</p>
+                                        <p className="text-sm mt-1">Ask the owner to send you an access link.</p>
                                     </>
                                 )}
                             </div>

@@ -195,7 +195,7 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                             
                             <Text style={styles.colType}>
                                 {typeName}
-                                {event.status === 'planned' ? ' (План)' : ''}
+                                {event.status === 'planned' ? ' (Plan)' : ''}
                             </Text>
                             
                             <View style={styles.colEvent}>
@@ -206,7 +206,7 @@ export const PetPassportDocument = ({ pet, t, locale }: PassportProps) => {
                                 {/* [NEW] Вывод клиники или врача мелким шрифтом */}
                                 {author && (
                                     <Text style={{ fontSize: 8, color: '#6B7280', marginTop: 2 }}>
-                                        {isVet ? 'Клиника: ' : 'Автор: '} {author}
+                                        {isVet ? 'Clinic: ' : 'Author: '} {author}
                                     </Text>
                                 )}
                             </View>

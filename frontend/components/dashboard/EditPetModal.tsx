@@ -27,8 +27,8 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
       onSuccess: () => {
           // [TOAST] Успех
           addToast({ 
-              title: "Сохранено", 
-              description: `Данные питомца "${pet?.name}" обновлены`, 
+              title: "Saved", 
+              description: `Pet data for "${pet?.name}" updated`, 
               color: "success", 
               variant: "flat" 
           });
@@ -58,7 +58,7 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
            <div className="flex items-center gap-3">
               {step > 1 && <button onClick={prevStep} className="p-1.5 hover:bg-white rounded-full transition text-gray-500"><ArrowLeft size={20} /></button>}
-              <h2 className="text-xl font-bold text-gray-800">Редактирование</h2>
+              <h2 className="text-xl font-bold text-gray-800">Editing</h2>
            </div>
            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500"><X size={20} /></button>
         </div>
@@ -66,13 +66,13 @@ export default function EditPetModal({ isOpen, onClose, onSuccess, pet }: EditPe
             <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${(step / finalStepIndex) * 100}%` }}/>
         </div>
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            {isLoading ? <div className="text-center py-10 text-gray-400">Загрузка...</div> : renderContent()}
+            {isLoading ? <div className="text-center py-10 text-gray-400">Loading...</div> : renderContent()}
         </div>
         {error && <div className="px-6 pb-2 text-red-500 text-sm animate-pulse text-center font-medium">{error}</div>}
         <div className="p-6 border-t border-gray-100 bg-gray-50">
             <button onClick={step === finalStepIndex ? submit : nextStep} disabled={isSubmitting || isLoading} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-lg shadow-blue-200 flex justify-center items-center gap-2">
                {isSubmitting && <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>}
-               {step === finalStepIndex ? 'Сохранить' : 'Далее'}
+               {step === finalStepIndex ? 'Save' : 'Next'}
             </button>
         </div>
       </div>

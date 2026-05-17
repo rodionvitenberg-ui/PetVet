@@ -12,8 +12,8 @@ export default function CatalogPage() {
         <div className="p-6 max-w-[1600px] mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Справочники и Цены</h1>
-                    <p className="text-gray-500 text-sm">Управление услугами, товарами и готовыми шаблонами приемов</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Catalog</h1>
+                    <p className="text-gray-500 text-sm">Management of services, products and ready-made appointment templates</p>
                 </div>
             </div>
 
@@ -29,7 +29,7 @@ export default function CatalogPage() {
                         }`}
                     >
                         <Package size={18} />
-                        Товары и Услуги
+                        Items and Services
                     </button>
                     <button 
                         onClick={() => setActiveTab('templates')}
@@ -40,7 +40,7 @@ export default function CatalogPage() {
                         }`}
                     >
                         <Sparkles size={18} />
-                        Шаблоны (Макросы)
+                        Templates (Macros)
                     </button>
                 </div>
             </div>

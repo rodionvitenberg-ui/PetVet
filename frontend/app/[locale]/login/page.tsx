@@ -56,7 +56,7 @@ function LoginForm() {
 
   return (
       <div className="bg-white p-8 rounded-xl shadow-md w-96">
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Вход в PetVet</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Login to PetVet</h1>
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
             {error}
@@ -81,13 +81,13 @@ function LoginForm() {
             />
           </div>
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">
-            Войти
+            Login
           </button>
         </form>
 
         <div className="my-4 flex items-center">
             <div className="flex-grow border-t border-gray-300"></div>
-            <span className="flex-shrink-0 mx-4 text-gray-500 text-sm">или</span>
+            <span className="flex-shrink-0 mx-4 text-gray-500 text-sm">or</span>
             <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
@@ -115,17 +115,17 @@ function LoginForm() {
                            handleHardRedirect();
                         }
                     } catch (e) {
-                        setError("Ошибка авторизации через Google");
+                        setError("Error during Google authentication");
                     }
                 }}
-                onError={() => setError('Ошибка подключения к Google')}
+                onError={() => setError('Error connecting to Google')}
                 useOneTap
             />
         </div>
 
         <div className="mt-4 text-center text-sm">
-          <span className="text-gray-600">Нет аккаунта? </span>
-          <Link href="/register" className="text-blue-600 hover:underline">Зарегистрироваться</Link>
+          <span className="text-gray-600">Don't have an account? </span>
+          <Link href="/register" className="text-blue-600 hover:underline">Sign up</Link>
         </div>
       </div>
   );
@@ -135,7 +135,7 @@ function LoginForm() {
 export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
-            <Suspense fallback={<div className="bg-white p-8 rounded-xl shadow-md">Загрузка...</div>}>
+            <Suspense fallback={<div className="bg-white p-8 rounded-xl shadow-md">Loading...</div>}>
                 <LoginForm />
             </Suspense>
         </div>

@@ -30,13 +30,13 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, invoiceId, am
                     </div>
                     
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        Подтверждение оплаты
+                        Payment Confirmation
                     </h3>
                     
                     <p className="text-gray-500 text-sm mb-6">
-                        Вы хотите отметить счет <span className="font-bold text-gray-800">#{invoiceId}</span> на сумму <span className="font-bold text-gray-800">{amount} €</span> как оплаченный?
+                        You want to mark the invoice <span className="font-bold text-gray-800">#{invoiceId}</span> for the amount <span className="font-bold text-gray-800">{amount} €</span> as paid?
                         <br/><br/>
-                        Это действие обновит финансовую статистику клиники.
+                        This action will update the clinic's financial statistics.
                     </p>
 
                     <div className="flex gap-3 w-full">
@@ -44,17 +44,17 @@ export default function PaymentModal({ isOpen, onClose, onConfirm, invoiceId, am
                             onClick={onClose}
                             className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
                         >
-                            Отмена
+                            Cancel
                         </button>
                         <button 
                             onClick={onConfirm}
                             disabled={isSubmitting}
                             className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition shadow-lg shadow-green-200 flex items-center justify-center gap-2"
                         >
-                            {isSubmitting ? 'Обработка...' : (
+                            {isSubmitting ? 'Processing...' : (
                                 <>
                                     <CheckCircle2 size={18} />
-                                    Оплачено
+                                    Paid
                                 </>
                             )}
                         </button>

@@ -7,12 +7,12 @@ import React, { useState } from 'react';
 import { Cat, Dog, Bird, Sparkles, Trophy, LayoutGrid } from 'lucide-react';
 
 const CATEGORIES = [
-  { id: 'all', label: 'Все', icon: LayoutGrid },
-  { id: 'cats', label: 'Кошки', icon: Cat },
-  { id: 'dogs', label: 'Собаки', icon: Dog },
-  { id: 'exotic', label: 'Экзотика', icon: Bird },
-  { id: 'funny', label: 'Смешные', icon: Sparkles },
-  { id: 'hero', label: 'Герои', icon: Trophy },
+  { id: 'all', label: 'All', icon: LayoutGrid },
+  { id: 'cats', label: 'Cats', icon: Cat },
+  { id: 'dogs', label: 'Dogs', icon: Dog },
+  { id: 'exotic', label: 'Exotic', icon: Bird },
+  { id: 'funny', label: 'Funny', icon: Sparkles },
+  { id: 'hero', label: 'Heroes', icon: Trophy },
 ];
 
 export default function CategoryFilter() {

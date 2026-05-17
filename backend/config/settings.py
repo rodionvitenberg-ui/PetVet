@@ -229,8 +229,8 @@ LANGUAGES = (
     ('en', gettext('English')),
 )
 
-MODELTRANSLATION_DEFAULT_LANGUAGE = 'ru'
-MODELTRANSLATION_FALLBACK_LANGUAGES = ('ru', 'en') # Если нет перевода на EN, покажет RU
+MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'
+MODELTRANSLATION_FALLBACK_LANGUAGES = ('en', 'ru') # Если нет перевода на EN, покажет RU
 USE_I18N = True
 USE_L10N = True
 

@@ -7,8 +7,8 @@ export default function CreatePatientModal({ isOpen, onClose, onSuccess }: any) 
   // Обёртка над успешным завершением
   const handleSuccess = (data: any) => {
     addToast({
-      title: "Пациент создан",
-      description: `Карточка ${data?.name || 'пациента'} успешно заведена`,
+      title: "Patient Created",
+      description: `Card for ${data?.name || 'patient'} created successfully`,
       color: "success",
       variant: "flat"
     });

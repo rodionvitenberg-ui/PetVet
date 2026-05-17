@@ -151,7 +151,7 @@ export default function PlanboardPage() {
                     const audio = new Audio('/notification.mp3'); 
                     audio.play().catch(() => {});
                     if (Notification.permission === 'granted') {
-                        new Notification(`Напоминание: ${event.title}`, { body: `Через ${diffMinutes} мин.` });
+                        new Notification(`Reminder: ${event.title}`, { body: `In ${diffMinutes} minutes.` });
                     }
                     setNotifiedEvents(prev => new Set(prev).add(event.id));
                 }
@@ -256,7 +256,7 @@ export default function PlanboardPage() {
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
                                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                            {viewMode === 'my' ? 'Мои задачи' : 'Стационар'}
+                                            {viewMode === 'my' ? 'My Tasks' : 'Clinic'}
                                             <span className="text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                                                 {visiblePets.length}
                                             </span>
@@ -271,8 +271,8 @@ export default function PlanboardPage() {
 
                                         {user?.is_veterinarian && (
                                             <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
-                                                <button onClick={() => setViewMode('my')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'my' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><PawPrint size={14} /> Личные</button>
-                                                <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}><Users size={14} /> Пациенты</button>
+                                                <button onClick={() => setViewMode('my')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'my' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><PawPrint size={14} /> My</button>
+                                                <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}><Users size={14} /> Patients</button>
                                             </div>
                                         )}
 
@@ -281,7 +281,7 @@ export default function PlanboardPage() {
                                                 href="/billing/invoices"
                                                 className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                                             >
-                                                <Receipt size={14} /> <span className="hidden sm:inline">Счета</span>
+                                                <Receipt size={14} /> <span className="hidden sm:inline">Invoices</span>
                                             </Link>
                                         </div>
                                     </div>
@@ -289,7 +289,7 @@ export default function PlanboardPage() {
 
                                 {/* Панель фильтров */}
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                     <SearchInput placeholder={viewMode === 'my' ? "Поиск..." : "Поиск по стационару..."} />
+                                     <SearchInput placeholder={viewMode === 'my' ? "Search..." : "Search in clinic..."} />
                                      <PetFilters />
                                      <EventFilter />
                                 </div>
@@ -298,10 +298,10 @@ export default function PlanboardPage() {
                             <div className={`hidden md:grid gap-4 mb-2 px-2 sticky top-20 z-10 bg-gray-50/95 backdrop-blur py-2 border-b border-gray-200
                                 ${isCompact ? 'grid-cols-[120px_1fr_1fr_1fr]' : 'grid-cols-[180px_1fr_1fr_1fr]'}`}
                             >
-                                <div className="text-xs font-bold text-gray-400 uppercase">Пациент</div> 
-                                <div className="flex items-center gap-2 text-red-600 font-bold text-xs uppercase pl-1"><AlertCircle size={14} /> Сегодня</div>
-                                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase pl-1"><Calendar size={14} /> Планы</div>
-                                <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase pl-1"><CheckCircle2 size={14} /> История</div>
+                                <div className="text-xs font-bold text-gray-400 uppercase">Patient</div> 
+                                <div className="flex items-center gap-2 text-red-600 font-bold text-xs uppercase pl-1"><AlertCircle size={14} /> Today</div>
+                                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase pl-1"><Calendar size={14} /> Plans</div>
+                                <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase pl-1"><CheckCircle2 size={14} /> History</div>
                             </div>
 
                             <div className={isCompact ? "space-y-1" : "space-y-8"}>
@@ -366,10 +366,10 @@ export default function PlanboardPage() {
                                                             onClick={() => handleCreateClick(pet.id)} 
                                                             className={`mt-1 flex items-center gap-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition
                                                             ${isCompact ? 'p-1' : 'w-full py-2 px-3 justify-center mt-2'}`}
-                                                            title="Добавить запись"
+                                                            title="Add new event"
                                                         >
                                                             <Plus size={isCompact ? 14 : 16} /> 
-                                                            {!isCompact && <span className="text-xs font-bold">Добавить</span>}
+                                                            {!isCompact && <span className="text-xs font-bold">Add Event</span>}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -416,7 +416,7 @@ export default function PlanboardPage() {
                                                                 onClick={() => router.push(`/planboard/pets/${pet.id}`)}
                                                                 className="w-full text-xs text-center text-gray-400 hover:text-blue-500 py-2 transition font-medium border-t border-gray-100 mt-2"
                                                             >
-                                                                Показать всю историю →
+                                                                Show full history →
                                                             </button>
                                                         )}
                                                     </div>
@@ -430,9 +430,9 @@ export default function PlanboardPage() {
                                      <div className="text-center py-20 text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
                                         <Users size={48} className="mx-auto mb-3 opacity-50" />
                                         {searchParams.toString().length > 0 ? (
-                                            <p>Ничего не найдено. Попробуйте изменить фильтры.</p>
+                                            <p>Nothing found. Try changing the filters.</p>
                                         ) : (
-                                            <p>В стационаре пока пусто.</p>
+                                            <p>The clinic is currently empty.</p>
                                         )}
                                     </div>
                                 )}

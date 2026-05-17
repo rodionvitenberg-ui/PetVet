@@ -50,15 +50,15 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                     body: formData
                 });
 
-                if (res.status === 403) throw new Error('У вас нет прав на редактирование этого питомца');
-                if (!res.ok) throw new Error('Ошибка загрузки. Проверьте формат файла.');
+                if (res.status === 403) throw new Error('You do not have permission to edit this pet');
+                if (!res.ok) throw new Error('Error uploading images. Please check the file format.');
                 uploadedCount++;
             }
             
             // [TOAST] Успех загрузки
             addToast({ 
-                title: "Фото загружены", 
-                description: `Добавлено изображений: ${uploadedCount}`, 
+                title: "Images uploaded", 
+                description: `Number of images added: ${uploadedCount}`, 
                 color: "success", 
                 variant: "flat" 
             });
@@ -66,11 +66,11 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
             onSuccess();
         } catch (error: any) {
             console.error(error);
-            setError(error.message || "Не удалось загрузить изображения");
+            setError(error.message || "Failed to upload images");
             
             // [TOAST] Ошибка
             addToast({ 
-                title: "Ошибка загрузки", 
+                title: "Error uploading", 
                 description: error.message, 
                 color: "danger", 
                 variant: "flat" 
@@ -98,11 +98,11 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (res.status === 403) throw new Error('Недостаточно прав.');
+            if (res.status === 403) throw new Error('You do not have permission to delete this image');
             if (res.ok) {
                 // [TOAST] Успех удаления
                 addToast({ 
-                    title: "Фото удалено", 
+                    title: "Image deleted", 
                     color: "default", 
                     variant: "flat" 
                 });
@@ -110,16 +110,16 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                 setDeletingId(null);
                 onSuccess();
             } else {
-                throw new Error("Ошибка сервера при удалении.");
+                throw new Error("Server error occurred while deleting the image.");
             }
         } catch (error: any) {
             console.error(error);
-            setError(error.message || "Ошибка сети");
+            setError(error.message || "Network error");
             setDeletingId(null);
             
             // [TOAST] Ошибка удаления
             addToast({ 
-                title: "Не удалось удалить", 
+                title: "Failed to delete image", 
                 description: error.message, 
                 color: "danger", 
                 variant: "flat" 
@@ -137,7 +137,7 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                         <ImageIcon size={20} className="text-blue-500"/>
-                        Галерея питомца
+                        Pet Gallery
                     </h3>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition">
                         <X size={20} />
@@ -173,7 +173,7 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                                 <Plus size={32} className="text-gray-400 group-hover:text-blue-500 transition" />
                             )}
                             <span className="text-xs text-gray-500 mt-2 font-medium">
-                                {isUploading ? 'Загрузка...' : 'Добавить фото'}
+                                {isUploading ? 'Uploading...' : 'Add Photo'}
                             </span>
                         </label>
 
@@ -197,7 +197,7 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
 
                                 {img.is_main && (
                                     <div className="absolute bottom-2 left-2 bg-blue-500/90 text-white text-[10px] px-2 py-0.5 rounded-md font-bold shadow-sm backdrop-blur-md">
-                                        Главное
+                                        Main
                                     </div>
                                 )}
                             </div>
@@ -211,20 +211,20 @@ export default function UpdateGalleryModal({ isOpen, onClose, petId, images, onS
                                 <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <Trash2 size={24} />
                                 </div>
-                                <h4 className="text-lg font-bold text-gray-900 mb-2">Удалить это фото?</h4>
-                                <p className="text-sm text-gray-500 mb-6">Это действие нельзя будет отменить.</p>
+                                <h4 className="text-lg font-bold text-gray-900 mb-2">Delete this image?</h4>
+                                <p className="text-sm text-gray-500 mb-6">This action cannot be undone.</p>
                                 <div className="flex gap-3 justify-center">
                                     <button 
                                         onClick={() => setDeletingId(null)}
                                         className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
                                     >
-                                        Отмена
+                                        Cancel
                                     </button>
                                     <button 
                                         onClick={confirmDelete}
                                         className="px-4 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition shadow-lg shadow-red-200"
                                     >
-                                        Да, удалить
+                                        Yes, delete
                                     </button>
                                 </div>
                             </div>

@@ -96,7 +96,7 @@ export default function UserProfileModal({ isOpen, onClose, user }: UserProfileM
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
                                     isVet ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
                                 }`}>
-                                    {isVet ? 'Ветеринар' : 'Владелец'}
+                                    {isVet ? 'Vet' : 'Owner'}
                                 </span>
                                 {user.city && (
                                     <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -113,7 +113,7 @@ export default function UserProfileModal({ isOpen, onClose, user }: UserProfileM
                                 <Briefcase size={20} />
                             </div>
                             <div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Место работы</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Workplace</p>
                                 <p className="font-bold text-gray-800 text-sm">{user.clinic_name}</p>
                             </div>
                         </div>
@@ -127,7 +127,7 @@ export default function UserProfileModal({ isOpen, onClose, user }: UserProfileM
 
                     {/* ДИНАМИЧЕСКИЕ КОНТАКТЫ */}
                     <div className="mt-6 space-y-3">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Связь</h3>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Contact</h3>
 
                         {/* Если контактов ВООБЩЕ нет, показываем старые поля как fallback */}
                         {(!user.contacts || user.contacts.length === 0) && (
@@ -135,7 +135,7 @@ export default function UserProfileModal({ isOpen, onClose, user }: UserProfileM
                                 {user.phone && (
                                      <ContactRow 
                                         icon={<Phone size={18} />}
-                                        label="Телефон"
+                                        label="Phone"
                                         value={user.phone}
                                         type="phone"
                                         onCopy={() => copyToClipboard(user.phone!, 'phone')}
