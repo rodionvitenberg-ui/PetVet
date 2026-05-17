@@ -1,8 +1,9 @@
+import os
+import django
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from pets.models import Category, Tag, Attribute, EventType
-import os
-import django
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
