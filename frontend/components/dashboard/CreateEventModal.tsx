@@ -216,11 +216,21 @@ const handleSubmit = async (e: React.FormEvent) => {
         const token = localStorage.getItem('access_token');
 
         try {
-            // ШАГ 1: Создаем Событие (твоя логика с FormData сохранена)
+            // ШАГ 1: Создаем Событие
             const eventPayload = new FormData();
             if (!initialData) eventPayload.append('pet', petId.toString());
             eventPayload.append('event_type_id', selectedTypeId.toString());
-            eventPayload.append('status', formData.status);
+            
+            // --- НОВАЯ ЛОГИКА СТАТУСА ---
+            let calculatedStatus = formData.status;
+            if (!initialData) { // Вычисляем статус только для новых событий
+                const eventDate = new Date(formData.date);
+                const now = new Date();
+                calculatedStatus = eventDate > now ? 'planned' : 'completed';
+            }
+            eventPayload.append('status', calculatedStatus);
+            // ----------------------------
+
             eventPayload.append('title', formData.title);
             eventPayload.append('date', formData.date.replace('T', ' '));
             eventPayload.append('description', formData.description);

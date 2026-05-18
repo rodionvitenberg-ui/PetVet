@@ -1,20 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
-import NotificationSettingsModal from '@/components/notifications/NotificationsSettingsModal'; // Путь проверь
-import { useRouter } from 'next/navigation'; // <--- 1. Импорт роутера
+import { useRouter } from 'next/navigation'; 
+import NotificationSettingsModal from '@/components/notifications/NotificationsSettingsModal'; 
 import { 
     Bell, 
     Info, 
     AlertTriangle, 
     Calendar, 
     Stethoscope,
-    Loader2
+    Loader2,
+    Settings,
+    X // <--- Добавили иконку крестика для удаления
 } from 'lucide-react';
 
-
-// Типизация уведомления
 interface NotificationAction {
     label: string;
     style?: 'primary' | 'danger' | 'default';
@@ -32,14 +31,20 @@ interface Notification {
   linked_object?: { type: string; id: number };
   metadata?: { 
       actions?: NotificationAction[];
-      link?: string; // <--- 2. Добавили поле ссылки
+      link?: string; 
   };
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-export default function NotificationsDropdown() {
-  const router = useRouter(); // <--- Инициализация
+// Добавляем пропс onClose, чтобы родитель мог закрыть дропдаун, 
+// если он управляется состоянием снаружи
+interface NotificationsDropdownProps {
+    onClose?: () => void;
+}
+
+export default function NotificationsDropdown({ onClose }: NotificationsDropdownProps) {
+  const router = useRouter(); 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -55,8 +60,12 @@ export default function NotificationsDropdown() {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
+        
+        // --- 1. СОРТИРОВКА: Самые свежие (с бОльшим ID) выводим на самый верх ---
+        const sortedData = data.sort((a: Notification, b: Notification) => b.id - a.id);
+        
+        setNotifications(sortedData);
+        setUnreadCount(sortedData.filter((n: Notification) => !n.is_read).length);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -65,14 +74,12 @@ export default function NotificationsDropdown() {
 
   useEffect(() => {
     fetchNotifications();
-    // Поллинг (обновление списка раз в минуту)
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
 
   const markAsRead = async (id: number) => {
     const token = localStorage.getItem('access_token');
-    // Оптимистичное обновление UI
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
 
@@ -100,17 +107,67 @@ export default function NotificationsDropdown() {
       }
   };
 
-  // --- 3. Обработчик клика по уведомлению ---
+  // --- 2. ФУНКЦИЯ УДАЛЕНИЯ (УБРАТЬ УВЕДОМЛЕНИЕ) ---
+  const deleteNotification = async (id: number, e: React.MouseEvent) => {
+      e.stopPropagation(); // Чтобы не сработал клик по самому уведомлению
+      const token = localStorage.getItem('access_token');
+      
+      // Оптимистичное удаление из списка мгновенно
+      setNotifications(prev => {
+          const nextList = prev.filter(n => n.id !== id);
+          setUnreadCount(nextList.filter(n => !n.is_read).length);
+          return nextList;
+      });
+
+      try {
+          // Отправляем запрос на удаление в БД
+          await fetch(`${API_URL}/api/notifications/${id}/`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+          });
+      } catch (error) {
+          console.error("Error deleting notification:", error);
+      }
+  };
+
+  const getNotificationLink = (note: Notification): string | null => {
+      if (note.metadata?.link) {
+          return note.metadata.link;
+      }
+      
+      if (note.linked_object) {
+          const { type, id } = note.linked_object;
+          switch (type) {
+              case 'event':
+                  // Теперь ссылка ведет с конкретным параметром ?eventId=
+                  // Это заставит роутер сработать, даже если мы уже на /planboard
+                  return `/planboard?eventId=${id}`; 
+              case 'pet':
+                  return `/planboard/pets/${id}`;
+              case 'invoice':
+                  return `/billing/invoices/${id}`;
+              default:
+                  return null;
+          }
+      }
+      return null;
+  };
+
+  // --- 3. ОБРАБОТЧИК КЛИКА С ЗАКРЫТИЕМ ДРОПДАУНА ---
   const handleItemClick = (note: Notification) => {
-      // Сразу помечаем прочитанным
       if (!note.is_read) {
           markAsRead(note.id);
       }
 
-      // Если есть ссылка - переходим
-      if (note.metadata?.link) {
-          router.push(note.metadata.link);
+      const targetLink = getNotificationLink(note);
+      if (targetLink) {
+          router.push(targetLink);
       }
+
+      // Закрываем дропдаун
+      if (onClose) onClose();
+      // Хак на случай, если дропдаун слушает клики вне своей области (click outside)
+      document.body.click(); 
   };
 
   const getIcon = (cat: string) => {
@@ -137,14 +194,13 @@ export default function NotificationsDropdown() {
              Mark all as read
            </button>
         )}
-        {/* 3. ВОТ ЭТА КНОПКА (Шестеренка) */}
-             <button 
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition"
-                title="Notification Settings"
-             >
-                <Settings size={16} />
-             </button>
+        <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition"
+            title="Notification Settings"
+        >
+            <Settings size={16} />
+        </button>
       </div>
       
 
@@ -156,13 +212,13 @@ export default function NotificationsDropdown() {
             </div>
         ) : (
             notifications.map((note) => {
-              // Проверяем, кликабельно ли уведомление (есть ли ссылка)
-              const isClickable = !!note.metadata?.link;
+             const targetLink = getNotificationLink(note);
+             const isClickable = !!targetLink;
 
               return (
                 <div 
                   key={note.id} 
-                  onClick={() => handleItemClick(note)} // Вешаем обработчик на весь блок
+                  onClick={() => handleItemClick(note)} 
                   className={`
                     p-4 border-b border-gray-50 flex gap-3 group relative transition
                     ${!note.is_read ? 'bg-blue-50/40' : 'hover:bg-gray-50'}
@@ -179,26 +235,35 @@ export default function NotificationsDropdown() {
                               {note.title}
                           </p>
                           
-                          {/* Кнопка "прочитать" (кружочек) */}
-                          {!note.is_read && (
+                          {/* Панель кнопочек (Прочитано и Удалить) */}
+                          <div className="flex items-center gap-1">
+                              {!note.is_read && (
+                                  <button 
+                                      onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          markAsRead(note.id); 
+                                      }}
+                                      className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
+                                      title="Mark as read"
+                                  >
+                                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                  </button>
+                              )}
+                              
                               <button 
-                                  onClick={(e) => { 
-                                      e.stopPropagation(); // Чтобы не сработал переход по ссылке
-                                      markAsRead(note.id); 
-                                  }}
-                                  className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
-                                  title="Mark as read"
+                                  onClick={(e) => deleteNotification(note.id, e)}
+                                  className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1"
+                                  title="Delete notification"
                               >
-                                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                  <X size={14} />
                               </button>
-                          )}
+                          </div>
                       </div>
                       
                       <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-3">
                           {note.message}
                       </p>
                       
-                      {/* Если есть кнопки действий (пока редкость, но оставим) */}
                       {note.metadata?.actions && note.metadata.actions.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2 mb-1">
                               {note.metadata.actions.map((act, idx) => (

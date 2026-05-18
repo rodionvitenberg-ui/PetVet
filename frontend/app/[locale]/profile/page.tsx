@@ -26,10 +26,10 @@ const CONTACT_CONFIG: Record<string, { icon: React.ReactNode, label: string, col
     telegram: { icon: <Send size={16} />, label: 'Telegram', color: 'text-blue-500 bg-blue-50 border-blue-200' },
     instagram: { icon: <Instagram size={16} />, label: 'Instagram', color: 'text-pink-600 bg-pink-50 border-pink-200' },
     email: { icon: <Mail size={16} />, label: 'Email', color: 'text-gray-600 bg-gray-50 border-gray-200' },
-    site: { icon: <Globe size={16} />, label: 'Сайт', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+    site: { icon: <Globe size={16} />, label: 'Site', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
     vk: { icon: <span className="font-bold text-xs">VK</span>, label: 'VK', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-    phone: { icon: <Phone size={16} />, label: 'Телефон', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    other: { icon: <User size={16} />, label: 'Другое', color: 'text-gray-600 bg-gray-50 border-gray-200' },
+    phone: { icon: <Phone size={16} />, label: 'Phone', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+    other: { icon: <User size={16} />, label: 'Other', color: 'text-gray-600 bg-gray-50 border-gray-200' },
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -150,10 +150,10 @@ export default function ProfilePage() {
 
         if (passwords.password) {
             if (passwords.password !== passwords.confirm_password) {
-                throw new Error('Пароли не совпадают');
+                throw new Error('Passwords do not match');
             }
             if (passwords.password.length < 6) {
-                throw new Error('Пароль слишком короткий');
+                throw new Error('Password is too short');
             }
             payload.password = passwords.password;
         }
@@ -167,7 +167,7 @@ export default function ProfilePage() {
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error('Ошибка сохранения');
+        if (!res.ok) throw new Error('Failed to save profile');
 
         const updatedUser = await res.json();
         updateUser(updatedUser);
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                 
                 <div className="flex justify-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${user.is_veterinarian ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
-                        {user.is_veterinarian ? 'Ветеринар' : 'Владелец'}
+                        {user.is_veterinarian ? 'Veterinarian' : 'Owner'}
                     </span>
                     {user.is_veterinarian && (user as any).is_verified && (
                          <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-100">
@@ -453,9 +453,9 @@ export default function ProfilePage() {
             {/* СПИСОК КОНТАКТОВ */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Phone size={20} className="text-blue-500" /> Каналы связи
+                    <Phone size={20} className="text-blue-500" /> Contacts 
                 </h3>
-                <p className="text-sm text-gray-500 mb-6">Добавьте способы связи, чтобы {user.is_veterinarian ? 'владельцы' : 'врачи'} могли связаться с вами.</p>
+                <p className="text-sm text-gray-500 mb-6">Add contact methods so that {user.is_veterinarian ? 'owners' : 'veterinarians'} can reach you.</p>
 
                 {/* Рендер списка */}
                 <div className="space-y-3 mb-6">
@@ -463,7 +463,7 @@ export default function ProfilePage() {
                         <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-300" /></div>
                     ) : contacts.length === 0 ? (
                         <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-sm">
-                            Нет дополнительных контактов
+                            No additional contacts
                         </div>
                     ) : (
                         contacts.map(c => {
@@ -520,7 +520,7 @@ export default function ProfilePage() {
                         </select>
                         <input 
                             type="text" 
-                            placeholder="Номер или никнейм"
+                            placeholder="Number or username"
                             className="p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm sm:col-span-2"
                             value={newContact.value}
                             onChange={e => setNewContact({...newContact, value: e.target.value})}
@@ -529,7 +529,7 @@ export default function ProfilePage() {
                     <div className="flex gap-3">
                          <input 
                             type="text" 
-                            placeholder="Метка (например: Рабочий)"
+                            placeholder="Label (e.g., Work)"
                             className="flex-1 p-2.5 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-200 text-sm"
                             value={newContact.label}
                             onChange={e => setNewContact({...newContact, label: e.target.value})}
@@ -540,7 +540,7 @@ export default function ProfilePage() {
                             className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-black transition flex items-center gap-2 disabled:opacity-50"
                         >
                             {isAddingContact ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                            Добавить
+                            Add Contact
                         </button>
                     </div>
                 </div>
@@ -549,10 +549,10 @@ export default function ProfilePage() {
             {/* ОПАСНАЯ ЗОНА */}
             <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
                 <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
-                    <AlertTriangle size={20} /> Опасная зона
+                    <AlertTriangle size={20} /> Dangerous Zone
                 </h3>
                 <p className="text-sm text-red-700/80 mb-6 leading-relaxed">
-                    Удаление аккаунта приведет к полному стиранию всех ваших личных данных...
+                    Deleting your account will result in the complete removal of all your personal data...
                 </p>
 
                 <div className="flex justify-end">
@@ -561,7 +561,7 @@ export default function ProfilePage() {
                         className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition shadow-sm flex items-center gap-2"
                     >
                         <Trash2 size={18} />
-                        Удалить аккаунт
+                        Delete Account
                     </button>
                 </div>
             </div>

@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
                             <div className="flex items-center gap-3">
                                 {/* Плотность сетки */}
-                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                <div className="hidden sm:flex bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
                                     <button 
                                         onClick={() => setDensity('comfortable')}
                                         title="View as comfortable grid"

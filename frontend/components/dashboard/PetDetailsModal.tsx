@@ -146,14 +146,14 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
               headers: { 'Authorization': `Bearer ${token}` }
           });
           
-          if (!res.ok) throw new Error('Ошибка удаления');
+          if (!res.ok) throw new Error('Failed to delete pet');
 
           setIsDeleteModalOpen(false); // Закрываем модалку подтверждения
           onClose(); // Закрываем основное окно
           window.location.reload(); // Обновляем страницу (или вызываем коллбек родителя)
       } catch (error) {
           console.error(error);
-          alert("Не удалось удалить питомца.");
+          alert("Failed to delete pet.");
       } finally {
           setIsDeleting(false);
       }
@@ -247,7 +247,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-white">
                     <div className="flex flex-col items-center gap-3">
                         <Activity className="w-10 h-10 text-blue-500 animate-spin" />
-                        <p className="text-gray-400 font-medium">Загружаем анкету...</p>
+                        <p className="text-gray-400 font-medium">Loading profile...</p>
                     </div>
                 </div>
             )}
@@ -291,7 +291,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                         onClick={(e) => { e.stopPropagation(); setDisplayPetId(petId); }}
                         className="absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition flex items-center gap-2 text-sm font-bold pointer-events-auto"
                      >
-                        <ChevronLeft size={16} /> Назад
+                        <ChevronLeft size={16} /> Return
                      </button>
                 )}
 
@@ -336,7 +336,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                            <User size={12} className="text-white" />
                            )}
                          </div>
-                         <span className="text-white text-xs font-medium">Владелец: {pet.owner_info.name}</span>
+                         <span className="text-white text-xs font-medium">Owner: {pet.owner_info.name}</span>
                         </div>
                      )}
 
@@ -351,7 +351,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                         
                         <span className="flex items-center gap-1 opacity-80 text-xs">
                             <Calendar size={14} />
-                            {pet?.birth_date ? new Date(pet.birth_date).toLocaleDateString('ru-RU') : 'Дата скрыта'}
+                            {pet?.birth_date ? new Date(pet.birth_date).toLocaleDateString('ru-RU') : 'Date of Birth not specified'}
                         </span>
                     </div>
                 </div>
@@ -363,14 +363,14 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                     onClick={() => setActiveTab('info')} 
                     className={`flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'info' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    Анкета
+                    Profile
                     {activeTab === 'info' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
                 </button>
                 <button 
                     onClick={() => setActiveTab('medical')} 
                     className={`flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'medical' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    Медкарта
+                    Medical Record
                     {activeTab === 'medical' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
                 </button>
             </div>
@@ -404,7 +404,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
                             {/* АТРИБУТЫ */}
                             <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Характеристики</h3>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Character</h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     {pet.attributes?.map((attr, idx) => (
                                         <InfoCard 
@@ -478,10 +478,10 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                             {/* КНОПКИ ДЕЙСТВИЙ */}
                             <div className="pt-35 mt-8 border-t border-gray-100 space-y-2">
                                 <button onClick={() => setIsGalleryOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                    <ImageIcon size={18} /> ОБНОВИТЬ ГАЛЕРЕЮ
+                                    <ImageIcon size={18} /> Update Gallery
                                 </button>
                                 <button onClick={() => setIsEditOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                    <Edit2 size={18} /> РЕДАКТИРОВАТЬ ПРОФИЛЬ
+                                    <Edit2 size={18} /> Edit Profile
                                 </button>
                                                                 {isClient && pet && (
                                   <PDFDownloadLink
@@ -491,15 +491,15 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                      >
                                      {({ loading }) => (
                                      loading 
-                                     ? 'Генерация документа...' 
-                                     : <><FileDown size={18} /> СКАЧАТЬ PDF-ПАСПОРТ ({locale.toUpperCase()})</>
+                                     ? 'Generating document...' 
+                                     : <><FileDown size={18} /> DOWNLOAD PDF PASSPORT ({locale.toUpperCase()})</>
                                      )}
                                   </PDFDownloadLink>
                                 )}
                                 {/* Кнопка открывает модалку DeletePetModal */}
                                 {canDelete && (
                                     <button onClick={handleDeleteClick} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                                        <Trash2 size={18} /> УДАЛИТЬ ПРОФИЛЬ ПИТОМЦА
+                                        <Trash2 size={18} /> DELETE PET PROFILE
                                     </button>
                                 )}
                             </div>
@@ -511,7 +511,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                              
                             {/* БЛОК КЛИНИКИ / ВРАЧЕЙ */}
                             <div className="mb-4">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Прикрепление</h3>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Attached Vets</h3>
 
                                 {pet.active_vets && pet.active_vets.length > 0 ? (
                                     <div className="space-y-2">
@@ -529,7 +529,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                     )}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-[10px] uppercase font-bold text-emerald-600/70 tracking-wider">Лечащий врач</p>
+                                                    <p className="text-[10px] uppercase font-bold text-emerald-600/70 tracking-wider">Treating Veterinarian</p>
                                                     <p className="font-bold text-gray-900 text-sm">{vet.name}</p>
                                                     {vet.clinic_name && <p className="text-xs text-gray-500">{vet.clinic_name}</p>}
                                                 </div>
@@ -539,7 +539,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            alert('Функция отзыва в разработке');
+                                                            alert('');
                                                         }}
                                                     >
                                                         <Trash2 size={16} />
@@ -551,8 +551,8 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                 ) : (
                                     <InfoCard 
                                         icon={<Activity className="text-red-500" size={18} />} 
-                                        label="Ветеринарная клиника" 
-                                        value={pet.clinic_name || 'Не прикреплен'} 
+                                        label="Veterinary Clinic" 
+                                        value={pet.clinic_name || 'Not Attached'} 
                                     />
                                 )}
                             </div>
@@ -561,13 +561,13 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
 
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">История событий</h3>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Event History</h3>
                                     <button 
                                         onClick={openCreateHealthEvent}
                                         className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                                     >
                                         <Plus size={14} />
-                                        Добавить запись
+                                        Add Event
                                     </button>
                                 </div>
 
@@ -576,7 +576,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                             <FileText className="w-6 h-6 text-gray-400" />
                                         </div>
-                                        <p className="text-gray-500 font-medium text-sm">Нет записей</p>
+                                        <p className="text-gray-500 font-medium text-sm">No recent events</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -586,7 +586,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                 <button 
                                                     onClick={() => openEditHealthEvent(event)}
                                                     className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10"
-                                                    title="Редактировать запись"
+                                                    title="Edit Record"
                                                 >
                                                     <Edit2 size={14} />
                                                 </button>
@@ -631,7 +631,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                                             ) : (
                                                                                 <>
                                                                                     <User size={12} />
-                                                                                    <span>Владелец</span>
+                                                                                    <span>Owner</span>
                                                                                 </>
                                                                             )}
                                                                         </span>
@@ -670,7 +670,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
                                                                     className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-md text-[10px] font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition border border-gray-200"
                                                                 >
                                                                     <Paperclip size={12} />
-                                                                    Файл
+                                                                    File
                                                                 </a>
                                                             ))}
                                                         </div>
