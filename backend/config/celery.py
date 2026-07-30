@@ -16,13 +16,12 @@ app.autodiscover_tasks()
 # Планировщик лучше (но не обязательно) вынести в settings.py, 
 # но если он тут — убедись, что таск 'notifications.tasks.send_scheduled_reminders' реально существует.
 app.conf.beat_schedule = {
-    'send-reminders-every-hour': {
-        'task': 'notifications.tasks.send_scheduled_reminders',
+    # 1. Email reminders: check every hour for due dates in 1, 3, 7 days
+    'send-reminder-emails-hourly': {
+        'task': 'notifications.tasks.send_reminder_emails',
         'schedule': 3600.0,
     },
-}
 
-app.conf.beat_schedule = {
     # 1. "Гибкие напоминания": Запускаем каждую минуту.
     # Так мы поймаем и тех, кто хочет за 15 мин, и тех, кто за 24 часа.
     'check-flexible-reminders-every-minute': {

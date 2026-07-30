@@ -1,4 +1,3 @@
-import google.generativeai as genai
 from rest_framework import viewsets, status, parsers, permissions, mixins
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -6,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import ValidationError
-from .services import build_pet_profile_prompt
 from django.db.models import Q, Case, When, IntegerField, Count
 from django.db import connection
 from django.core import signing
@@ -24,7 +22,6 @@ from .serializers import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PetFilter
-from .services import build_pet_profile_prompt
 
 def normalize_search_text(text):
     if not text:
@@ -87,7 +84,8 @@ class PetViewSet(viewsets.ModelViewSet):
         return Pet.objects.filter(
             Q(owner=user) | 
             Q(access_grants__user=user, access_grants__is_active=True) |
-            Q(created_by=user, owner__isnull=True) # <--- Теневые карты врача
+            Q(created_by=user, owner__isnull=True) | # <--- Теневые карты врача
+            Q(clinic__memberships__user=user)        # <--- Все пациенты клиники
         ).filter(is_active=True).distinct()\
             .select_related('owner', 'mother', 'father') \
             .prefetch_related(
@@ -110,9 +108,15 @@ class PetViewSet(viewsets.ModelViewSet):
                 is_shadow_create = True
         
         if is_shadow_create:
+            # Find user's clinic for auto-assignment
+            from vetclinics.models import ClinicMember
+            clinic_member = ClinicMember.objects.filter(
+                user=user
+            ).select_related('clinic').first()
             serializer.save(
                 owner=None,   
-                created_by=user 
+                created_by=user,
+                clinic=clinic_member.clinic if clinic_member else None,
             )
         else:
             serializer.save(owner=user)
@@ -127,7 +131,7 @@ class PetViewSet(viewsets.ModelViewSet):
         pet = self.get_object()
         
         if pet.owner != request.user and pet.created_by != request.user:
-            return Response({"error": "Только владелец может делиться доступом"}, status=403)
+            return Response({"error": "Only the owner can share access"}, status=403)
         
         # Подписываем ID питомца. Токен будет валиден, пока мы его проверяем (например, 1 час).
         # Формат данных: "pet_share:<pet_id>"
@@ -146,7 +150,7 @@ class PetViewSet(viewsets.ModelViewSet):
         """
         token = request.data.get('token')
         if not token:
-            return Response({"error": "Токен не предоставлен"}, status=400)
+            return Response({"error": "No token provided"}, status=400)
         
         signer = signing.TimestampSigner()
         try:
@@ -161,15 +165,15 @@ class PetViewSet(viewsets.ModelViewSet):
             pet = Pet.objects.get(id=pet_id)
             
         except signing.SignatureExpired:
-            return Response({"error": "Срок действия QR-кода истек. Попросите новый."}, status=400)
+            return Response({"error": "QR code has expired. Please request a new one."}, status=400)
         except (signing.BadSignature, ValueError):
-            return Response({"error": "Некорректный QR-код"}, status=400)
+            return Response({"error": "Invalid QR code"}, status=400)
         except Pet.DoesNotExist:
-            return Response({"error": "Питомец не найден"}, status=404)
+            return Response({"error": "Pet not found"}, status=404)
 
         # Защита от самого себя
         if pet.owner == request.user:
-            return Response({"message": "Вы уже владелец этого питомца"}, status=200)
+            return Response({"message": "You are already the owner of this pet"}, status=200)
 
         # Выдаем доступ (или обновляем существующий)
         PetAccess.objects.update_or_create(
@@ -185,7 +189,7 @@ class PetViewSet(viewsets.ModelViewSet):
             "status": "success", 
             "pet_id": pet.id, 
             "pet_name": pet.name,
-            "message": "Доступ успешно получен"
+            "message": "Access granted successfully"
         })
 
     # ... (Остальные методы: feed, upload_image остаются без изменений) ...
@@ -241,7 +245,37 @@ class EventTypeViewSet(viewsets.ModelViewSet):
         ).order_by('category', 'name')
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        event = serializer.save(created_by=self.request.user)
+
+        # Auto-create Reminder for medical/recurring events
+        if event.next_date and event.status in ('planned',):
+            from notifications.models import Reminder
+            from datetime import date as dt_date
+
+            # Map event category to reminder event_type
+            category_map = {
+                'medical': 'checkup',
+                'care': 'grooming',
+                'reproduction': 'reproduction',
+            }
+            reminder_type = category_map.get(event.event_type.category, 'other')
+
+            # Determine the user to notify
+            notify_user = event.pet.owner
+            if not notify_user and event.pet.created_by:
+                notify_user = event.pet.created_by
+
+            if notify_user:
+                Reminder.objects.create(
+                    user=notify_user,
+                    pet=event.pet,
+                    event_type=reminder_type,
+                    title=event.title,
+                    due_date=event.next_date.date(),
+                    is_recurring=True,
+                    interval_days=None,
+                    created_by_event=event,
+                )
 
 
 # 2. Обновленный ViewSet для событий
@@ -422,98 +456,6 @@ class TagViewSet(viewsets.ModelViewSet): # <--- Стало ModelViewSet (теп�
             is_universal=False # Пользовательские теги по умолчанию не универсальны (хотя можно разрешить)
         )
 
-class AIConsultView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        pet_id = request.data.get('pet_id')
-        query = request.data.get('query')
-
-        if not pet_id or not query:
-            return Response({'error': 'pet_id and query are required'}, status=400)
-
-        # === [FIX] ИСПРАВЛЕННАЯ ПРОВЕРКА ДОСТУПА ===
-        # Проверяем права так же, как в PetViewSet:
-        # 1. Владелец
-        # 2. Есть активный доступ (shared access)
-        # 3. Создатель "теневой" карты (без владельца)
-        has_access = Pet.objects.filter(id=pet_id).filter(
-            Q(owner=request.user) | 
-            Q(access_grants__user=request.user, access_grants__is_active=True) |
-            Q(created_by=request.user, owner__isnull=True)
-        ).exists()
-
-        if not has_access:
-             return Response({'error': 'Access denied'}, status=403)
-
-        # Сборка контекста
-        pet_profile_text = build_pet_profile_prompt(pet_id)
-        if not pet_profile_text:
-            return Response({'error': 'Pet not found'}, status=404)
-
-        # Настройка Gemini
-        if not settings.GEMINI_API_KEY:
-             return Response({'error': 'Server config error: No AI Key'}, status=500)
-             
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        
-        # Инициализируем модель с настройкой JSON Mode
-        model = genai.GenerativeModel(
-            'gemini-2.0-flash', # Рекомендую 2.0-flash, она быстрее и стабильнее с JSON
-            generation_config={"response_mime_type": "application/json"} 
-        )
-
-        final_prompt = f"""
-Ты — опытный ветеринарный ментор. Твоя задача — не просто отправить в клинику, а помочь владельцу понять ПРИЧИНУ поведения.
-
-=== ПАЦИЕНТ ===
-{pet_profile_text}
-
-=== ЖАЛОБА ВЛАДЕЛЬЦА ===
-"{query}"
-
-=== ИНСТРУКЦИЯ ДЛЯ AI ===
-1. Сначала проанализируй возраст, пол и СТАТУС КАСТРАЦИИ. 
-   - Если животное молодое и не кастрировано -> С высокой вероятностью рассмотри половое поведение (течка, гон), особенно если жалобы на "беспокойство", "крики", "попытки убежать".
-2. Если симптомы похожи на половую охоту, поставь urgency: "low" или "medium" (это не смертельно) и успокой владельца.
-3. Рассмотри медицинские причины (боль, инфекция), но сравни их вероятность с поведенческими.
-4. Избегай канцелярских отписок ("Обратитесь к врачу"). Дай конкретные гипотезы.
-
-=== ФОРМАТ ОТВЕТА (JSON) ===
-Ответь ТОЛЬКО валидным JSON.
-{{
-  "urgency": "low" | "medium" | "high", 
-  "title": "Короткий заголовок",
-  "content": "Текст ответа. Использйте переносы строки \\n для форматирования."
-}}
-"""
-
-        try:
-            response = model.generate_content(final_prompt)
-            raw_text = response.text
-
-            # Regex поиск JSON на случай, если модель добавит markdown ```json ... ```
-            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-            
-            if match:
-                json_str = match.group(0)
-                ai_data = json.loads(json_str)
-                return Response(ai_data)
-            else:
-                ai_data = json.loads(raw_text)
-                return Response(ai_data)
-
-        except json.JSONDecodeError:
-            print(f"JSON Parse Error. Raw text was: {raw_text}") 
-            return Response({
-                'urgency': 'medium',
-                'title': 'Ошибка обработки',
-                'content': "Нейросеть ответила, но формат нарушен. Попробуйте еще раз."
-            })
-        except Exception as e:
-            print(f"GenAI Error: {e}")
-            return Response({'error': str(e)}, status=500)
-        
 class PetImageViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
     """
     Специальный ViewSet для удаления фотографий.

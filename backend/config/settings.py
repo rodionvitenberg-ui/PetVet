@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'breeding',
     'billing',
     'common',
+    'ai',
+    'vetclinics',
 ]
 
 MIDDLEWARE = [
@@ -235,7 +237,6 @@ USE_I18N = True
 USE_L10N = True
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -279,6 +280,13 @@ JAZZMIN_UI_TWEAKS = {
 
 # === EMAIL SETTINGS ===
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+# Demo login: when True, /api/auth/demo-login/ is active
+ENABLE_DEMO_LOGIN = os.getenv('ENABLE_DEMO_LOGIN', 'False') == 'True'
+
+# === AI ASSISTANT (DeepSeek) ===
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY', '')
+DEEPSEEK_MODEL = os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
 
 # Проверяем, задан ли пароль в .env. Если да — используем SMTP.
 if os.getenv('EMAIL_HOST_PASSWORD'):

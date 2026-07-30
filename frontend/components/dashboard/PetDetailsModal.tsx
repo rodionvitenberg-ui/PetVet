@@ -2,708 +2,208 @@
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PetPassportDocument } from '@/components/pdf/PetPassportDocument';
 import { useTranslations, useLocale } from 'next-intl';
-import { FileDown } from 'lucide-react';
+import { FileDown, Activity, ChevronLeft } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Activity, FileText, ChevronLeft, ChevronRight, ImageIcon, Calendar, Trash2, Edit2, Plus, Paperclip, User, Stethoscope, PawPrint
-} from 'lucide-react';
-import EditPetModal from './EditPetModal'; 
-import UpdateGalleryModal from './UpdateGalleryModal'; 
+import EditPetModal from './EditPetModal';
+import UpdateGalleryModal from './UpdateGalleryModal';
 import CreateEventModal from './CreateEventModal';
 import { useAuth } from '@/components/providers/AuthProvider';
 import UserProfileModal from './UserProfileModal';
-import DeletePetModal from './DeletePetModal'; 
-
-import { PetDetail, UserProfile, PetTag } from '@/types/pet'; 
+import DeletePetModal from './DeletePetModal';
+import { PetDetail, UserProfile } from '@/types/pet';
 import { PetEvent } from '@/types/event';
+import { getMediaUrl } from './PetDetailUtils';
+import PetPhotoCarousel from './PetPhotoCarousel';
+import PetInfoTab from './PetInfoTab';
+import PetMedicalTab from './PetMedicalTab';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-const getMediaUrl = (url: string | undefined | null) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    return `${API_URL}${url}`;
-};
-
-const formatDateTime = (isoString: string) => {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    return d.toLocaleString('ru-RU', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-    });
-};
-
 export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: number | null, isOpen: boolean, onClose: () => void }) {
-  const { user: currentUser } = useAuth(); 
+  const { user: currentUser } = useAuth();
   const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
-
   const [pet, setPet] = useState<PetDetail | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'medical'>('info');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-  
-  // States for Modals
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
-  
-  // [NEW] Состояние для модалки удаления
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
   const [editingEvent, setEditingEvent] = useState<PetEvent | null>(null);
-  
   const [displayPetId, setDisplayPetId] = useState<number | null>(null);
   const t = useTranslations('Passport');
   const locale = useLocale();
-
-  const isOwner = currentUser && pet && (
-    Number(currentUser.id) === Number(pet.owner) || 
-    Number(currentUser.id) === Number(pet.created_by)
-  );
-
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const [swipeStart, setSwipeStart] = useState<number | null>(null);
 
-  // Универсальный обработчик начала нажатия (мышь или палец)
+  useEffect(() => { setIsClient(true); }, []);
+
+  const isOwner = currentUser && pet && (
+    Number(currentUser.id) === Number(pet.owner) || Number(currentUser.id) === Number(pet.created_by)
+  );
+
   const handleSwipeStart = (e: React.TouchEvent | React.MouseEvent) => {
-      const x = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-      setSwipeStart(x);
+    const x = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    setSwipeStart(x);
   };
 
-  // Универсальный обработчик конца нажатия
   const handleSwipeEnd = (e: React.TouchEvent | React.MouseEvent) => {
-      if (swipeStart === null) return;
-      
-      const x = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
-      const diff = swipeStart - x;
-
-      const threshold = 50; // Минимальное расстояние для свайпа (пиксели)
-
-      if (diff > threshold) {
-          nextImage(); // Свайп влево -> Следующее фото
-      } else if (diff < -threshold) {
-          prevImage(); // Свайп вправо -> Предыдущее фото
-      }
-      
-      setSwipeStart(null);
+    if (swipeStart === null) return;
+    const x = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
+    const diff = swipeStart - x;
+    if (diff > 50) nextImage();
+    else if (diff < -50) prevImage();
+    setSwipeStart(null);
   };
 
   useEffect(() => {
-      if (isOpen && petId) {
-          setDisplayPetId(petId);
-      }
+    if (isOpen && petId) setDisplayPetId(petId);
   }, [isOpen, petId]);
 
   const fetchPetData = () => {
-      if (!displayPetId) return;
-      setLoading(true);
-      const token = localStorage.getItem('access_token');
-      
-      fetch(`${API_URL}/api/pets/${displayPetId}/`, {
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          }
-      })
-      .then(res => {
-          if (!res.ok) throw new Error(res.statusText);
-          return res.json();
-      })
-      .then(data => {
-          setPet(data);
-          setCurrentImageIndex(0);
-      })
-      .catch(err => console.error("Ошибка загрузки:", err))
+    if (!displayPetId) return;
+    setLoading(true);
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_URL}/api/pets/${displayPetId}/`, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+    })
+      .then(res => { if (!res.ok) throw new Error(res.statusText); return res.json(); })
+      .then(data => { setPet(data); setCurrentImageIndex(0); })
+      .catch(err => console.error("Error loading pet:", err))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    if (isOpen && displayPetId) {
-      setPet(null);
-      fetchPetData();
-    }
-  }, [isOpen, displayPetId]); 
+    if (isOpen && displayPetId) { setPet(null); fetchPetData(); }
+  }, [isOpen, displayPetId]);
 
-  // [LOGIC UPDATE] Просто открывает модалку
-  const handleDeleteClick = () => {
-      setIsDeleteModalOpen(true);
-  };
+  const handleDeleteClick = () => setIsDeleteModalOpen(true);
 
-  // [LOGIC UPDATE] Реальное удаление (вызывается из модалки)
   const confirmDelete = async () => {
-      if (!pet) return;
-      setIsDeleting(true);
-      try {
-          const token = localStorage.getItem('access_token');
-          const res = await fetch(`${API_URL}/api/pets/${pet.id}/`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (!res.ok) throw new Error('Failed to delete pet');
-
-          setIsDeleteModalOpen(false); // Закрываем модалку подтверждения
-          onClose(); // Закрываем основное окно
-          window.location.reload(); // Обновляем страницу (или вызываем коллбек родителя)
-      } catch (error) {
-          console.error(error);
-          alert("Failed to delete pet.");
-      } finally {
-          setIsDeleting(false);
-      }
+    if (!pet) return;
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_URL}/api/pets/${pet.id}/`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete pet');
+      setIsDeleteModalOpen(false);
+      onClose();
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete pet.");
+    } finally { setIsDeleting(false); }
   };
 
-  const openCreateHealthEvent = () => {
-      setEditingEvent(null); 
-      setIsHealthModalOpen(true);
-  };
-
-  const openEditHealthEvent = (event: PetEvent) => {
-      setEditingEvent(event); 
-      setIsHealthModalOpen(true);
-  };
+  const openCreateHealthEvent = () => { setEditingEvent(null); setIsHealthModalOpen(true); };
+  const openEditHealthEvent = (event: PetEvent) => { setEditingEvent(event); setIsHealthModalOpen(true); };
 
   if (!isOpen) return null;
 
   const isLoadingState = loading || !pet;
   const allImages = pet?.images?.map(img => img.image) || [];
-  
-  const nextImage = () => {
-      if (allImages.length === 0) return;
-      setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  };
-  
-  const prevImage = () => {
-       if (allImages.length === 0) return;
-      setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
-  };
-
-  const handleParentClick = (id: number) => {
-      setDisplayPetId(id);
-      setActiveTab('info');
-  };
-
+  const nextImage = () => { if (allImages.length > 0) setCurrentImageIndex((prev) => (prev + 1) % allImages.length); };
+  const prevImage = () => { if (allImages.length > 0) setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length); };
+  const handleParentClick = (id: number) => { setDisplayPetId(id); setActiveTab('info'); };
   const canDelete = currentUser && pet && (currentUser.id === pet.owner || currentUser.id === pet.created_by);
 
   return (
     <>
-        {pet && (
-            <>
-                {/* [FIX] Оборачиваем в условия, чтобы они не рендерились поверх основного окна */}
-                {isEditOpen && (
-                    <EditPetModal 
-                        isOpen={isEditOpen} 
-                        onClose={() => setIsEditOpen(false)}
-                        pet={pet as PetDetail}
-                        onSuccess={fetchPetData} 
-                    />
-                )}
-                
-                {isGalleryOpen && (
-                    <UpdateGalleryModal 
-                        isOpen={isGalleryOpen} 
-                        onClose={() => setIsGalleryOpen(false)}
-                        petId={pet.id}
-                        images={pet.images || []}
-                        onSuccess={fetchPetData} 
-                    />
-                )}
+      {pet && (
+        <>
+          {isEditOpen && <EditPetModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} pet={pet as PetDetail} onSuccess={fetchPetData} />}
+          {isGalleryOpen && <UpdateGalleryModal isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} petId={pet.id} images={pet.images || []} onSuccess={fetchPetData} />}
+          {isHealthModalOpen && <CreateEventModal isOpen={isHealthModalOpen} onClose={() => setIsHealthModalOpen(false)} petId={pet.id} onSuccess={fetchPetData} initialData={editingEvent} />}
+          {isDeleteModalOpen && <DeletePetModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDelete} petName={pet.name} isDeleting={isDeleting} />}
+        </>
+      )}
 
-                {isHealthModalOpen && (
-                    <CreateEventModal
-                        isOpen={isHealthModalOpen}
-                        onClose={() => setIsHealthModalOpen(false)}
-                        petId={pet.id}
-                        onSuccess={fetchPetData}
-                        initialData={editingEvent} 
-                    />
-                )}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
+        <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          
+          {isLoadingState && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white">
+              <div className="flex flex-col items-center gap-3">
+                <Activity className="w-10 h-10 text-blue-500 animate-spin" />
+                <p className="text-gray-400 font-medium">Loading profile...</p>
+              </div>
+            </div>
+          )}
 
-                {isDeleteModalOpen && (
-                    <DeletePetModal
-                        isOpen={isDeleteModalOpen}
-                        onClose={() => setIsDeleteModalOpen(false)}
-                        onConfirm={confirmDelete}
-                        petName={pet.name}
-                        isDeleting={isDeleting}
-                    />
-                )}
-            </>
-        )}
+          <PetPhotoCarousel
+            images={allImages}
+            currentIndex={currentImageIndex}
+            petName={pet?.name || ''}
+            petOwnerName={pet?.owner_info && !pet.owner_info.is_temporary ? pet.owner_info.name : undefined}
+            petOwnerAvatar={pet?.owner_info?.avatar || null}
+            petGender={pet?.gender}
+            petBreed={pet?.breed}
+            petBirthDate={pet?.birth_date}
+            onClose={onClose}
+            onOwnerClick={pet?.owner_info && !pet.owner_info.is_temporary ? () => setSelectedUserProfile(pet?.owner_info as UserProfile) : undefined}
+            onSwipeStart={handleSwipeStart}
+            onSwipeEnd={handleSwipeEnd}
+          />
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
-
-          <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            
-            {/* ЛОАДЕР */}
-            {isLoadingState && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white">
-                    <div className="flex flex-col items-center gap-3">
-                        <Activity className="w-10 h-10 text-blue-500 animate-spin" />
-                        <p className="text-gray-400 font-medium">Loading profile...</p>
-                    </div>
-                </div>
-            )}
-
-            {/* ХЕДЕР С ГАЛЕРЕЕЙ */}
-            <div 
-                className="relative h-64 bg-gray-900 shrink-0 group cursor-grab active:cursor-grabbing select-none touch-pan-y"
-                // Вешаем обработчики сюда:
-                onTouchStart={handleSwipeStart}
-                onTouchEnd={handleSwipeEnd}
-                onMouseDown={handleSwipeStart}
-                onMouseUp={handleSwipeEnd}
-                onMouseLeave={() => setSwipeStart(null)} // Сброс, если увели мышь за пределы
+          {petId !== displayPetId && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setDisplayPetId(petId); }}
+              className="cursor-pointer absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full z-40 transition flex items-center gap-2 text-sm font-bold pointer-events-auto"
             >
-                {allImages.length > 0 ? (
-                    <>
-                        <div 
-                            className="absolute inset-0 opacity-30 blur-xl scale-110 pointer-events-none"
-                            style={{ backgroundImage: `url(${getMediaUrl(allImages[currentImageIndex])})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                        />
-                        <img 
-                            key={currentImageIndex}
-                            src={getMediaUrl(allImages[currentImageIndex]) || ''} 
-                            alt={pet?.name} 
-                            // draggable={false} ОБЯЗАТЕЛЬНО для работы свайпа мышкой на десктопе
-                            draggable={false} 
-                            className="relative w-full h-full object-cover z-10 transition-all duration-300" 
-                        />
-                    </>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-600 z-10 relative bg-gray-100">
-                        <ImageIcon size={48} opacity={0.5} />
-                    </div>
-                )}
+              <ChevronLeft size={16} /> Return
+            </button>
+          )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-20 pointer-events-none" />
+          <div className="flex border-b border-gray-100 bg-white z-10 shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); setActiveTab('info'); }}
+              className={`cursor-pointer flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'info' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
+              Profile
+              {activeTab === 'info' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setActiveTab('medical'); }}
+              className={`cursor-pointer flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'medical' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
+              Medical Record
+              {activeTab === 'medical' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
+            </button>
+          </div>
 
-                {/* Кнопка Назад (остается без изменений) */}
-                {petId !== displayPetId && (
-                     <button 
-                        onClick={(e) => { e.stopPropagation(); setDisplayPetId(petId); }}
-                        className="absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition flex items-center gap-2 text-sm font-bold pointer-events-auto"
-                     >
-                        <ChevronLeft size={16} /> Return
-                     </button>
-                )}
-
-                {/* Кнопка Закрыть (остается без изменений) */}
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition pointer-events-auto">
-                    <X size={20} />
-                </button>
-
-                {/* [ИЗМЕНЕНИЕ] КНОПКИ УДАЛЕНЫ ПОЛНОСТЬЮ */}
-                
-                {/* Индикаторы (точки) - оставляем, чтобы видеть прогресс */}
-                {allImages.length > 1 && (
-                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-none">
-                        {allImages.map((_, idx) => (
-                            <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white w-3' : 'bg-white/50'}`} />
-                        ))}
-                    </div>
-                )}
-
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md z-40 transition">
-                    <X size={20} />
-                </button>
-                
-                <div className="absolute bottom-0 left-0 right-0 p-6 z-30">
-                    <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-                        {pet?.name}
-                        {pet?.gender === 'F' 
-                            ? <span className="w-6 h-6 rounded-full bg-pink-500/80 flex items-center justify-center text-white text-xs border border-white/20">♀</span> 
-                            : <span className="w-6 h-6 rounded-full bg-blue-500/80 flex items-center justify-center text-white text-xs border border-white/20">♂</span>
-                        }
-                    </h2>
-                    
-                    {pet?.owner_info && !pet.owner_info.is_temporary && (
-                        <div 
-                         onClick={() => setSelectedUserProfile(pet?.owner_info as UserProfile)}
-                         className="mt-2 inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-colors border border-white/10"
-                         >
-                          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                           {pet.owner_info.avatar ? (
-                          <img src={getMediaUrl(pet.owner_info.avatar)!} className="w-full h-full object-cover" />
-                           ) : (
-                           <User size={12} className="text-white" />
-                           )}
-                         </div>
-                         <span className="text-white text-xs font-medium">Owner: {pet.owner_info.name}</span>
-                        </div>
-                     )}
-
-                    <div className="flex flex-wrap items-center gap-3 text-white/90 text-sm mt-2 font-medium">
-                        {/* ПОРОДА */}
-                        {pet?.breed && (
-                             <span className="bg-white/10 px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1 border border-white/10">
-                                <PawPrint size={14} className="opacity-80"/>
-                                {pet.breed}
-                             </span>
-                        )}
-                        
-                        <span className="flex items-center gap-1 opacity-80 text-xs">
-                            <Calendar size={14} />
-                            {pet?.birth_date ? new Date(pet.birth_date).toLocaleDateString('ru-RU') : 'Date of Birth not specified'}
-                        </span>
-                    </div>
+          <div className="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
+            <div className="max-w-xl mx-auto space-y-8">
+              {pet && (
+                <div className={activeTab === 'info' ? '' : 'hidden'}>
+                  <PetInfoTab
+                    pet={pet}
+                    isClient={isClient}
+                    canDelete={!!canDelete}
+                    onOpenGallery={() => setIsGalleryOpen(true)}
+                    onOpenEdit={() => setIsEditOpen(true)}
+                    onOpenDelete={handleDeleteClick}
+                    onParentClick={handleParentClick}
+                    onOwnerClick={() => setSelectedUserProfile(pet?.owner_info as UserProfile)}
+                  />
                 </div>
-            </div>
-
-            {/* ТАБЫ */}
-            <div className="flex border-b border-gray-100 bg-white z-10 shrink-0">
-                <button 
-                    onClick={() => setActiveTab('info')} 
-                    className={`flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'info' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                    Profile
-                    {activeTab === 'info' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('medical')} 
-                    className={`flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'medical' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                    Medical Record
-                    {activeTab === 'medical' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
-                </button>
-            </div>
-
-            {/* КОНТЕНТ */}
-            <div className="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
-                <div className="max-w-xl mx-auto space-y-8">
-                    
-                    {pet && activeTab === 'info' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            {/* ТЕГИ */}
-                            {pet.tags && pet.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {pet.tags.map((tag, index) => (
-                                        <span 
-                                            key={tag.id || index}
-                                            className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-bold text-gray-700 flex items-center gap-2 border border-gray-100 shadow-sm"
-                                        >
-                                            {tag.icon && <img src={getMediaUrl(tag.icon)!} className="w-4 h-4 object-contain" alt="" />}
-                                            {tag.name}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                             {pet.description && (
-                                <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-700 leading-relaxed border border-gray-100">
-                                    {pet.description}
-                                </div>
-                            )}
-
-                            {/* АТРИБУТЫ */}
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Character</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {pet.attributes?.map((attr, idx) => (
-                                        <InfoCard 
-                                            key={idx}
-                                            icon={
-                                                attr.attribute.icon 
-                                                ? <img src={getMediaUrl(attr.attribute.icon)!} className="w-5 h-5 object-contain" alt="" /> 
-                                                : <FileText size={18} className="text-gray-400" />
-                                            } 
-                                            label={attr.attribute.name} 
-                                            value={attr.value} 
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* РОДИТЕЛИ */}
-                            {(pet.mother_info || pet.father_info) && (
-                                <div className="pt-4 border-t border-gray-100">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Родители</h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {pet.mother_info ? (
-                                            <div 
-                                                onClick={() => handleParentClick(pet.mother_info!.id)}
-                                                className="flex items-center gap-3 p-3 bg-pink-50/50 hover:bg-pink-50 rounded-2xl border border-pink-100 cursor-pointer transition-colors group"
-                                            >
-                                                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0 border border-pink-200 overflow-hidden">
-                                                     {pet.mother_info.image ? (
-                                                         <img src={getMediaUrl(pet.mother_info.image)!} className="w-full h-full object-cover" alt="" />
-                                                     ) : (
-                                                         <span className="text-pink-500 font-bold text-lg">♀</span>
-                                                     )}
-                                                </div>
-                                                <div className="overflow-hidden">
-                                                    <p className="text-[10px] text-pink-400 font-bold uppercase truncate">Мама</p>
-                                                    <p className="font-bold text-gray-800 text-sm truncate group-hover:text-pink-700 transition-colors">
-                                                        {pet.mother_info.name}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">Мама не указана</div>
-                                        )}
-                                        
-                                        {pet.father_info ? (
-                                            <div 
-                                                onClick={() => handleParentClick(pet.father_info!.id)}
-                                                className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 rounded-2xl border border-blue-100 cursor-pointer transition-colors group"
-                                            >
-                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 overflow-hidden">
-                                                    {pet.father_info.image ? (
-                                                         <img src={getMediaUrl(pet.father_info.image)!} className="w-full h-full object-cover" alt="" />
-                                                     ) : (
-                                                         <span className="text-blue-500 font-bold text-lg">♂</span>
-                                                     )}
-                                                </div>
-                                                <div className="overflow-hidden">
-                                                    <p className="text-[10px] text-blue-400 font-bold uppercase truncate">Папа</p>
-                                                    <p className="font-bold text-gray-800 text-sm truncate group-hover:text-blue-700 transition-colors">
-                                                        {pet.father_info.name}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">Папа не указан</div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* КНОПКИ ДЕЙСТВИЙ */}
-                            <div className="pt-35 mt-8 border-t border-gray-100 space-y-2">
-                                <button onClick={() => setIsGalleryOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                    <ImageIcon size={18} /> Update Gallery
-                                </button>
-                                <button onClick={() => setIsEditOpen(true)} className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                    <Edit2 size={18} /> Edit Profile
-                                </button>
-                                                                {isClient && pet && (
-                                  <PDFDownloadLink
-                                     document={<PetPassportDocument pet={pet} t={t} locale={locale} />}
-                                     fileName={`Passport_${pet.name}.pdf`}
-                                     className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
-                                     >
-                                     {({ loading }) => (
-                                     loading 
-                                     ? 'Generating document...' 
-                                     : <><FileDown size={18} /> DOWNLOAD PDF PASSPORT ({locale.toUpperCase()})</>
-                                     )}
-                                  </PDFDownloadLink>
-                                )}
-                                {/* Кнопка открывает модалку DeletePetModal */}
-                                {canDelete && (
-                                    <button onClick={handleDeleteClick} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                                        <Trash2 size={18} /> DELETE PET PROFILE
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {pet && activeTab === 'medical' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                             
-                            {/* БЛОК КЛИНИКИ / ВРАЧЕЙ */}
-                            <div className="mb-4">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Attached Vets</h3>
-
-                                {pet.active_vets && pet.active_vets.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {pet.active_vets.map(vet => (
-                                            <div 
-                                                key={vet.id}
-                                                onClick={() => setSelectedUserProfile(vet)}
-                                                className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3 cursor-pointer hover:bg-emerald-100 transition-colors group"
-                                            >
-                                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200">
-                                                    {vet.avatar ? (
-                                                        <img src={getMediaUrl(vet.avatar)!} className="w-full h-full rounded-full object-cover" />
-                                                    ) : (
-                                                        <Stethoscope size={18} />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="text-[10px] uppercase font-bold text-emerald-600/70 tracking-wider">Treating Veterinarian</p>
-                                                    <p className="font-bold text-gray-900 text-sm">{vet.name}</p>
-                                                    {vet.clinic_name && <p className="text-xs text-gray-500">{vet.clinic_name}</p>}
-                                                </div>
-
-                                                {!currentUser?.is_veterinarian && (
-                                                    <button 
-                                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            alert('');
-                                                        }}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <InfoCard 
-                                        icon={<Activity className="text-red-500" size={18} />} 
-                                        label="Veterinary Clinic" 
-                                        value={pet.clinic_name || 'Not Attached'} 
-                                    />
-                                )}
-                            </div>
-
-                            {/* [UPDATE] Блок статуса здоровья УДАЛЕН */}
-
-                            <div>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Event History</h3>
-                                    <button 
-                                        onClick={openCreateHealthEvent}
-                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                                    >
-                                        <Plus size={14} />
-                                        Add Event
-                                    </button>
-                                </div>
-
-                                {(!pet.recent_events || pet.recent_events.length === 0) ? (
-                                    <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <FileText className="w-6 h-6 text-gray-400" />
-                                        </div>
-                                        <p className="text-gray-500 font-medium text-sm">No recent events</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {pet.recent_events?.map((event) => (
-                                            <div key={event.id} className="group relative flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all">
-                                                
-                                                <button 
-                                                    onClick={() => openEditHealthEvent(event)}
-                                                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10"
-                                                    title="Edit Record"
-                                                >
-                                                    <Edit2 size={14} />
-                                                </button>
-
-                                                {/* ИКОНКА СОБЫТИЯ */}
-                                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center border ${
-                                                    event.status === 'completed' ? 'bg-white border-green-200 text-green-600' :
-                                                    event.status === 'planned' ? 'bg-white border-blue-200 text-blue-500' :
-                                                    'bg-gray-100 border-gray-200 text-gray-400'
-                                                }`}>
-                                                    {event.event_type?.icon ? (
-                                                        <img src={getMediaUrl(event.event_type.icon)!} className="w-5 h-5 object-contain" alt="" />
-                                                    ) : (
-                                                        <Activity size={18} />
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0 pr-6">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <h4 className="font-bold text-gray-900 truncate pr-2 text-sm">
-                                                                {event.title}
-                                                            </h4>
-                                                            
-                                                            {/* === ОТОБРАЖЕНИЕ АВТОРА / КЛИНИКИ === */}
-                                                            <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-1 font-medium items-center">
-                                                                <span className="bg-white border border-gray-200 px-1.5 py-0.5 rounded">
-                                                                    {event.event_type?.name} 
-                                                                </span>
-                                                                
-                                                                {event.created_by_info && (
-                                                                    <>
-                                                                        <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                                                        <span className="flex items-center gap-1">
-                                                                            {event.created_by_info.is_vet ? (
-                                                                                <>
-                                                                                    <Stethoscope size={12} className="text-blue-500" />
-                                                                                    <span className="text-blue-600 font-bold">
-                                                                                        {event.created_by_info.clinic_name || 'Врач'}
-                                                                                    </span>
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <User size={12} />
-                                                                                    <span>Owner</span>
-                                                                                </>
-                                                                            )}
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* ДАТА И СТАТУС */}
-                                                        <div className="text-right shrink-0">
-                                                            <p className="text-xs font-bold text-gray-900">
-                                                                {formatDateTime(event.date)}
-                                                            </p>
-                                                            {event.next_date && (
-                                                                <p className="text-[10px] text-blue-600 font-bold mt-0.5">
-                                                                    → {new Date(event.next_date).toLocaleDateString()}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {event.description && (
-                                                        <p className="text-xs text-gray-600 mt-2 line-clamp-2 bg-white p-2 rounded-lg border border-gray-100">
-                                                            {event.description}
-                                                        </p>
-                                                    )}
-
-                                                    {event.attachments && event.attachments.length > 0 && (
-                                                        <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-100/50">
-                                                            {event.attachments?.map(att => (
-                                                                <a 
-                                                                    key={att.id} 
-                                                                    href={getMediaUrl(att.file)!} 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer"
-                                                                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-md text-[10px] font-bold text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition border border-gray-200"
-                                                                >
-                                                                    <Paperclip size={12} />
-                                                                    File
-                                                                </a>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+              )}
+              {pet && (
+                <div className={activeTab === 'medical' ? '' : 'hidden'}>
+                  <PetMedicalTab
+                    pet={pet}
+                    currentUser={currentUser}
+                    onOpenCreateEvent={openCreateHealthEvent}
+                    onOpenEditEvent={openEditHealthEvent}
+                    onVetClick={(vet) => setSelectedUserProfile(vet)}
+                  />
                 </div>
+              )}
             </div>
           </div>
         </div>
-        <UserProfileModal 
-             isOpen={!!selectedUserProfile}
-             onClose={() => setSelectedUserProfile(null)}
-             user={selectedUserProfile}
-         />
+      </div>
+      <UserProfileModal isOpen={!!selectedUserProfile} onClose={() => setSelectedUserProfile(null)} user={selectedUserProfile} />
     </>
   );
 }
-
-const InfoCard = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
-    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3 hover:border-blue-100 transition-colors">
-        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden p-2 text-gray-600">
-            {icon}
-        </div>
-        <div className="overflow-hidden">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider truncate mb-0.5">{label}</p>
-            <p className="font-bold text-gray-900 truncate text-sm">{value}</p>
-        </div>
-    </div>
-);

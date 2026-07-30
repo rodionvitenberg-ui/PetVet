@@ -60,11 +60,11 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 bg-gray-100 w-full z-50 border-b border-gray-200 h-20">
-      <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between text-[#222222]">
+    <header className="fixed top-0 bg-background w-full z-50 border-b border-border h-16 md:h-20">
+      <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between text-foreground">
         
         {/* 1. ЛЕВАЯ ЧАСТЬ (Логотип + Текст снизу) */}
-        <div className="flex items-center flex-1 select-none">
+        <Link href="/" className="flex items-center flex-1 select-none">
            <div className="flex flex-col items-center justify-center leading-none">
               <Image 
                 src="/logo1.png" 
@@ -75,7 +75,7 @@ export default function Header() {
                 priority
               />
            </div>
-        </div>
+        </Link>
 
         {/* 2. ЦЕНТР (Навигация) */}
         <div className="hidden md:flex items-center justify-center h-full gap-8">
@@ -85,8 +85,8 @@ export default function Header() {
             className={`
               h-full flex items-center gap-2 px-1 relative transition-all cursor-pointer group
               ${isActive('/') 
-                ? 'text-black opacity-100 border-b-2 border-black' 
-                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+                ? 'text-foreground opacity-100 border-b-2 border-foreground' 
+                : 'text-muted-foreground hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
             `}
           >
@@ -101,8 +101,8 @@ export default function Header() {
             className={`
               h-full flex items-center gap-2 px-1 relative transition-all cursor-pointer group
               ${isActive('/dashboard') 
-                ? 'text-black opacity-100 border-b-2 border-black' 
-                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+                ? 'text-foreground opacity-100 border-b-2 border-foreground' 
+                : 'text-muted-foreground hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
             `}
           >
@@ -117,8 +117,8 @@ export default function Header() {
             className={`
               h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
               ${isActive('/planboard') 
-                ? 'text-black opacity-100 border-b-2 border-black' 
-                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+                ? 'text-foreground opacity-100 border-b-2 border-foreground' 
+                : 'text-muted-foreground hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
             `}
           >
@@ -134,8 +134,8 @@ export default function Header() {
             className={`
               h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
               ${isActive('/calendar') 
-                ? 'text-black opacity-100 border-b-2 border-black' 
-                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+                ? 'text-foreground opacity-100 border-b-2 border-foreground' 
+                : 'text-muted-foreground hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
             `}
           >
@@ -151,8 +151,8 @@ export default function Header() {
             className={`
               h-full flex items-center gap-2 px-1 relative group transition-all cursor-pointer
               ${isActive('/find-vet') 
-                ? 'text-black opacity-100 border-b-2 border-black' 
-                : 'text-gray-500 hover:opacity-100 hover:text-primary border-b-2 border-transparent'
+                ? 'text-foreground opacity-100 border-b-2 border-foreground' 
+                : 'text-muted-foreground hover:opacity-100 hover:text-primary border-b-2 border-transparent'
               }
             `}
           >
@@ -175,8 +175,8 @@ export default function Header() {
                   className={`
                     p-2 rounded-full transition duration-200 flex items-center justify-center outline-none relative
                     ${isActive('/dashboard/messages')
-                        ? 'text-primary bg-gray-100'
-                        : 'text-gray-600 hover:text-primary hover:bg-gray-100'
+                        ? 'text-primary bg-muted'
+                        : 'text-muted-foreground hover:text-primary hover:bg-muted'
                     }
                   `}
                 >
@@ -189,7 +189,7 @@ export default function Header() {
 
                    {/* Счетчик сообщений (Badge) */}
                    {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white ring-2 ring-white">
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white ring-2 ring-background">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                    )}
@@ -203,8 +203,8 @@ export default function Header() {
                     className={`
                         p-2 rounded-full transition duration-200 flex items-center justify-center outline-none
                         ${activeMenu === 'notifications' 
-                            ? 'text-primary bg-gray-100' 
-                            : 'text-gray-600 hover:text-primary hover:bg-gray-100'
+                            ? 'text-primary bg-muted' 
+                            : 'text-muted-foreground hover:text-primary hover:bg-muted'
                         }
                     `}
                     >
@@ -220,8 +220,8 @@ export default function Header() {
                 </div>
               </div>
             ) : (
-              <button className="hover:bg-gray-300 p-2 rounded-full transition cursor-pointer">
-                <Globe size={18} className="text-black" />
+              <button className="hover:bg-muted p-2 rounded-full transition cursor-pointer">
+                <Globe size={18} className="text-foreground" />
               </button>
             )}
 
@@ -232,7 +232,7 @@ export default function Header() {
               flex items-center justify-center border rounded-full p-2.5 transition cursor-pointer ml-1 bg-white outline-none
               ${activeMenu === 'burger' 
                   ? 'border-primary shadow-md text-primary' 
-                  : 'border-gray-300 hover:shadow-md text-black'
+                  : 'border-border hover:shadow-md text-foreground'
               }
             `}
           >
@@ -241,14 +241,14 @@ export default function Header() {
 
           {/* Выпадающее Бургер-меню */}
           {activeMenu === 'burger' && (
-            <div className="absolute top-full right-0 mt-2 w-[320px] bg-white rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.15)] border border-gray-100 py-2 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 text-left origin-top-right">
+            <div className="absolute top-full right-0 mt-2 w-[320px] bg-background rounded-xl shadow-[0_6px_20px_rgba(0,0,0,0.15)] border border-border py-2 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 text-left origin-top-right">
               
               {!isAuth ? (
                 <>
                   <Link 
                     href="/login" 
                     onClick={closeMenu}
-                    className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition"
+                    className="block px-4 py-3 text-sm font-bold text-foreground hover:bg-muted transition"
                   >
                     {t('login_signup')}
                   </Link>
@@ -258,14 +258,14 @@ export default function Header() {
                    <Link 
                     href="/profile" 
                     onClick={closeMenu}
-                    className="block px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-100 transition"
+                    className="block px-4 py-3 text-sm font-bold text-foreground hover:bg-muted transition"
                    >
                     {t('profile')}
                   </Link>
                   <Link 
                     href="/pets/create" 
                     onClick={closeMenu}
-                    className="block px-4 py-3 text-sm font-normal text-gray-600 hover:bg-gray-100 transition border-b border-gray-100"
+                    className="block px-4 py-3 text-sm font-normal text-muted-foreground hover:bg-muted transition border-b border-border"
                   >
                     {t('add_pet')}
                   </Link>
@@ -276,16 +276,16 @@ export default function Header() {
                 <Link 
                     href="/become-vet" 
                     onClick={closeMenu}
-                    className="block px-4 py-3 hover:bg-gray-100 transition group"
+                    className="block px-4 py-3 hover:bg-muted transition group"
                 >
                    <div className="flex justify-between items-start gap-3">
                       <div>
-                        <div className="text-sm font-bold text-gray-800 mb-0.5">{t('become_vet')}</div>
-                        <div className="text-xs text-gray-500 font-normal leading-snug">
+                        <div className="text-sm font-bold text-foreground mb-0.5">{t('become_vet')}</div>
+                        <div className="text-xs text-muted-foreground font-normal leading-snug">
                             {t('become_vet_desc')}
                         </div>
                       </div>
-                      <div className="text-gray-500 group-hover:text-primary transition flex-shrink-0">
+                      <div className="text-muted-foreground group-hover:text-primary transition flex-shrink-0">
                         <StethoscopeIcon size={28} />
                       </div>
                    </div>
@@ -293,13 +293,13 @@ export default function Header() {
               </div>
 
               {/* Мобильное меню */}
-              <div className="md:hidden border-t border-gray-100 py-2">
+              <div className="md:hidden border-t border-border py-2">
                   <Link 
                     href="/" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                   >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         <HomeIcon size={24} />
                     </div>
                     <span>{t('home')}</span>
@@ -307,9 +307,9 @@ export default function Header() {
                  <Link 
                     href="/dashboard" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                  >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         <BoneIcon size={24} />
                     </div>
                     <span>{t('dashboard')}</span>
@@ -317,9 +317,9 @@ export default function Header() {
                  <Link 
                     href="/planboard" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                  >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         <BookTextIcon size={24} />
                     </div>
                     <span>{t('calendar')}</span>
@@ -329,9 +329,9 @@ export default function Header() {
                  <Link 
                     href="/calendar" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                  >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         <CalendarDaysIcon size={24} />
                     </div>
                     <span>{t('calendar_days')}</span>
@@ -340,9 +340,9 @@ export default function Header() {
                  <Link 
                     href="/find-vet" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                  >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         <MapPinIcon size={24} />
                     </div>
                     <span>{t('find_doctor')}</span>
@@ -350,9 +350,9 @@ export default function Header() {
                  <Link 
                     href="/dashboard/messages" 
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition text-sm text-gray-700 group"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition text-sm text-muted-foreground group"
                  >
-                    <div className="text-gray-500 group-hover:text-primary transition">
+                    <div className="text-muted-foreground group-hover:text-primary transition">
                         {/* Иконка в мобильном меню, тоже динамическая */}
                         {unreadCount > 0 ? <MessageCircleMoreIcon size={24}/> : <MessageCircleIcon size={24} />}
                     </div>
@@ -363,11 +363,11 @@ export default function Header() {
                  </Link>
               </div>
 
-              <div className="border-t border-gray-100 py-2">
+              <div className="border-t border-border py-2">
                 <Link 
                     href="/help" 
                     onClick={closeMenu}
-                    className="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 transition"
+                    className="block px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition"
                 >
                   {t('help_center')}
                 </Link>
@@ -377,7 +377,7 @@ export default function Header() {
                             closeMenu();
                             logout();
                         }}
-                        className="block w-full text-left px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 transition"
+                        className="block w-full text-left px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition"
                     >
                     {t('logout')}
                     </button>

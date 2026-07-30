@@ -5,6 +5,7 @@ from .views import (
     ActivateAccountView,
     UserMeView, 
     GoogleLoginView, 
+    DemoLoginView,
     UserContactViewSet, 
     VerificationViewSet
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     path('activate/', ActivateAccountView.as_view(), name='auth_activate'),
     path('google/', GoogleLoginView.as_view(), name='auth_google'),
     path('me/', UserMeView.as_view(), name='user_me'),
+    path('demo-login/', DemoLoginView.as_view(), name='auth_demo_login'),
     
     path('', include(router.urls)),
 ]

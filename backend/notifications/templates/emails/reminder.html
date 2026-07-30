@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .header { background: #FFCBA4; padding: 24px 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 20px; color: #1a1a1a; }
+    .body { padding: 32px; }
+    .pet-name { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+    .event-details { background: #f8f9fa; border-radius: 12px; padding: 16px; margin: 16px 0; }
+    .event-details p { margin: 4px 0; font-size: 14px; color: #555; }
+    .event-details strong { color: #1a1a1a; }
+    .cta { display: block; background: #1a1a1a; color: #fff; text-align: center; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; margin-top: 24px; }
+    .footer { text-align: center; padding: 24px; font-size: 12px; color: #999; border-top: 1px solid #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🐾 PetVet Reminder</h1>
+    </div>
+    <div class="body">
+      <p style="font-size: 14px; color: #555; margin: 0 0 16px 0;">
+        Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+      </p>
+      <p style="font-size: 14px; color: #555; margin: 0 0 8px 0;">
+        {% if days_before == 1 %}
+          Tomorrow
+        {% elif days_before == 3 %}
+          In 3 days
+        {% else %}
+          In {{ days_before }} days
+        {% endif %}
+        is the scheduled date for:
+      </p>
+
+      <div class="event-details">
+        <p class="pet-name">{{ pet.name }}</p>
+        <p><strong>{{ reminder.title }}</strong></p>
+        <p>📅 <strong>Date:</strong> {{ reminder.due_date }}</p>
+        <p>🏷 <strong>Type:</strong> {{ reminder.get_event_type_display }}</p>
+      </div>
+
+      <p style="font-size: 14px; color: #777; margin: 16px 0 0 0;">
+        View your pet's health card to see full details and history.
+      </p>
+
+      <a href="{{ frontend_url }}/dashboard?pet={{ pet.id }}" class="cta">
+        Open Pet Card →
+      </a>
+    </div>
+    <div class="footer">
+      You received this email because you have a reminder set for {{ pet.name }} on PetVet.<br>
+      Manage your notification settings in your profile.
+    </div>
+  </div>
+</body>
+</html>

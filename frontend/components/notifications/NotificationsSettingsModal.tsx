@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Bell, Volume2, Smartphone, Monitor, Activity, Heart, ShieldCheck, Check } from 'lucide-react';
+import { X, Bell, Volume2, Smartphone, Monitor, Mail, Activity, Heart, ShieldCheck, Check } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -104,6 +104,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Props) {
                         <div className="space-y-2">
                             <Toggle label="Browser (Pop-ups)" icon={Monitor} field="browser_enabled" />
                             <Toggle label="Mobile Push" icon={Smartphone} field="push_enabled" />
+                            <Toggle label="Email" icon={Mail} field="email_enabled" />
                             <Toggle label="Sound" icon={Volume2} field="sound_enabled" />
                         </div>
                     </section>
@@ -127,11 +128,14 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Props) {
                             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100"
                         >
                             <option value={15}>15 minutes before</option>
-                            <option value={30}>30 minutes before</option>
                             <option value={60}>1 hour before</option>
-                            <option value={120}>2 hours before</option>
-                            <option value={1440}>24 hours before</option>
+                            <option value={1440}>1 day before</option>
+                            <option value={4320}>3 days before</option>
+                            <option value={10080}>7 days before</option>
                         </select>
+                        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                            For recurring events like vaccinations, you'll receive reminders by email and in-app at the selected time.
+                        </p>
                     </section>
                 </div>
 

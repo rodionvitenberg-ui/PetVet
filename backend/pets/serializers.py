@@ -34,18 +34,14 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ['id', 'name', 'slug', 'target_gender', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom']
-        # [FIX] Делаем поля необязательными при входе
         read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom', 'sort_order']
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
 
     def validate(self, attrs):
-        # [FIX] Авто-генерация слага
-        if 'name' in attrs and not self.instance: # Только при создании
-             # Генерируем временный слаг, если его нет в запросе
+        if 'name' in attrs and not self.instance:
              base_slug = custom_slugify(attrs['name'])
-             # Добавляем хвост для уникальности кастомных тегов
              attrs['slug'] = f"{base_slug}-{str(uuid.uuid4())[:4]}"
         return attrs
 
@@ -55,14 +51,12 @@ class AttributeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attribute
         fields = ['id', 'name', 'slug', 'unit', 'sort_order', 'icon', 'is_universal', 'created_by', 'is_custom', 'attr_type', 'options']
-        # [FIX] Read-only поля
         read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom', 'sort_order']
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
 
     def validate(self, attrs):
-        # [FIX] Авто-генерация слага
         if 'name' in attrs and not self.instance:
              base_slug = custom_slugify(attrs['name'])
              attrs['slug'] = f"{base_slug}-{str(uuid.uuid4())[:4]}"
@@ -92,7 +86,7 @@ class EventTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventType
         fields = ['id', 'name', 'slug', 'category', 'icon', 'default_schema', 'is_universal', 'is_custom']
-        read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom'] # Тоже защитим
+        read_only_fields = ['slug', 'created_by', 'is_universal', 'is_custom']
 
     def get_is_custom(self, obj):
         return obj.created_by is not None
@@ -105,7 +99,6 @@ class PetEventAttachmentSerializer(serializers.ModelSerializer):
 
 
 class PetEventSerializer(serializers.ModelSerializer):
-    # Разворачиваем тип события при чтении, принимаем ID при записи
     event_type = EventTypeSerializer(read_only=True)
     event_type_id = serializers.PrimaryKeyRelatedField(
         queryset=EventType.objects.all(), 
@@ -133,8 +126,8 @@ class PetEventSerializer(serializers.ModelSerializer):
     
     def get_created_by_info(self, obj):
         """
-        Возвращает данные того, кто создал запись.
-        Если это врач - возвращает название клиники.
+        Returns info about the user who created this record.
+        If it's a vet, includes the clinic name.
         """
         user = obj.created_by
         if not user:
@@ -142,16 +135,13 @@ class PetEventSerializer(serializers.ModelSerializer):
             
         return {
             "id": user.id,
-            # Собираем полное имя или ник
             "name": f"{user.first_name} {user.last_name}".strip() or user.username,
             "is_vet": user.is_veterinarian,
-            # [ВАЖНО] Если это врач, берем название клиники из его профиля
             "clinic_name": user.clinic_name if user.is_veterinarian else None,
             "avatar": user.avatar.url if user.avatar else None
         }
 
     def get_pet_info(self, obj):
-        # Если питомец есть - возвращаем краткую инфу
         if obj.pet:
             return {
                 "id": obj.pet.id,
@@ -163,9 +153,8 @@ class PetEventSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Гарантируем целостность данных.
+        Ensure data integrity.
         """
-        # Если это частичное обновление (PATCH), берем недостающие данные из instance
         pet = data.get('pet')
         guest_name = data.get('guest_name')
         
@@ -173,11 +162,9 @@ class PetEventSerializer(serializers.ModelSerializer):
             if 'pet' not in data: pet = self.instance.pet
             if 'guest_name' not in data: guest_name = self.instance.guest_name
 
-        # Правило: Либо привязка к питомцу, либо Имя гостя.
-        # Пустое событие создавать нельзя.
         if not pet and not guest_name:
              raise serializers.ValidationError(
-                "Событие должно быть привязано к Питомцу или содержать Имя клиента."
+                "Event must be linked to a Pet or include a Client name."
             )
         
         return data
@@ -221,7 +208,7 @@ class PetSerializer(serializers.ModelSerializer):
     father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
     age = serializers.SerializerMethodField()
-    recent_events = PetEventSerializer(source='events', many=True, read_only=True) # [FIX] Используем правильный класс
+    recent_events = PetEventSerializer(source='events', many=True, read_only=True)
 
     owner_info = serializers.SerializerMethodField()
     active_vets = serializers.SerializerMethodField()
@@ -230,6 +217,7 @@ class PetSerializer(serializers.ModelSerializer):
     breed = serializers.SerializerMethodField()
 
     temp_owner_phone = serializers.CharField(write_only=True, required=False)
+    clinic = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Pet
@@ -240,7 +228,7 @@ class PetSerializer(serializers.ModelSerializer):
             'categories', 'attributes', 'tags',
             'is_public', 
             'is_active', 'images', 'recent_events', 'created_at',
-            'clinic_name',
+            'clinic_name', 'clinic',
             'temp_owner_name', 'temp_owner_phone', 'created_by', 'species', 'breed',
         ]
         read_only_fields = ['created_by']
@@ -260,12 +248,12 @@ class PetSerializer(serializers.ModelSerializer):
        elif obj.temp_owner_name or obj.temp_owner_phone:
             return {
                 "id": None,
-                "name": obj.temp_owner_name or "Клиент (Без имени)",
+                "name": obj.temp_owner_name or "Client (No name)",
                 "email": None,
                 "phone": obj.temp_owner_phone,
                 "telegram": None,
                 "avatar": None, 
-                "about": "Профиль еще не создан",
+                "about": "Profile not yet created",
                 "is_temporary": True
             }
        return None
@@ -277,12 +265,11 @@ class PetSerializer(serializers.ModelSerializer):
         years = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
         if years == 0:
             months = (today.year - obj.birth_date.year) * 12 + today.month - obj.birth_date.month
-            return f"{months} мес."
-        return f"{years} лет"
+            return f"{months} mo"
+        return f"{years} yr"
 
     def get_recent_events(self, obj):
         events = obj.events.all()[:5]
-        # [FIX] Исправлено имя класса сериализатора (было HealthEventSerializer)
         return PetEventSerializer(events, many=True, context=self.context).data
 
     def to_representation(self, instance):
@@ -317,7 +304,6 @@ class PetSerializer(serializers.ModelSerializer):
         categories = validated_data.pop('categories', [])
         tags = validated_data.pop('tags', [])
         
-        # Получаем пользователя из контекста запроса (если он не передан явно)
         if 'created_by' not in validated_data and self.context.get('request'):
             validated_data['created_by'] = self.context['request'].user
         
@@ -395,16 +381,16 @@ class PetSerializer(serializers.ModelSerializer):
 
         if self.instance:
             if mother == self.instance:
-                errors['mother'] = "Питомец не может быть своей собственной матерью."
+                errors['mother'] = "A pet cannot be its own mother."
             if father == self.instance:
-                errors['father'] = "Питомец не может быть своим собственным отцом."
+                errors['father'] = "A pet cannot be its own father."
 
         if birth_date:
             if mother and mother.birth_date and mother.birth_date >= birth_date:
-                errors['mother'] = f"Ошибка хронологии: Мать ({mother.name}) моложе ребенка."
+                errors['mother'] = f"Chronology error: Mother ({mother.name}) is younger than the child."
             
             if father and father.birth_date and father.birth_date >= birth_date:
-                errors['father'] = f"Ошибка хронологии: Отец ({father.name}) моложе ребенка."
+                errors['father'] = f"Chronology error: Father ({father.name}) is younger than the child."
 
         if errors:
             raise serializers.ValidationError(errors)

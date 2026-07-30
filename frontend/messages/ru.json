@@ -37,75 +37,31 @@
     "messages": "Сообщения",
     "calendar_days": "Календарь"
  },
-"AboutProject": {
+ "AboutProject": {
+    "title": "Цифровая жизнь вашего питомца — в одном месте",
+    "subtitle": "Всё необходимое для здоровья, организации и связи с лучшими ветеринарами.",
     "archive_title": "Цифровой архив",
-    "archive_desc": "Забудьте о потерянных справках. Храните анализы, прививки и назначения врача в облаке.",
+    "archive_desc": "Забудьте о потерянных справках. Храните анализы, прививки и назначения в облаке — доступно всегда и везде.",
     "passport_title": "PDF-паспорт",
-    "passport_desc": "Генерируйте полный отчет о здоровье питомца одним кликом. Идеально для путешествий.",
+    "passport_desc": "Сформируйте полный отчёт о здоровье питомца одним кликом. Идеально для путешествий, передержки или визита к врачу за границей.",
     "security_title": "Полный контроль",
-    "security_desc": "Вы сами решаете, кому предоставить доступ к данным питомца: врачу, родственнику или зооняне."
+    "security_desc": "Вы сами решаете, кому открыть доступ к данным питомца: врачу, родственнику или зооняне. Поделиться — одним QR-кодом."
   },
   "ForVeterinarians": {
     "title": "Вы ветеринарный врач?",
     "description": "Присоединяйтесь к платформе, подтвердите квалификацию и получите удобные инструменты для ведения пациентов. Забудьте о бумажной волоките.",
-    "button": "Стать партнером"
+    "button": "Стать ветеринаром"
   },
-    "Footer": {
-    "title": "careyour.pet",
-    "description": "Современная платформа для заботы о здоровье ваших питомцев.",
+  "Footer": {
+    "description": "Современная платформа для владельцев питомцев и ветеринаров. Цифровые паспорта, медицинские карты и умные инструменты заботы.",
     "platform": "Платформа",
-    "perscab": "Личный кабинет",
-    "findvet": "Найти ветеринара",
+    "perscab": "Мои питомцы",
+    "findvet": "Найти врача",
     "forspec": "Специалистам",
-    "rulinf": "Правовая информация",
+    "rulinf": "Информация",
     "policyconf": "Политика конфиденциальности",
     "uslisp": "Условия использования",
     "contacts": "Контакты",
-    "pravzash": "careyour.pet. Все права защищены."
-  },
-      "BeVet": {
-    "bever": "Пройти верификацию",
-    "verdesc": "Для доступа к функциям врача нам необходимо подтвердить вашу квалификацию.",
-    "down": "Что загружать?",
-    "photo": "Фотографию или скан диплома о ветеринарном образовании. Ваше имя в профиле должно совпадать с именем в документе.",
-    "photo2": "Нажмите для загрузки фото",
-    "photo3": "JPG, PNG до 5MB",
-    "taptochange": "Нажмите, чтобы изменить",
-    "ver": "Отправить на проверку",
-    "ver1": "Заявка на проверке",
-    "ver2": "Мы проверяем ваши документы. Обычно это занимает до 24 часов. Вам придет уведомление о решении.",
-    "ver4": "Вы верифицированы!",
-    "ver5": "Ваш статус подтвержден.",
-    "rettocab": "Перейти в кабинет",
-    "gtfo": "Заявка отклонена!",
-    "gtfo2": "К сожалению, мы не смогли подтвердить ваш статус.",
-    "gtfo3": "Причина:",
-    "gtfo4": "Попробовать снова"
-  },
-  "FindVet": {
-    "downmap": "Загружаем карту...",
-    "verdesc": "Найти ветеринара",
-    "down": "Показываем ближайшие клиники."
-  },
-  "Login": {
-    "bever": "Get Verified",
-    "verdesc": "To access veterinary features, we need to verify your qualifications.",
-    "down": "What to upload?",
-    "photo": "A photo or scan of your veterinary diploma. The name in your profile must match the name on the document.",
-    "photo2": "Click to upload photo",
-    "photo3": "JPG, PNG up to 5MB",
-    "taptochange": "Click to change",
-    "ver": "Submit for review",
-    "ver1": "Application under review",
-    "ver2": "We are reviewing your documents. This usually takes up to 24 hours. You will receive a notification regarding the decision.",
-    "ver4": "You are verified!",
-    "ver5": "Your status is confirmed.",
-    "rettocab": "Go to Dashboard",
-    "gtfo": "Application rejected",
-    "gtfo2": "Unfortunately, we could not verify your status.",
-    "gtfo3": "Reason:",
-    "gtfo4": "Try again"
+    "pravzash": "Все права защищены."
   }
-
-
 }

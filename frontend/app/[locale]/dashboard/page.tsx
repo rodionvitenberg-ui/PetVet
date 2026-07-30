@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link'; // [UPD] Добавлен Link для навигации
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Users, PawPrint, LayoutGrid, Grid3x3, BookText } from 'lucide-react'; // [UPD] Добавлена иконка BookText
+import { Users, PawPrint, LayoutGrid, Grid3x3, BookText, CalendarCheck } from 'lucide-react';
 import PetCard from '@/components/dashboard/PetCard';
 import CreatePetModal from '@/components/dashboard/CreatePetModal';
 import CreatePatientModal from '@/components/dashboard/CreatePatientModal';
@@ -31,7 +31,7 @@ export default function DashboardPage() {
     const [isCreatePatientModalOpen, setIsCreatePatientModalOpen] = useState(false);
     const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'my' | 'patients'>('my');
+    const [viewMode, setViewMode] = useState<'my' | 'patients' | 'today'>('my');
 
     // === НОВОЕ СОСТОЯНИЕ: Плотность сетки ===
     const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
@@ -67,7 +67,22 @@ export default function DashboardPage() {
 
     const myPets = pets.filter(p => p.owner === user?.id);
     const patients = pets.filter(p => p.owner !== user?.id);
-    const displayedPets = viewMode === 'my' ? myPets : patients;
+    
+    // Today: patients with events scheduled for today
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayPets = pets.filter(p => 
+        (p as any).recent_events?.some((ev: any) => 
+            ev.date?.startsWith(todayStr) && ev.status === 'planned'
+        )
+    );
+    
+    const displayedPets = viewMode === 'my' ? myPets : viewMode === 'today' ? todayPets : patients;
+    
+    // Stats
+    const activeCount = pets.filter(p => p.is_active).length;
+    const todayEventsCount = pets.reduce((sum, p) => 
+        sum + ((p as any).recent_events?.filter((ev: any) => ev.date?.startsWith(todayStr)).length || 0), 0
+    );
     
     const hasFilters = searchParams.toString().length > 0;
 
@@ -102,7 +117,7 @@ export default function DashboardPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">
-                                    {viewMode === 'my' ? 'My Pets' : 'Patients'}
+                                    {viewMode === 'my' ? 'My Pets' : viewMode === 'today' ? "Today's Schedule" : 'Clinic Patients'}
                                 </h1>
                             </div>
 
@@ -146,9 +161,20 @@ export default function DashboardPage() {
                                                 : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
-                                            <Users size={16} /> <span className="hidden sm:inline">Patients</span>
-                                                <span className="bg-emerald-200 text-emerald-800 text-[10px] px-1 rounded-full">
-                                                </span>
+                                            <Users size={16} /> <span className="hidden sm:inline">Clinic</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('today')}
+                                            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                                                viewMode === 'today' 
+                                                ? 'bg-amber-50 text-amber-600 shadow-sm' 
+                                                : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            <CalendarCheck size={16} /> <span className="hidden sm:inline">Today</span>
+                                            {todayEventsCount > 0 && (
+                                                <span className="bg-amber-200 text-amber-800 text-[10px] px-1 rounded-full">{todayEventsCount}</span>
+                                            )}
                                         </button>
                                     </div>
                                 )}

@@ -1,15 +1,15 @@
 from datetime import date
-from .models import Pet, PetEvent  # [FIX] Импортируем новую модель
+from .models import Pet, PetEvent
 
 def calculate_age(birth_date):
     if not birth_date:
-        return "Неизвестен"
+        return "Unknown"
     today = date.today()
     years = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
     if years < 1:
         months = (today.year - birth_date.year) * 12 + today.month - birth_date.month
-        return f"{months} мес."
-    return f"{years} лет"
+        return f"{months} mo"
+    return f"{years} yr"
 
 def build_pet_profile_prompt(pet_id):
     try:
@@ -19,53 +19,50 @@ def build_pet_profile_prompt(pet_id):
 
     categories = ", ".join([c.name for c in pet.categories.all()])
     age = calculate_age(pet.birth_date)
-    gender = "Самец (Boy)" if pet.gender == 'M' else "Самка (Girl)"
+    gender = "Male" if pet.gender == 'M' else "Female"
     
-    # === ТЕГИ (Логика кастрации осталась прежней) ===
+    # === TAGS ===
     tags_list = [t.name.lower() for t in pet.tags.all()]
-    is_neutered = any(term in tags_list for term in ['neutered', 'spayed', 'кастрирован', 'стерилизован', 'стерилизована'])
+    is_neutered = any(term in tags_list for term in ['neutered', 'spayed'])
     
-    reproductive_status = "КАСТРИРОВАН/СТЕРИЛИЗОВАН" if is_neutered else "НЕ КАСТРИРОВАН (INTACT) - Возможен половой инстинкт!"
+    reproductive_status = "NEUTERED/SPAYED" if is_neutered else "INTACT — Possible sexual instinct!"
 
-    # === АТРИБУТЫ (Логика прежняя) ===
+    # === ATTRIBUTES ===
     attributes_list = []
     for pa in pet.attributes.all():
         attributes_list.append(f"{pa.attribute.name}: {pa.value} {pa.attribute.unit or ''}")
-    attributes_str = "; ".join(attributes_list) if attributes_list else "Нет данных"
+    attributes_str = "; ".join(attributes_list) if attributes_list else "No data"
 
-    # === ИСТОРИЯ (РЕФАКТОРИНГ) ===
-    # 1. Используем PetEvent
-    # 2. Фильтруем по category внутри event_type
+    # === MEDICAL HISTORY ===
     last_events = PetEvent.objects.filter(
         pet=pet,
-        event_type__category__in=['medical', 'reproduction', 'surgery', 'parasite'] # Выбираем важные категории для AI
-    ).select_related('event_type').order_by('-date')[:5] # select_related для оптимизации запросов
+        event_type__category__in=['medical', 'reproduction', 'surgery', 'parasite']
+    ).select_related('event_type').order_by('-date')[:5]
 
     history_str = ""
     if last_events.exists():
         for event in last_events:
-            date_str = event.date.strftime('%d.%m.%Y')
-            # [FIX] Берем имя из связанной модели EventType
+            date_str = event.date.strftime('%m/%d/%Y')
             type_name = event.event_type.name 
             history_str += f"- {date_str} [{type_name}]: {event.title}. {event.description or ''}\n"
     else:
-        history_str = "История чиста (нет записей)."
+        history_str = "No history records."
 
     profile_text = f"""
-=== ПАЦИЕНТ ===
-Имя: {pet.name}
-Вид: {categories}
-Пол: {gender}
-Возраст: {age}
-Репродуктивный статус: {reproductive_status} (Это критически важно для анализа поведения!)
+=== PATIENT ===
+Name: {pet.name}
+Species: {categories}
+Sex: {gender}
+Age: {age}
+Reproductive Status: {reproductive_status} (This is critical for behavioral analysis!)
 
-=== ФИЗИОЛОГИЯ ===
+=== PHYSIOLOGY ===
 {attributes_str}
 
-=== ОСОБЕННОСТИ ===
-Теги: {", ".join(tags_list)}
+=== TRAITS ===
+Tags: {", ".join(tags_list)}
 
-=== АНАМНЕЗ ===
+=== MEDICAL HISTORY ===
 {history_str}
     """
     return profile_text.strip()

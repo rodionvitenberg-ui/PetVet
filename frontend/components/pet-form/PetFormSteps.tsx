@@ -297,7 +297,7 @@ export const StepBasicInfo = ({ data, onChange, categories, onCategorySelect, mo
                 }`}
               >
                 <div className="mb-1 w-8 h-8 flex items-center justify-center">
-                   {cat.icon ? <img src={cat.icon} className="w-full h-full object-contain" alt={cat.name}/> : <HelpCircle className="text-gray-400"/>}
+                   <HelpCircle className="text-gray-400"/>
                 </div>
                 <span className="text-xs font-bold capitalize text-center leading-tight">{cat.name}</span>
               </button>

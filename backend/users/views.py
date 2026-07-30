@@ -218,6 +218,51 @@ class UserContactViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+class DemoLoginView(APIView):
+    """
+    POST /api/auth/demo-login/
+    Allows logging in as the demo user (god) without a password.
+    Only active when ENABLE_DEMO_LOGIN = True in settings.
+    """
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        if not getattr(settings, 'ENABLE_DEMO_LOGIN', False):
+            return Response(
+                {"error": "Demo login is not available in production."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            user = User.objects.get(username='god')
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Demo user (god) not found. Run seed_production_data first."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        refresh = RefreshToken.for_user(user)
+        refresh['is_veterinarian'] = user.is_veterinarian
+
+        return Response({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "role": "vet" if user.is_veterinarian else "owner",
+                "is_verified": user.is_verified,
+                "is_veterinarian": user.is_veterinarian,
+                "avatar": user.avatar.url if user.avatar else None,
+            },
+            "tokens": {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+        }, status=status.HTTP_200_OK)
+
+
 class VerificationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.ListModelMixin):
     serializer_class = VetVerificationSerializer
     permission_classes = [permissions.IsAuthenticated]

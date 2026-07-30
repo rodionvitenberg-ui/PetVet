@@ -4,7 +4,7 @@ import { routing } from './i18n/routing';
 export default createMiddleware(routing);
 
 export const config = {
-  // Матчер должен ловить ВСЕ пути, кроме системных файлов Next.js и статики (картинок/pdf)
+  // Matcher must capture ALL paths except Next.js system files and static assets (images/pdf)
   matcher: [
     '/', 
     '/(en)/:path*', 

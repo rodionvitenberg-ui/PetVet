@@ -12,7 +12,7 @@ export const HeroSection = () => {
   return (
     <section className="relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
       
-      {/* 1. ВИДЕО ФОН */}
+      {/* 1. VIDEO BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-black/60 z-10" />
         
@@ -22,21 +22,21 @@ export const HeroSection = () => {
           muted
           playsInline
           className="w-full h-full object-cover"
-          // Замени на путь к твоему файлу в папке public
-          poster="/bg/bg1.jpg" // Картинка-заглушка, пока видео грузится
+          // Replace with your file path in the public folder
+          poster="/bg/bg1.jpg" // Fallback image while video loads
         >
           <source src="/assets/hero-video.mp4" type="video/mp4" />
         </video>
       </div>
 
-      {/* 2. КОНТЕНТ (Z-Index выше видео) */}
+      {/* 2. CONTENT (above video) */}
       <div className="container relative z-20 mx-auto px-4 text-center">
         
         <div className="max-w-5xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-extrabold mb-8 text-white tracking-tight leading-tight">
             Built to help you care your <br className="hidden md:block" />
             <span className="inline-flex items-center justify-center align-middle h-[1.2em] overflow-hidden ml-2 md:ml-4">
-               {/* 3. АНИМАЦИЯ ТЕКСТА */}
+               {/* 3. ANIMATED TEXT */}
                <RotatingText
                   texts={['pet', 'dog', 'cat', 'rat', 'friend']}
                   mainClassName="text-white px-3 md:px-5 overflow-hidden py-0.5"
@@ -75,7 +75,7 @@ export const HeroSection = () => {
 
       </div>
       
-      {/* Декоративный градиент снизу, чтобы переход в контент был мягким */}
+      {/* Decorative bottom gradient for smooth content transition */}
       <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black to-transparent z-10 pointer-events-none" />
       <CreatePetModal 
          isOpen={isCreateModalOpen}

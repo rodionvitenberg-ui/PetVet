@@ -1,0 +1,29 @@
+# CareYour.Pet — Pet Health Management Platform
+> Track vaccinations, medical history, weight, and connect with veterinarians.
+
+## Key Features
+- Pet medical records and history
+- Vaccination tracking
+- Veterinary clinic integration (web + mobile app)
+- Multi-pet household management
+- Pet passport generation
+- Breeder tools
+- AI veterinary assistant (DeepSeek-powered)
+
+## Tech Stack
+- Frontend: Next.js, TypeScript, Tailwind CSS
+- Backend: Django REST Framework, PostgreSQL, Redis
+- Mobile: React Native (Expo)
+- AI: DeepSeek API
+
+## API Endpoints (REST)
+- `/api/pets/` — Pet CRUD, feed, pedigree, sharing
+- `/api/events/` — Medical events for pets
+- `/api/categories/` — Species and breed taxonomy
+- `/api/ai/consult/` — AI veterinary consultation
+- `/api/chat/` — Owner-vet messaging
+
+## Documentation Links
+- Frontend Audit: /docs/FRONTEND-AUDIT.md
+- TODO / Roadmap: /docs/TODO.md
+- Security: /docs/SECURITY-TODO.md

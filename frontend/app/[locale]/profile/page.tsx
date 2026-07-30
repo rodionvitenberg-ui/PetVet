@@ -4,9 +4,13 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { 
     Camera, Save, Lock, Trash2, Plus, 
     Phone, Mail, MessageCircle, Send, Instagram, Globe, 
-    Loader2, Briefcase, MapPin, User, AlertTriangle, X 
+    Loader2, Briefcase, MapPin, User, AlertTriangle, X, Building2, Users
 } from 'lucide-react';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
+import CreateClinicModal from '@/components/dashboard/CreateClinicModal';
+import { fetchClinics } from '@/services/clinicService';
+import { VetClinic } from '@/types/clinic';
+import { useRouter } from 'next/navigation';
 import { addToast } from "@heroui/toast";
 
 // === ТИПЫ ===
@@ -69,6 +73,12 @@ export default function ProfilePage() {
   // [UX FIX] Состояние для удаления контакта (ID контакта, который ожидает подтверждения)
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
+  // Clinics
+  const [clinics, setClinics] = useState<VetClinic[]>([]);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
+  const [isCreateClinicOpen, setIsCreateClinicOpen] = useState(false);
+  const router = useRouter();
+
   // Удаление аккаунта
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -86,8 +96,23 @@ export default function ProfilePage() {
         email: user.email || '',
       });
       fetchContacts();
+      if (user.is_veterinarian) {
+        loadClinics();
+      }
     }
   }, [user]);
+
+  const loadClinics = async () => {
+    setClinicsLoading(true);
+    try {
+      const data = await fetchClinics();
+      setClinics(data);
+    } catch (e) {
+      // silently fail
+    } finally {
+      setClinicsLoading(false);
+    }
+  };
 
   const fetchContacts = async () => {
       try {
@@ -394,16 +419,41 @@ export default function ProfilePage() {
 
                 {user.is_veterinarian && (
                     <div className="mb-8 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                         <label className="block text-xs font-bold text-emerald-700 mb-1 uppercase flex items-center gap-1">
-                            <Briefcase size={14} /> Work Location
+                         <label className="block text-xs font-bold text-emerald-700 mb-3 uppercase flex items-center gap-1">
+                            <Building2 size={14} /> My Clinic
                          </label>
-                         <input 
-                            type="text" 
-                            className="w-full border border-emerald-200 bg-white rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition text-emerald-900"
-                            value={formData.clinic_name}
-                            onChange={(e) => setFormData({...formData, clinic_name: e.target.value})}
-                            placeholder="Clinic Name"
-                        />
+                         {clinicsLoading ? (
+                           <div className="flex justify-center py-2"><Loader2 className="animate-spin text-emerald-400" size={18} /></div>
+                         ) : clinics.length > 0 ? (
+                           <div className="space-y-2">
+                             {clinics.map(clinic => (
+                               <div key={clinic.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200">
+                                 <div>
+                                   <p className="text-sm font-bold text-gray-800">{clinic.name}</p>
+                                   <p className="text-xs text-gray-500">{clinic.members_count} member{clinic.members_count !== 1 ? 's' : ''}</p>
+                                 </div>
+                                 <button
+                                   type="button"
+                                   onClick={() => router.push(`/dashboard/clinic/${clinic.id}`)}
+                                   className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 transition"
+                                 >
+                                   Manage
+                                 </button>
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="flex items-center justify-between">
+                             <p className="text-sm text-emerald-900">No clinic linked</p>
+                             <button 
+                               type="button"
+                               onClick={() => setIsCreateClinicOpen(true)}
+                               className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 transition"
+                             >
+                               Create Clinic
+                             </button>
+                           </div>
+                         )}
                     </div>
                 )}
 
@@ -441,7 +491,7 @@ export default function ProfilePage() {
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center gap-2"
+                        className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
                     >
                         {loading ? <Loader2 className="animate-spin" /> : <Save size={18} />}
                         Save Changes
@@ -547,11 +597,11 @@ export default function ProfilePage() {
             </div>
 
             {/* ОПАСНАЯ ЗОНА */}
-            <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
-                <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
+            <div className="bg-destructive/10 p-6 rounded-3xl border border-destructive/20">
+                <h3 className="text-lg font-bold text-destructive mb-4 flex items-center gap-2">
                     <AlertTriangle size={20} /> Dangerous Zone
                 </h3>
-                <p className="text-sm text-red-700/80 mb-6 leading-relaxed">
+                <p className="text-sm text-destructive/80 mb-6 leading-relaxed">
                     Deleting your account will result in the complete removal of all your personal data...
                 </p>
 
@@ -575,6 +625,13 @@ export default function ProfilePage() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
+      />
+
+      {/* МОДАЛКА СОЗДАНИЯ КЛИНИКИ */}
+      <CreateClinicModal
+        isOpen={isCreateClinicOpen}
+        onClose={() => setIsCreateClinicOpen(false)}
+        onCreated={() => loadClinics()}
       />
     </div>
   );

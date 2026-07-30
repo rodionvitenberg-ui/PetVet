@@ -42,7 +42,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     // 1. Убрали pt-24. Теперь фон начнется от самого верха экрана.
-    <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       
       {/* 2. Убрали ограничители ширины (max-w, px) и вертикальный паддинг (py-6) */}
       {/* Оставили space-y-20 для отступов между секциями */}

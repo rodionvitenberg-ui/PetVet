@@ -1,25 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
     Plus, 
-    Share2, 
     Mars, 
     Venus, 
-    X, 
-    Copy, 
-    Check,
     Globe 
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { PetBasic } from '@/types/pet'; 
+import PetShareWidget from './PetShareWidget';
 
 interface PetCardProps {
   isAddButton?: boolean;
   addButtonText?: string;
   pet?: PetBasic; 
   onClick?: () => void;
-  // Добавляем проп для управления видом
   variant?: 'comfortable' | 'compact';
 }
 
@@ -38,13 +34,11 @@ export default function PetCard({
     addButtonText, 
     pet, 
     onClick, 
-    variant = 'comfortable' // По дефолту обычный вид
+    variant = 'comfortable'
 }: PetCardProps) {
   const { user } = useAuth();
-
   const isCompact = variant === 'compact';
 
-  // Логика кнопки "Добавить"
   if (isAddButton) {
     return (
       <div 
@@ -67,69 +61,15 @@ export default function PetCard({
   if (!pet) return null;
 
   const mainImageUrl = getMainImageUrl(pet.images);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [isLoadingLink, setIsLoadingLink] = useState(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [isCopied, setIsCopied] = useState(false);
-
   const canShare = user && (user.id === pet.owner || user.id === pet.created_by);
-
-  const handleShareClick = async (e: React.MouseEvent) => {
-      e.stopPropagation(); 
-      setIsShareModalOpen(true);
-      
-      if (shareLink) return;
-
-      setIsLoadingLink(true);
-      try {
-          const token = localStorage.getItem('access_token');
-          const res = await fetch(`${API_URL}/api/pets/${pet.id}/share_token/`, {
-              method: 'GET',
-              headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-              }
-          });
-
-          if (!res.ok) throw new Error('Error generating share link');
-          const data = await res.json();
-          
-          const fullLink = `${window.location.origin}/share?token=${data.token}`;
-          setShareLink(fullLink);
-
-      } catch (error) {
-          console.error("Failed to generate share link:", error);
-          alert("Cannot generate share link. Please try again later.");
-          setIsShareModalOpen(false);
-      } finally {
-          setIsLoadingLink(false);
-      }
-  };
-
-  const copyToClipboard = async () => {
-      if (!shareLink) return;
-      try {
-          await navigator.clipboard.writeText(shareLink);
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
-          console.error('Failed to copy: ', err);
-      }
-  };
 
   return (
     <>
       <div 
         onClick={onClick}
-        // Меняем aspect-ratio в зависимости от режима
         className={`group relative rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-500
             ${isCompact ? 'aspect-[4/3]' : 'aspect-[4/5]'}`}
       >
-        {/* Картинка */}
         <div className="absolute inset-0 bg-gray-200">
           {mainImageUrl ? (
              <img 
@@ -139,34 +79,22 @@ export default function PetCard({
              />
           ) : (
              <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
-                Нет фото
+                No photo
              </div>
           )}
         </div>
 
-        {/* Градиент (в компактном режиме делаем его чуть выше, чтобы текст читался лучше на маленькой высоте) */}
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 transition-opacity duration-300`} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 transition-opacity duration-300" />
 
-        {/* КНОПКА ПОДЕЛИТЬСЯ */}
         {canShare && (
             <div className={`absolute z-10 ${isCompact ? 'top-2 right-2' : 'top-4 right-4'}`}>
-            <button 
-                onClick={handleShareClick}
-                className={`bg-white text-blue-600 shadow-md hover:bg-blue-50 hover:scale-110 transition-all duration-300 group/btn rounded-full
-                    ${isCompact ? 'p-1.5' : 'p-2.5'}`}
-                title="Share Profile"
-            >
-                <Share2 size={isCompact ? 14 : 18} className="transition-transform group-hover/btn:-rotate-12" />
-            </button>
+              <PetShareWidget petId={pet.id} petName={pet.name} isCompact={isCompact} />
             </div>
         )}
 
-        {/* НИЖНЯЯ ЧАСТЬ: Информация */}
         <div className={`absolute bottom-0 left-0 w-full text-white z-10 ${isCompact ? 'p-3' : 'p-5'}`}>
-          
           <div className="flex justify-between items-end">
               <div>
-                  {/* Уменьшаем размер шрифта имени в компактном режиме */}
                   <h3 className={`font-bold leading-tight mb-1 ${isCompact ? 'text-lg' : 'text-2xl'}`}>
                       {pet.name}
                   </h3>
@@ -193,51 +121,22 @@ export default function PetCard({
               </div>
           </div>
 
-          {/* Характеристики показываем ТОЛЬКО если режим НЕ компактный */}
-          {!isCompact && pet.attributes && pet.attributes.length > 0 && (
-              <div className="flex items-center gap-2 mt-3 overflow-hidden">
-                 {pet.attributes.slice(0, 3).map((attr, idx) => (
-                     <span key={idx} className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[80px]">
-                        {attr.value}
-                     </span>
-                 ))}
-              </div>
-          )}
+           {!isCompact && (
+               <div className="flex items-center gap-2 mt-3 overflow-hidden">
+                  {pet.species && (
+                      <span className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
+                         {pet.species}
+                      </span>
+                  )}
+                  {pet.breed && (
+                      <span className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
+                         {pet.breed}
+                      </span>
+                  )}
+               </div>
+           )}
         </div>
       </div>
-
-      {/* Модалка остается без изменений... */}
-      {isShareModalOpen && (
-          // ... код модалки такой же, как был (сокращено для ответа)
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(false); }}>
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-              <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <Share2 className="text-blue-500" size={20} />
-                          Access to {pet.name}'s Profile
-                      </h3>
-                      <button onClick={() => setIsShareModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 transition">
-                          <X size={20} />
-                      </button>
-                  </div>
-                  {isLoadingLink ? (
-                      <div className="py-8 flex flex-col items-center justify-center text-gray-500 gap-3">
-                          <Share2 className="animate-bounce text-blue-300" size={24} />
-                          <p className="text-sm font-medium">Generating a secure link...</p>
-                      </div>
-                  ) : shareLink ? (
-                      <div className="space-y-4">
-                          <p className="text-sm text-gray-600 leading-relaxed">Send this link to your veterinarian...</p>
-                          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 break-all text-sm text-gray-800 font-mono select-all relative group">{shareLink}</div>
-                          <button onClick={copyToClipboard} className={`w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl transition-all duration-200 ${isCopied ? 'bg-green-500 text-white shadow-md shadow-green-200' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'}`}>
-                              {isCopied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Link</>}
-                          </button>
-                      </div>
-                  ) : (<div className="py-4 text-center text-red-500 text-sm">Failed to generate link.</div>)}
-              </div>
-          </div>
-      )}
     </>
   );
 }

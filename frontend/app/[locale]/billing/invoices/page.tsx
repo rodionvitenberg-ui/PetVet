@@ -123,7 +123,7 @@ export default function InvoicesPage() {
     };
 
     const handleOpenDetails = async (invoice: Invoice) => {
-        if (!invoice.event || !invoice.pet) return alert("Этот счет не привязан к событию.");
+        if (!invoice.event || !invoice.pet) return alert("This invoice is not linked to an event.");
         setIsEventLoading(true);
         const token = localStorage.getItem('access_token');
         try {
@@ -245,9 +245,9 @@ export default function InvoicesPage() {
                                             <td className="px-6 py-4 align-top">
                                                 {/* [UPD] Отображение клиента с поддержкой теневых */}
                                                 <div className="font-medium text-gray-900 flex items-center gap-2">
-                                                    {inv.client_info?.name || inv.guest_name || "Аноним"}
+                                                    {inv.client_info?.name || inv.guest_name || "Anonymous"}
                                                     {inv.client_info?.is_shadow && (
-                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold uppercase">Врем.</span>
+                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold uppercase">Temp</span>
                                                     )}
                                                 </div>
                                                 {inv.pet_name && (
@@ -286,7 +286,7 @@ export default function InvoicesPage() {
                                                             document={<InvoiceDocument invoice={inv} user={user} />}
                                                             fileName={`invoice_${inv.id}.pdf`}
                                                             className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition flex items-center justify-center"
-                                                            title="Скачать PDF"
+                                                            title="Download PDF"
                                                         >
                                                             {({ loading }) => (
                                                                 loading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />
