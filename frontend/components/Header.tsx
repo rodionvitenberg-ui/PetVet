@@ -364,13 +364,6 @@ export default function Header() {
               </div>
 
               <div className="border-t border-border py-2">
-                <Link 
-                    href="/help" 
-                    onClick={closeMenu}
-                    className="block px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition"
-                >
-                  {t('help_center')}
-                </Link>
                 {isAuth && (
                     <button 
                         onClick={() => {
