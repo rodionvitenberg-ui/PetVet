@@ -7,9 +7,9 @@ from .models import ChatRoom       # Импортируем нашу модел�
 def create_chat_room_on_access(sender, instance, created, **kwargs):
     """
     Автоматически создает чат-комнату, когда врачу предоставляется доступ к питомцу.
+    Пропускает теневых питомцев (без владельца) — у них нет owner, и чат создавать не для кого.
     """
-    if created:
-        
+    if created and instance.pet.owner is not None:
         ChatRoom.objects.get_or_create(
             pet=instance.pet,
             vet=instance.user, 

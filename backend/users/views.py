@@ -222,17 +222,11 @@ class DemoLoginView(APIView):
     """
     POST /api/auth/demo-login/
     Allows logging in as the demo user (god) without a password.
-    Only active when ENABLE_DEMO_LOGIN = True in settings.
+    Always active. Redirects visitors to the main demo account.
     """
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
-        if not getattr(settings, 'ENABLE_DEMO_LOGIN', False):
-            return Response(
-                {"error": "Demo login is not available in production."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
         try:
             user = User.objects.get(username='god')
         except User.DoesNotExist:
