@@ -24,3 +24,5 @@ yarn-error.log
 dist/
 build/
 .expo/
+
+skills/
