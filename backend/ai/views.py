@@ -139,7 +139,11 @@ class AIChatSessionCreateView(APIView, _GetUserPetMixin):
             prompt = get_active_prompt(prompt_id)
         except ValueError as e:
             return Response(
-                {"error": str(e)},
+                {
+                    "error": str(e),
+                    "code": "system_prompt_missing",
+                    "hint": "Run `python manage.py seed_prompts --ensure-default` or create a SystemPrompt in the admin panel and mark it as default.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
