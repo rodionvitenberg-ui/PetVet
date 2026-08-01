@@ -5,6 +5,7 @@ import {
   Search, X, Plus, Sparkles, MessageSquare, 
   Trash2, PawPrint, Loader2, ChevronDown
 } from 'lucide-react';
+import { addToast, closeToast } from '@heroui/toast';
 import { AIChatSession, SystemPrompt } from '@/types/ai-chat';
 import { fetchSessions, deleteSession, fetchPrompts } from '@/services/aiChatService';
 
@@ -19,6 +20,7 @@ interface PetBasic {
 interface AIChatSidebarProps {
   onSessionSelect: (session: AIChatSession) => void;
   onNewChat: (petId: number, promptId?: number) => void;
+  onSessionDeleted?: (sessionId: number) => void;
   activeSessionId: number | null;
   refreshTrigger: number; // increment to refresh sessions list
   userPets: PetBasic[];
@@ -29,6 +31,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 export default function AIChatSidebar({
   onSessionSelect,
   onNewChat,
+  onSessionDeleted,
   activeSessionId,
   refreshTrigger,
   userPets,
@@ -77,15 +80,60 @@ export default function AIChatSidebar({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleDelete = async (e: React.MouseEvent, sessionId: number) => {
+  const handleDelete = (e: React.MouseEvent, sessionId: number) => {
     e.stopPropagation();
-    if (!confirm('Delete this conversation?')) return;
+
+    const toastKey = addToast({
+      title: 'Delete conversation?',
+      description: 'This action cannot be undone.',
+      color: 'danger',
+      timeout: 8000,
+      hideCloseButton: true,
+      endContent: (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (toastKey) closeToast(toastKey);
+              performDelete(sessionId);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => {
+              if (toastKey) closeToast(toastKey);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      ),
+    });
+  };
+
+  const performDelete = async (sessionId: number) => {
     setDeletingId(sessionId);
     try {
       await deleteSession(sessionId);
       setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (onSessionDeleted) {
+        onSessionDeleted(sessionId);
+      }
+      addToast({
+        title: 'Conversation deleted',
+        color: 'success',
+        timeout: 3000,
+      });
     } catch (err) {
       console.error('Failed to delete session', err);
+      addToast({
+        title: 'Failed to delete conversation',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        color: 'danger',
+        timeout: 5000,
+      });
     } finally {
       setDeletingId(null);
     }

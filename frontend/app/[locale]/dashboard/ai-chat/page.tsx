@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import AuthGuard from '@/components/providers/AuthGuard';
@@ -35,6 +35,12 @@ export default function AIChatPage() {
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Защита от двойного создания сессии из URL-параметров.
+  // useSearchParams может пересоздавать объект, из-за чего useEffect
+  // срабатывает повторно и создаёт две одинаковые сессии.
+  const creatingFromParamsRef = useRef(false);
+  const createdParamsRef = useRef('');
+
   // Fetch user's pets
   useEffect(() => {
     if (!user) return;
@@ -51,18 +57,29 @@ export default function AIChatPage() {
 
   // Handle incoming query from PetsActionBar
   useEffect(() => {
-    if (petIdParam && queryParam) {
-      const petId = parseInt(petIdParam, 10);
-      if (!isNaN(petId)) {
-        setPendingPetId(petId);
-        setPendingQuery(queryParam);
-        // Auto-create session from the incoming query
-        handleCreateSessionFromParams(petId, queryParam);
-      }
+    if (!petIdParam || !queryParam) return;
+
+    const petId = parseInt(petIdParam, 10);
+    if (isNaN(petId)) return;
+
+    const paramsKey = `${petId}:${queryParam}`;
+    // Пропускаем, если этот запрос уже обработан или создание уже идёт.
+    if (creatingFromParamsRef.current || createdParamsRef.current === paramsKey) {
+      return;
     }
+
+    setPendingPetId(petId);
+    setPendingQuery(queryParam);
+    handleCreateSessionFromParams(petId, queryParam, paramsKey);
   }, [petIdParam, queryParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCreateSessionFromParams = async (petId: number, query: string) => {
+  const handleCreateSessionFromParams = async (
+    petId: number,
+    query: string,
+    paramsKey: string,
+  ) => {
+    creatingFromParamsRef.current = true;
+    createdParamsRef.current = paramsKey;
     setIsCreatingSession(true);
     setError(null);
     try {
@@ -77,6 +94,7 @@ export default function AIChatPage() {
       setError(err instanceof Error ? err.message : 'Failed to create session');
     } finally {
       setIsCreatingSession(false);
+      creatingFromParamsRef.current = false;
     }
   };
 
@@ -110,6 +128,11 @@ export default function AIChatPage() {
             <AIChatSidebar
               onSessionSelect={handleSessionSelect}
               onNewChat={handleNewChat}
+              onSessionDeleted={(deletedId) => {
+                if (activeSession?.id === deletedId) {
+                  setActiveSession(null);
+                }
+              }}
               activeSessionId={activeSession?.id || null}
               refreshTrigger={sidebarRefresh}
               userPets={userPets}
