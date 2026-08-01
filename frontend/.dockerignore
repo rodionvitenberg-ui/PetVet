@@ -1,0 +1,19 @@
+# Локальные env-файлы — не должны попадать в прод-сборку
+.env
+.env.*
+!.env.example
+
+# Зависимости и сборки
+node_modules
+.next
+out
+build
+dist
+
+# Git
+.git
+.gitignore
+
+# Логи и временные файлы
+*.log
+.DS_Store

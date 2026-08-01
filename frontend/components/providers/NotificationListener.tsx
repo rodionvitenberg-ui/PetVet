@@ -7,7 +7,15 @@ import { addToast } from "@heroui/toast";
 // Для Tauri нужно будет установить пакет: npm install @tauri-apps/api
 // Пока используем dynamic import или проверку window, чтобы не ломать веб-сборку
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8000';
+// По умолчанию подключаемся к тому же хосту, с которого открыт сайт (same-origin).
+// Это работает и локально (ws://localhost:3000 → nginx проксирует /ws/ на бэкенд),
+// и на проде (wss://careyour.pet) — без необходимости задавать env-переменные.
+// Явные значения NEXT_PUBLIC_WS_URL можно задать для нестандартных деплоев (например, Tauri).
+const DEFAULT_WS_URL = typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+    : 'ws://127.0.0.1:8000';
+
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || DEFAULT_WS_URL;
 
 const getToastColor = (category: string) => {
     switch (category) {

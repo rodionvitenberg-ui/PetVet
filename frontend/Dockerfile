@@ -20,6 +20,17 @@ COPY . .
 # Отключаем телеметрию Next.js для ускорения
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Публичные переменные Next.js вшиваются в клиентский бандл на этапе сборки.
+# Значения передаются через build-args в docker-compose (или --build-arg при ручной сборке).
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+ARG NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+
+ARG NEXT_PUBLIC_WS_HOST
+ENV NEXT_PUBLIC_WS_HOST=$NEXT_PUBLIC_WS_HOST
+
 # Запускаем сборку
 RUN npm run build
 

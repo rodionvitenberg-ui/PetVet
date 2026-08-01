@@ -38,7 +38,9 @@ export const useChatWebSocket = ({ roomId, token, onNewMessage }: UseChatWebSock
     }
     
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.NEXT_PUBLIC_WS_HOST || '127.0.0.1:8000';
+    // По умолчанию используем хост, с которого открыт сайт (same-origin).
+    // Так WebSocket работает и локально, и на проде без настройки env.
+    const host = process.env.NEXT_PUBLIC_WS_HOST || window.location.host;
     const wsUrl = `${protocol}//${host}/ws/chat/${roomId}/?token=${token}`;
 
     const ws = new WebSocket(wsUrl);
