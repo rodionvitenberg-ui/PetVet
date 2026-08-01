@@ -203,12 +203,17 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+# По умолчанию 127.0.0.1 — работает при запуске без Docker.
+# При деплое через docker-compose переменная REDIS_HOST=redis переопределяется из .env.
+REDIS_HOST = os.getenv('REDIS_HOST', '127.0.0.1')
 REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 
 # === CELERY SETTINGS ===
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:6379/0'
 CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:6379/0'
+# Celery 6: по умолчанию не переподключается к брокеру при старте.
+# Включаем, чтобы worker/beat ждали Redis вместо падения.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

@@ -245,6 +245,9 @@ class AIChatSessionDeleteView(DestroyAPIView):
     """DELETE /api/ai/sessions/{id}/ — delete a session + all messages"""
     permission_classes = [permissions.IsAuthenticated]
 
+    # URL использует <int:session_id>, а не <int:pk> — говорим DRF об этом.
+    lookup_url_kwarg = 'session_id'
+
     def get_queryset(self):
         return AIChatSession.objects.filter(user=self.request.user)
 
