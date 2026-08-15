@@ -2,23 +2,6 @@ from rest_framework import serializers
 from .models import SystemPrompt, AIChatSession, AIChatMessage
 
 
-class AIConsultRequestSerializer(serializers.Serializer):
-    pet_id = serializers.IntegerField(required=True)
-    query = serializers.CharField(required=True, allow_blank=False, max_length=2000)
-
-    class Meta:
-        fields = ['pet_id', 'query']
-
-
-class AIConsultResponseSerializer(serializers.Serializer):
-    urgency = serializers.ChoiceField(choices=['low', 'medium', 'high'])
-    title = serializers.CharField(max_length=200)
-    content = serializers.CharField()
-
-    class Meta:
-        fields = ['urgency', 'title', 'content']
-
-
 class SystemPromptSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemPrompt

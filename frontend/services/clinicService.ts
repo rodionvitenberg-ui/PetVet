@@ -1,34 +1,12 @@
 import { VetClinic, ClinicMember, ClinicInvite, ExamTemplate } from '@/types/clinic';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('access_token');
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+import { apiClient } from '@/lib/apiClient';
 
 export async function fetchClinics(): Promise<VetClinic[]> {
-  const res = await fetch(`${API_URL}/api/clinics/`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch clinics');
-  return res.json();
+  return apiClient<VetClinic[]>('/api/clinics/');
 }
 
 export async function fetchClinic(id: number): Promise<VetClinic> {
-  const res = await fetch(`${API_URL}/api/clinics/${id}/`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch clinic');
-  return res.json();
+  return apiClient<VetClinic>(`/api/clinics/${id}/`);
 }
 
 export async function createClinic(data: {
@@ -38,104 +16,64 @@ export async function createClinic(data: {
   email?: string;
   description?: string;
 }): Promise<VetClinic> {
-  const res = await fetch(`${API_URL}/api/clinics/`, {
+  return apiClient<VetClinic>('/api/clinics/', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Failed to create clinic' }));
-    throw new Error(err.error || 'Failed to create clinic');
-  }
-  return res.json();
 }
 
 export async function updateClinic(id: number, data: Partial<VetClinic>): Promise<VetClinic> {
-  const res = await fetch(`${API_URL}/api/clinics/${id}/`, {
+  return apiClient<VetClinic>(`/api/clinics/${id}/`, {
     method: 'PATCH',
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update clinic');
-  return res.json();
 }
 
 export async function fetchMembers(clinicId: number): Promise<ClinicMember[]> {
-  const res = await fetch(`${API_URL}/api/clinics/${clinicId}/members/`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch members');
-  return res.json();
+  return apiClient<ClinicMember[]>(`/api/clinics/${clinicId}/members/`);
 }
 
 export async function removeMember(clinicId: number, userId: number): Promise<void> {
-  const res = await fetch(`${API_URL}/api/clinics/${clinicId}/members/${userId}/`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to remove member');
+  await apiClient<void>(`/api/clinics/${clinicId}/members/${userId}/`, { method: 'DELETE' });
 }
 
 export async function createInvite(clinicId: number): Promise<ClinicInvite> {
-  const res = await fetch(`${API_URL}/api/clinics/${clinicId}/invite/`, {
-    method: 'POST',
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to create invite');
-  return res.json();
+  return apiClient<ClinicInvite>(`/api/clinics/${clinicId}/invite/`, { method: 'POST' });
 }
 
 export async function joinClinic(token: string): Promise<void> {
-  const res = await fetch(`${API_URL}/api/clinics/join/`, {
+  await apiClient<void>('/api/clinics/join/', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify({ token }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Failed to join clinic' }));
-    throw new Error(err.error || 'Failed to join clinic');
-  }
 }
 
-// Exam Templates
+// Exam Templates — nested: /api/clinics/{clinicId}/templates/
 export async function fetchTemplates(clinicId: number): Promise<ExamTemplate[]> {
-  const res = await fetch(`${API_URL}/api/clinics/${clinicId}/templates/`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch templates');
-  return res.json();
+  return apiClient<ExamTemplate[]>(`/api/clinics/${clinicId}/templates/`);
 }
 
 export async function createTemplate(
   clinicId: number,
   data: { name: string; category: string; default_fields?: Record<string, any>; is_active?: boolean },
 ): Promise<ExamTemplate> {
-  const res = await fetch(`${API_URL}/api/clinics/${clinicId}/templates/`, {
+  return apiClient<ExamTemplate>(`/api/clinics/${clinicId}/templates/`, {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to create template');
-  return res.json();
 }
 
 export async function updateTemplate(
+  clinicId: number,
   id: number,
   data: Partial<{ name: string; category: string; default_fields: Record<string, any>; is_active: boolean }>,
 ): Promise<ExamTemplate> {
-  const res = await fetch(`${API_URL}/api/clinics/templates/${id}/`, {
+  return apiClient<ExamTemplate>(`/api/clinics/${clinicId}/templates/${id}/`, {
     method: 'PATCH',
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update template');
-  return res.json();
 }
 
-export async function deleteTemplate(id: number): Promise<void> {
-  const res = await fetch(`${API_URL}/api/clinics/templates/${id}/`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to delete template');
+export async function deleteTemplate(clinicId: number, id: number): Promise<void> {
+  await apiClient<void>(`/api/clinics/${clinicId}/templates/${id}/`, { method: 'DELETE' });
 }

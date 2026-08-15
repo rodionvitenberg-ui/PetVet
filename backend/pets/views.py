@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.db.models import Q, Case, When, IntegerField, Count
 from django.db import connection
 from django.core import signing
@@ -22,6 +22,7 @@ from .serializers import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PetFilter
+from .access import pet_access_q, user_can_access_pet
 
 def normalize_search_text(text):
     if not text:
@@ -127,20 +128,27 @@ class PetViewSet(viewsets.ModelViewSet):
         """
         Генерирует временную ссылку/токен для передачи прав доступа.
         Только владелец может вызвать этот метод.
+        Уровень доступа: ?access_level=read (default) | write
         """
         pet = self.get_object()
         
         if pet.owner != request.user and pet.created_by != request.user:
             return Response({"error": "Only the owner can share access"}, status=403)
         
+        # [P0-7] Уровень доступа по умолчанию — read.
+        # Если владелец явно попросил ?access_level=write — выдаём write.
+        level = request.query_params.get('access_level', 'read')
+        if level not in ('read', 'write'):
+            return Response({"error": "access_level must be 'read' or 'write'"}, status=400)
+        
         # Подписываем ID питомца. Токен будет валиден, пока мы его проверяем (например, 1 час).
-        # Формат данных: "pet_share:<pet_id>"
+        # Формат данных: "pet_share:<pet_id>:<level>"
         signer = signing.TimestampSigner()
-        token = signer.sign(f"pet_share:{pet.id}")
+        token = signer.sign(f"pet_share:{pet.id}:{level}")
         
         # Можно вернуть полный URL для QR-кода, если есть схема deep-link
         # return Response({"token": token, "qr_link": f"petvet://share/{token}"})
-        return Response({"token": token})
+        return Response({"token": token, "access_level": level})
 
     # === [NEW FEATURE] 2. Активация доступа (сканирование QR) ===
     @action(detail=False, methods=['post'])
@@ -156,7 +164,19 @@ class PetViewSet(viewsets.ModelViewSet):
         try:
             # Проверяем подпись и срок жизни (например, 1 час = 3600 сек)
             original = signer.unsign(token, max_age=3600)
-            prefix, pet_id_str = original.split(':')
+            parts = original.split(':')
+            
+            if len(parts) == 2:
+                # Обратная совместимость со старыми токенами: pet_share:<pet_id> → read
+                prefix, pet_id_str = parts
+                level = 'read'
+            elif len(parts) == 3:
+                # Новый формат: pet_share:<pet_id>:<level>
+                prefix, pet_id_str, level = parts
+                if level not in ('read', 'write'):
+                    raise signing.BadSignature()
+            else:
+                raise signing.BadSignature()
             
             if prefix != 'pet_share':
                 raise signing.BadSignature()
@@ -175,12 +195,13 @@ class PetViewSet(viewsets.ModelViewSet):
         if pet.owner == request.user:
             return Response({"message": "You are already the owner of this pet"}, status=200)
 
-        # Выдаем доступ (или обновляем существующий)
+        # [P0-7] Выдаём доступ с уровнем из токена (по умолчанию read),
+        # а не форсируем write как раньше.
         PetAccess.objects.update_or_create(
             pet=pet,
             user=request.user,
             defaults={
-                'access_level': 'write', # По умолчанию даем полный доступ (можно менять)
+                'access_level': level,
                 'is_active': True
             }
         )
@@ -189,6 +210,7 @@ class PetViewSet(viewsets.ModelViewSet):
             "status": "success", 
             "pet_id": pet.id, 
             "pet_name": pet.name,
+            "access_level": level,
             "message": "Access granted successfully"
         })
 
@@ -245,37 +267,7 @@ class EventTypeViewSet(viewsets.ModelViewSet):
         ).order_by('category', 'name')
 
     def perform_create(self, serializer):
-        event = serializer.save(created_by=self.request.user)
-
-        # Auto-create Reminder for medical/recurring events
-        if event.next_date and event.status in ('planned',):
-            from notifications.models import Reminder
-            from datetime import date as dt_date
-
-            # Map event category to reminder event_type
-            category_map = {
-                'medical': 'checkup',
-                'care': 'grooming',
-                'reproduction': 'reproduction',
-            }
-            reminder_type = category_map.get(event.event_type.category, 'other')
-
-            # Determine the user to notify
-            notify_user = event.pet.owner
-            if not notify_user and event.pet.created_by:
-                notify_user = event.pet.created_by
-
-            if notify_user:
-                Reminder.objects.create(
-                    user=notify_user,
-                    pet=event.pet,
-                    event_type=reminder_type,
-                    title=event.title,
-                    due_date=event.next_date.date(),
-                    is_recurring=True,
-                    interval_days=None,
-                    created_by_event=event,
-                )
+        serializer.save(created_by=self.request.user)
 
 
 # 2. Обновленный ViewSet для событий
@@ -297,14 +289,84 @@ class PetEventViewSet(viewsets.ModelViewSet):
         if start_date and end_date:
             queryset = queryset.filter(date__range=[start_date, end_date])
 
+        # [I-6] Единый access helper: владелец/теневой создатель/активный доступ.
+        # pet_access_q применим к Pet, поэтому фильтруем события по питомцам
+        # через подзапрос (поля owner/created_by/access_grants живут на Pet).
+        accessible_pets = Pet.objects.filter(pet_access_q(user))
         return queryset.filter(
-            Q(pet__owner=user) | 
-            Q(pet__access_grants__user=user) |
-            Q(created_by=user)
+            Q(pet__in=accessible_pets) | Q(created_by=user)
         ).select_related('event_type', 'pet').distinct()
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        event = serializer.save(created_by=self.request.user)
+
+        # Auto-create Reminder for medical/recurring events (next_date set)
+        if event.next_date and event.status in ('planned',):
+            from notifications.models import Reminder
+
+            category_map = {
+                'medical': 'checkup',
+                'care': 'grooming',
+                'reproduction': 'reproduction',
+            }
+            reminder_type = category_map.get(event.event_type.category, 'other')
+
+            notify_user = event.pet.owner
+            if not notify_user and event.pet.created_by:
+                notify_user = event.pet.created_by
+
+            if notify_user:
+                Reminder.objects.create(
+                    user=notify_user,
+                    pet=event.pet,
+                    event_type=reminder_type,
+                    title=event.title,
+                    due_date=event.next_date.date(),
+                    is_recurring=True,
+                    interval_days=None,
+                    created_by_event=event,
+                )
+
+    # [P-1] Эндпоинт, на который ссылается notifications.tasks.process_repeating_events
+    # ("/api/events/{id}/duplicate/"). Создаёт повтор события: статус 'planned',
+    # новая дата = next_date (или date + 30 дней), привязка к тому же питомцу.
+    @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        """
+        POST /api/events/{id}/duplicate/
+        Создаёт запланированную копию события. Если у оригинала есть next_date,
+        копия берёт его как дату; иначе date + 30 дней.
+        """
+        original = self.get_object()
+        user = request.user
+
+        # Права: только владелец питомца или создатель события
+        if original.pet and not user_can_access_pet(user, original.pet, write=True):
+            return Response(
+                {"error": "You do not have write access to this pet's events."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Новая дата
+        from datetime import timedelta as _td
+        if original.next_date:
+            new_date = original.next_date
+        else:
+            new_date = original.date + _td(days=30)
+
+        new_event = PetEvent.objects.create(
+            pet=original.pet,
+            event_type=original.event_type,
+            title=original.title,
+            description=original.description,
+            date=new_date,
+            data=original.data,
+            status='planned',
+            created_by=user,
+        )
+
+        serializer = self.get_serializer(new_event, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class PetEventAttachmentViewSet(viewsets.ModelViewSet):
     """
@@ -314,15 +376,18 @@ class PetEventAttachmentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Показываем только файлы моих питомцев
+        # Показываем только файлы питомцев, к которым юзер имеет доступ
+        user = self.request.user
         return PetEventAttachment.objects.filter(
-            event__pet__owner=self.request.user
-        )
+            Q(event__pet__owner=user) |
+            Q(event__pet__access_grants__user=user, event__pet__access_grants__is_active=True) |
+            Q(event__pet__created_by=user, event__pet__owner__isnull=True)
+        ).distinct()
 
     def perform_create(self, serializer):
         # Проверка прав: нельзя прикрепить файл к чужому событию
         event = serializer.validated_data.get('event')
-        if event.pet.owner != self.request.user:
+        if not user_can_access_pet(self.request.user, event.pet, write=True):
             raise PermissionDenied("Вы не можете добавлять файлы к чужим событиям.")
         serializer.save()
 

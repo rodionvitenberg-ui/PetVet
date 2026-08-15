@@ -7,11 +7,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, DestroyAPIView
 from rest_framework import status, permissions
+from rest_framework.throttling import ScopedRateThrottle
 
 from pets.models import Pet
 from .models import SystemPrompt, AIChatSession, AIChatMessage
 from .serializers import (
-    AIConsultRequestSerializer,
     SystemPromptSerializer,
     AIChatSessionCreateSerializer,
     AIChatStreamRequestSerializer,
@@ -20,8 +20,6 @@ from .serializers import (
 )
 from .services import (
     build_pet_context,
-    build_images_list,
-    call_deepseek,
     get_active_prompt,
     build_chat_system_prompt,
     build_chat_messages,
@@ -30,68 +28,7 @@ from .services import (
 
 
 # ──────────────────────────────────────────────
-# Legacy endpoint (kept for backwards compat)
-# ──────────────────────────────────────────────
-
-LEGACY_SYSTEM_PROMPT = """You are a veterinary AI assistant. Analyze the provided pet profile and answer the owner's question.
-
-Guidelines:
-- Provide honest, clear, and helpful medical advice based on the pet's history, attributes, and images.
-- If the information is insufficient to give a confident answer, say so and suggest what additional data would help.
-- Use a compassionate but professional tone.
-- Identify whether the situation is low urgency (general info / normal behavior), medium urgency (needs monitoring / vet visit soon), or high urgency (needs immediate veterinary attention).
-- ALWAYS return valid JSON with exactly these fields: "urgency" ("low"/"medium"/"high"), "title" (short summary, max 100 chars), "content" (full analysis, markdown supported).
-
-The pet data below has been stripped of all personal owner information for privacy."""
-
-
-class AIConsultView(APIView):
-    """
-    POST /api/ai/consult/
-    Legacy endpoint. Kept for backwards compatibility.
-    Accepts: { "pet_id": int, "query": string }
-    Returns: { "urgency": "low"|"medium"|"high", "title": string, "content": string }
-    """
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        serializer = AIConsultRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        pet_id = serializer.validated_data['pet_id']
-        query = serializer.validated_data['query']
-
-        user = request.user
-        pet = get_object_or_404(
-            Pet.objects.filter(
-                Q(owner=user) |
-                Q(access_grants__user=user, access_grants__is_active=True) |
-                Q(created_by=user, owner__isnull=True)
-            ).distinct(),
-            id=pet_id
-        )
-
-        context = build_pet_context(pet)
-        images = build_images_list(pet)
-        full_prompt = f"{LEGACY_SYSTEM_PROMPT}\n\nHere is the pet's profile:\n\n{context}"
-
-        try:
-            result = call_deepseek(full_prompt, query, images if images else None)
-            return Response(result, status=status.HTTP_200_OK)
-        except RuntimeError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-# ──────────────────────────────────────────────
-# New Chat API endpoints
+# Chat API endpoints
 # ──────────────────────────────────────────────
 
 class SystemPromptListView(ListAPIView):
@@ -104,13 +41,10 @@ class SystemPromptListView(ListAPIView):
 class _GetUserPetMixin:
     """Mixin to fetch a pet with access check for the current user."""
     def get_user_pet(self, pet_id: int) -> Pet:
+        from pets.access import pet_access_q
         user = self.request.user
         return get_object_or_404(
-            Pet.objects.filter(
-                Q(owner=user) |
-                Q(access_grants__user=user, access_grants__is_active=True) |
-                Q(created_by=user, owner__isnull=True)
-            ).distinct(),
+            Pet.objects.filter(pet_access_q(user)).distinct(),
             id=pet_id
         )
 
@@ -123,6 +57,8 @@ class AIChatSessionCreateView(APIView, _GetUserPetMixin):
     Returns: { "session": {...}, "message": {...} }
     """
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'ai'
 
     def post(self, request, *args, **kwargs):
         serializer = AIChatSessionCreateSerializer(data=request.data)
@@ -192,7 +128,7 @@ class AIChatSessionCreateView(APIView, _GetUserPetMixin):
                 "message": AIChatMessageSerializer(ai_msg, context={'request': request}).data,
             }, status=status.HTTP_201_CREATED)
 
-        except (RuntimeError, Exception) as e:
+        except Exception as e:
             # Cleanup on failure
             session.delete()
             return Response(
@@ -264,6 +200,8 @@ class AIChatStreamView(APIView, _GetUserPetMixin):
     Returns: text/event-stream
     """
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'ai'
 
     def post(self, request, session_id, *args, **kwargs):
         serializer = AIChatStreamRequestSerializer(data=request.data)

@@ -42,10 +42,7 @@ export default function CalendarPage() {
     const { user } = useAuth();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     
-    // loading используется для индикации процесса загрузки данных (спиннер в заголовке)
     const [loading, setLoading] = useState(false);
-    // [2] Новое состояние: isInitialized для отображения полноэкранного лоадера ТОЛЬКО при первом входе
-    const [isInitialized, setIsInitialized] = useState(false);
     
     const [date, setDate] = useState(new Date());
     const [view, setView] = useState<View>(Views.MONTH);
@@ -55,14 +52,10 @@ export default function CalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [editingEvent, setEditingEvent] = useState<any>(null);
 
-    // === ОПРЕДЕЛЕНИЕ КУЛЬТУРЫ (ЯЗЫКА) ===
-    const culture = useMemo(() => {
-        if (typeof window !== 'undefined') {
-            // Если браузер русский -> 'ru', иначе -> 'en-GB' (Европейский стандарт)
-            return navigator.language.startsWith('ru') ? 'ru' : 'en-GB';
-        }
-        return 'en-GB';
-    }, []);
+    // Динамическая культура: 'ru' или 'en-GB' по языку браузера
+    const culture = useMemo(() =>
+        navigator.language.startsWith('ru') ? 'ru' : 'en-GB',
+    []);
 
     const fetchEvents = useCallback(async (currentDate: Date, currentView: View) => {
         setLoading(true);
@@ -115,8 +108,6 @@ export default function CalendarPage() {
             console.error("Failed to fetch events", error);
         } finally {
             setLoading(false);
-            // [3] После первой загрузки считаем страницу инициализированной
-            setIsInitialized(true);
         }
     }, []);
 
@@ -189,37 +180,30 @@ export default function CalendarPage() {
 
     return (
         <AuthGuard>
-            {!isInitialized ? (
-                // [4] Полноэкранная загрузка только при первом входе
-                <div className="min-h-screen pt-24 flex justify-center items-center">
-                    <Loader2 className="animate-spin text-gray-400" size={32} />
-                </div>
-            ) : (
-                <div className="min-h-screen bg-white pt-24 px-4 pb-10">
+            <div className="min-h-screen bg-card pt-24 px-4 pb-10">
                     <div className="max-w-[1920px] mx-auto h-[80vh] flex flex-col">
                         
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                                     {culture === 'ru' ? 'Календарь записи' : 'Appointments Calendar'}
-                                    {/* При навигации показываем маленький лоадер здесь, чтобы не скрывать календарь */}
-                                    {loading && <Loader2 className="animate-spin text-gray-400" size={20} />}
+                                    {loading && <Loader2 className="animate-spin text-muted-foreground" size={20} />}
                                 </h1>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-muted-foreground">
                                     {culture === 'ru' ? 'Планирование приемов и операций' : 'Schedule management'}
                                 </p>
                             </div>
 
                             <button 
                                 onClick={() => handleSelectSlot({ start: new Date() })}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition shadow-lg shadow-blue-200"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition shadow-lg shadow-primary/20 active:scale-[0.96]"
                             >
                                 <Plus size={20} />
                                 {culture === 'ru' ? 'Новая запись' : 'New Appointment'}
                             </button>
                         </div>
 
-                        <div className="flex-1 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 relative overflow-hidden">
+                        <div className="flex-1 bg-card rounded-2xl shadow-xl border border-border p-6 relative overflow-hidden">
                             <Calendar
                                 localizer={localizer}
                                 events={events}
@@ -252,8 +236,7 @@ export default function CalendarPage() {
                         initialDate={selectedDate}
                         initialData={editingEvent}
                     />
-                </div>
-            )}
+            </div>
         </AuthGuard>
     );
 }

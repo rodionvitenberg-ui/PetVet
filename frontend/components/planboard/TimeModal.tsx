@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, CalendarClock, Check } from 'lucide-react';
 
 interface TimeModalProps {
@@ -10,18 +10,20 @@ interface TimeModalProps {
 }
 
 export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps) {
-    const [dateValue, setDateValue] = useState('');
+    if (!isOpen) return null;
+    return <TimeModalContent onClose={onClose} onConfirm={onConfirm} />;
+}
+
+function getDefaultNow() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+}
+
+function TimeModalContent({ onClose, onConfirm }: { onClose: () => void; onConfirm: (date: Date) => void }) {
+    const [dateValue, setDateValue] = useState(getDefaultNow);
     // Состояние для активной кнопки (храним число часов или 'morning')
     const [activeButton, setActiveButton] = useState<string | number | null>(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            setDateValue(now.toISOString().slice(0, 16));
-            setActiveButton(null); // При открытии ничего не выбрано (стоит "Сейчас")
-        }
-    }, [isOpen]);
 
     const handleQuickSet = (hoursToAdd: number) => {
         const date = new Date();
@@ -51,33 +53,29 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
         onConfirm(new Date(dateValue));
     };
 
-    if (!isOpen) return null;
-
-    // Базовые стили кнопок
-    const baseBtnClass = "px-4 py-3 border rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center";
+    const baseBtnClass = "px-4 py-3 border rounded-xl text-xs font-bold transition-all shadow-sm active:scale-[0.96] flex items-center justify-center";
     
-    // Стили состояний
-    const inactiveClass = "bg-white border-gray-200 text-gray-600 hover:border-red-400 hover:bg-red-50 hover:text-red-600";
-    const activeClass = "bg-red-600 border-red-600 text-white shadow-md shadow-red-200 transform scale-105 ring-2 ring-red-100 ring-offset-1";
+    const inactiveClass = "bg-card border-border text-muted-foreground hover:border-destructive/50 hover:bg-destructive/5 hover:text-destructive";
+    const activeClass = "bg-destructive border-destructive text-destructive-foreground shadow-md shadow-destructive/20 transform scale-105 ring-2 ring-destructive/20 ring-offset-1";
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             
-            <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <CalendarClock className="text-red-500" size={20} />
+            <div className="relative bg-card w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-4 bg-muted border-b border-border flex justify-between items-center">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                        <CalendarClock className="text-destructive" size={20} />
                         Specify time
                     </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500">
+                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition text-muted-foreground focus-ring">
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                    <div className="text-sm text-gray-500 text-center leading-relaxed">
-                        You are rescheduling the task to <span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded">URGENT</span><br/>
+                    <div className="text-sm text-muted-foreground text-center leading-relaxed">
+                        You are rescheduling the task to <span className="font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded">URGENT</span><br/>
                         When should it be completed?
                     </div>
 
@@ -86,7 +84,7 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
                         required
                         value={dateValue}
                         onChange={handleManualChange}
-                        className="w-full border border-gray-300 rounded-xl p-3 text-lg font-mono text-center outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"
+                        className="w-full border border-input rounded-xl p-3 text-lg font-mono text-center outline-none focus-ring bg-background text-foreground transition"
                     />
 
                     {/* Быстрые кнопки */}
@@ -117,7 +115,7 @@ export default function TimeModal({ isOpen, onClose, onConfirm }: TimeModalProps
                     <div className="pt-2">
                         <button 
                             type="submit" 
-                            className="w-full bg-red-600 text-white py-3.5 rounded-xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-200 flex items-center justify-center gap-2 text-base"
+                            className="w-full bg-destructive text-destructive-foreground py-3.5 rounded-xl font-bold hover:bg-destructive/90 transition shadow-lg shadow-destructive/20 flex items-center justify-center gap-2 text-base active:scale-[0.96]"
                         >
                             <Check size={20} /> Confirm
                         </button>

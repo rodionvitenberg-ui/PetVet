@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import CatalogItem, Invoice, InvoiceItem, EventTemplate, TemplateItem
 from users.serializers import PublicProfileSerializer
 from pets.serializers import PetSerializer
+from pets.services import resolve_client
 
 # === CATALOG ===
 class CatalogItemSerializer(serializers.ModelSerializer):
@@ -61,41 +62,17 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'total_amount', 'tax_amount', 'discount_amount',
             'client', 'client_info', 'guest_name',
             'pet', 'pet_name', 'event',
-            'items', 'created_at', 'notes'
+            'created_by', 'items', 'created_at', 'notes'
         ]
-        read_only_fields = ['total_amount', 'tax_amount', 'created_at']
+        read_only_fields = ['total_amount', 'tax_amount', 'created_at', 'created_by']
 
     def get_client_info(self, obj):
-        # 1. Если клиент явно привязан к счету (Зарегистрированный User)
-        if obj.client:
-            return {
-                "id": obj.client.id,
-                "name": obj.client.get_full_name() or obj.client.email,
-                "is_shadow": False
-            }
-        
-        # 2. Если есть питомец
-        if obj.pet:
-            # 2.1 У питомца есть реальный владелец (User)
-            if obj.pet.owner:
-                return {
-                    "id": obj.pet.owner.id,
-                    "name": obj.pet.owner.get_full_name() or obj.pet.owner.email,
-                    "is_shadow": False
-                }
-            
-            # 2.2 [FIX] У питомца есть Теневой владелец (Shadow Card)
-            if obj.pet.temp_owner_name:
-                return {
-                    "id": None,
-                    "name": obj.pet.temp_owner_name, # Например: "Иван (Временный)"
-                    "is_shadow": True
-                }
-            
-        # 3. Иначе - Гость / Аноним
+        # [P-2] Единый резолвер клиента (Invoice → client | pet.owner | temp_owner | guest)
+        client = resolve_client(obj)
         return {
-            "name": obj.guest_name or "Гость",
-            "is_shadow": True
+            "id": client.get("id"),
+            "name": client.get("name") or "Гость",
+            "is_shadow": client.get("is_temporary", True),
         }
 
     def create(self, validated_data):

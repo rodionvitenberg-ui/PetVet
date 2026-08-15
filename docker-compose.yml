@@ -13,8 +13,7 @@ services:
   # === Redis (Брокер для Celery и Channels) ===
   redis:
     image: redis:7-alpine
-    ports:
-    - "6379:6379"
+    # Порт 6379 НЕ публикуем наружу — только внутренняя сеть Docker.
     restart: always
 
   # === Backend (Django + Daphne) ===
@@ -92,6 +91,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE=postgres
     depends_on:
@@ -110,6 +110,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE=postgres
     depends_on:

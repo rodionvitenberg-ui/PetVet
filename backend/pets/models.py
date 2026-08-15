@@ -2,8 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
-from simple_history.models import HistoricalRecords
-import pytils
+from slugify import slugify as slugify_translit
 import uuid
 
 class Category(models.Model):
@@ -202,14 +201,6 @@ class Pet(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Active")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='pet_profile', # Чтобы от юзера получить профиль: user.pet_profile
-        null=True, 
-        blank=True
-    )
-
     class Meta:
         verbose_name = "Pet"
         verbose_name_plural = "Pets"
@@ -234,7 +225,7 @@ class Pet(models.Model):
         # Если слага еще нет (создание нового питомца)
         if not self.slug:
             # 1. Сначала транслитерируем имя (Барсик -> barsik)
-            base_slug = pytils.translit.slugify(self.name)
+            base_slug = slugify_translit(self.name)
             
             # Если имя состояло из смайликов или спецсимволов и слаг пустой - берем 'pet'
             if not base_slug:
@@ -288,6 +279,10 @@ class EventType(models.Model):
         ('reproduction', 'Reproduction'),
         ('show', 'Shows & Documents'),
         ('care', 'Care & Hygiene'),
+        # [P-2] Категории, которые исп. AI-контекст (build_pet_context / pets.services):
+        # без них события хирургии/паразитов не попадали в мед. историю для ИИ.
+        ('surgery', 'Surgery'),
+        ('parasite', 'Parasite Treatment'),
         ('other', 'Other'),
     ]
 

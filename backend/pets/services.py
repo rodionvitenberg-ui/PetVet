@@ -1,68 +1,108 @@
-from datetime import date
-from .models import Pet, PetEvent
+# === ЕДИНАЯ СУЩНОСТЬ КЛИЕНТА (P-2) ===
+# Три места в сериализаторах раньше строили «клиента» по-своему:
+#   PetSerializer.get_owner_info        (owner | temp_owner)
+#   PetEventSerializer                  (guest_*)
+#   InvoiceSerializer.get_client_info   (client | pet.owner | temp_owner | guest)
+# Теперь это один резолвер. Сериализаторы зовут resolve_client().
 
-def calculate_age(birth_date):
-    if not birth_date:
-        return "Unknown"
-    today = date.today()
-    years = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    if years < 1:
-        months = (today.year - birth_date.year) * 12 + today.month - birth_date.month
-        return f"{months} mo"
-    return f"{years} yr"
-
-def build_pet_profile_prompt(pet_id):
-    try:
-        pet = Pet.objects.get(id=pet_id)
-    except Pet.DoesNotExist:
-        return None
-
-    categories = ", ".join([c.name for c in pet.categories.all()])
-    age = calculate_age(pet.birth_date)
-    gender = "Male" if pet.gender == 'M' else "Female"
-    
-    # === TAGS ===
-    tags_list = [t.name.lower() for t in pet.tags.all()]
-    is_neutered = any(term in tags_list for term in ['neutered', 'spayed'])
-    
-    reproductive_status = "NEUTERED/SPAYED" if is_neutered else "INTACT — Possible sexual instinct!"
-
-    # === ATTRIBUTES ===
-    attributes_list = []
-    for pa in pet.attributes.all():
-        attributes_list.append(f"{pa.attribute.name}: {pa.value} {pa.attribute.unit or ''}")
-    attributes_str = "; ".join(attributes_list) if attributes_list else "No data"
-
-    # === MEDICAL HISTORY ===
-    last_events = PetEvent.objects.filter(
-        pet=pet,
-        event_type__category__in=['medical', 'reproduction', 'surgery', 'parasite']
-    ).select_related('event_type').order_by('-date')[:5]
-
-    history_str = ""
-    if last_events.exists():
-        for event in last_events:
-            date_str = event.date.strftime('%m/%d/%Y')
-            type_name = event.event_type.name 
-            history_str += f"- {date_str} [{type_name}]: {event.title}. {event.description or ''}\n"
-    else:
-        history_str = "No history records."
-
-    profile_text = f"""
-=== PATIENT ===
-Name: {pet.name}
-Species: {categories}
-Sex: {gender}
-Age: {age}
-Reproductive Status: {reproductive_status} (This is critical for behavioral analysis!)
-
-=== PHYSIOLOGY ===
-{attributes_str}
-
-=== TRAITS ===
-Tags: {", ".join(tags_list)}
-
-=== MEDICAL HISTORY ===
-{history_str}
+def resolve_client(obj) -> dict:
     """
-    return profile_text.strip()
+    Возвращает унифицированный объект клиента из любой модели-источника.
+
+    obj может быть:
+    - pets.Pet          → реальный владелец или теневой (temp_owner_name/phone);
+    - pets.PetEvent     → guest_*;
+    - billing.Invoice   → client (User) или guest_name.
+
+    Ответ всегда: {id, name, phone, email, telegram, avatar, about, is_temporary}.
+    """
+    # 1. Pet: реальный владелец или теневой владелец
+    owner = getattr(obj, 'owner', None)
+    if owner is not None:
+        return {
+            "id": owner.id,
+            "name": f"{owner.first_name} {owner.last_name}".strip() or owner.username,
+            "email": getattr(owner, 'email', None),
+            "phone": getattr(owner, 'phone', None),
+            "telegram": getattr(owner, 'telegram', None),
+            "avatar": owner.avatar.url if getattr(owner, 'avatar', None) else None,
+            "about": getattr(owner, 'about', None),
+            "is_temporary": False,
+        }
+
+    temp_name = getattr(obj, 'temp_owner_name', None)
+    temp_phone = getattr(obj, 'temp_owner_phone', None)
+    if temp_name or temp_phone:
+        return {
+            "id": None,
+            "name": temp_name or "Client (No name)",
+            "email": None,
+            "phone": temp_phone,
+            "telegram": None,
+            "avatar": None,
+            "about": "Profile not yet created",
+            "is_temporary": True,
+        }
+
+    # 2. PetEvent: гостевые поля
+    guest_name = getattr(obj, 'guest_name', None)
+    if guest_name:
+        return {
+            "id": None,
+            "name": guest_name,
+            "email": None,
+            "phone": getattr(obj, 'guest_phone', None),
+            "telegram": None,
+            "avatar": None,
+            "about": None,
+            "is_temporary": True,
+        }
+
+    # 3. Invoice: client (User)
+    client = getattr(obj, 'client', None)
+    if client is not None:
+        return {
+            "id": client.id,
+            "name": client.get_full_name() or client.email,
+            "email": client.email,
+            "phone": getattr(client, 'phone', None),
+            "telegram": getattr(client, 'telegram', None),
+            "avatar": client.avatar.url if getattr(client, 'avatar', None) else None,
+            "about": getattr(client, 'about', None),
+            "is_temporary": False,
+        }
+
+    # 4. Invoice с петом, у которого теневой владелец
+    pet = getattr(obj, 'pet', None)
+    if pet is not None:
+        result = resolve_client(pet)
+        if result.get('id') is not None or pet.temp_owner_name:
+            return result
+
+    # 5. Invoice: guest_name — последний вариант
+    invoice_guest = getattr(obj, 'guest_name', None)
+    if invoice_guest:
+        return {
+            "id": None,
+            "name": invoice_guest,
+            "email": None,
+            "phone": None,
+            "telegram": None,
+            "avatar": None,
+            "about": None,
+            "is_temporary": True,
+        }
+
+    return {
+        "id": None,
+        "name": "Guest",
+        "email": None,
+        "phone": None,
+        "telegram": None,
+        "avatar": None,
+        "about": None,
+        "is_temporary": True,
+    }
+
+
+# (calculate_age удалён — не использовался; возраст считается в PetSerializer.get_age)

@@ -64,7 +64,7 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this template?')) return;
     try {
-      await deleteTemplate(id);
+      await deleteTemplate(clinicId, id);
       setTemplates(prev => prev.filter(t => t.id !== id));
       addToast({ title: "Template deleted", color: "default", variant: "flat" });
     } catch (err: any) {

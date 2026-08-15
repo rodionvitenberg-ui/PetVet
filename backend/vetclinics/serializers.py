@@ -58,14 +58,14 @@ class ClinicInviteSerializer(serializers.ModelSerializer):
 
 class ExamTemplateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ExamTemplate  # noqa: F821
+        model = ExamTemplate
         fields = ['id', 'clinic', 'name', 'category', 'default_fields', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'clinic', 'created_by', 'created_at', 'updated_at']
 
 
 class ExamTemplateCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ExamTemplate  # noqa: F821
+        model = ExamTemplate
         fields = ['name', 'category', 'default_fields', 'is_active']
 
 

@@ -13,6 +13,7 @@ import {
   Globe
 } from 'lucide-react';
 import NotificationsDropdown from './dashboard/NotificationsDropdown';
+import ThemeToggle from './ThemeToggle';
 
 // Импорт кастомных анимированных иконок
 import { BoneIcon } from '@/components/ui/bone';
@@ -60,25 +61,23 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 bg-background w-full z-50 border-b border-border h-16 md:h-20">
-      <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between text-foreground">
+    <header className="fixed top-0 bg-background w-full z-50 border-b border-border min-h-16 md:min-h-20">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between text-foreground">
         
-        {/* 1. ЛЕВАЯ ЧАСТЬ (Логотип + Текст снизу) */}
         <Link href="/" className="flex items-center flex-1 select-none">
            <div className="flex flex-col items-center justify-center leading-none">
               <Image 
                 src="/logo1.png" 
                 alt="PetVet Logo" 
-                width={75} 
-                height={75} 
-                className="object-contain"
+                width={48} 
+                height={48} 
+                className="object-contain md:w-14 md:h-14"
                 priority
               />
            </div>
         </Link>
 
-        {/* 2. ЦЕНТР (Навигация) */}
-        <div className="hidden md:flex items-center justify-center h-full gap-8">
+        <div className="hidden md:flex items-center justify-center h-full gap-1 lg:gap-2">
           
           <Link 
             href="/"
@@ -173,7 +172,7 @@ export default function Header() {
                 <Link
                   href="/dashboard/messages"
                   className={`
-                    p-2 rounded-full transition duration-200 flex items-center justify-center outline-none relative
+                    p-2 rounded-full transition duration-200 flex items-center justify-center outline-none focus-ring relative
                     ${isActive('/dashboard/messages')
                         ? 'text-primary bg-muted'
                         : 'text-muted-foreground hover:text-primary hover:bg-muted'
@@ -201,7 +200,7 @@ export default function Header() {
                     <button 
                     onClick={() => toggleMenu('notifications')}
                     className={`
-                        p-2 rounded-full transition duration-200 flex items-center justify-center outline-none
+                        p-2 rounded-full transition duration-200 flex items-center justify-center outline-none focus-ring
                         ${activeMenu === 'notifications' 
                             ? 'text-primary bg-muted' 
                             : 'text-muted-foreground hover:text-primary hover:bg-muted'
@@ -225,11 +224,13 @@ export default function Header() {
               </button>
             )}
 
+          <ThemeToggle />
+
           {/* Кнопка Бургер-меню */}
           <button 
             onClick={() => toggleMenu('burger')}
             className={`
-              flex items-center justify-center border rounded-full p-2.5 transition cursor-pointer ml-1 bg-white outline-none
+              flex items-center justify-center border rounded-full p-2.5 transition cursor-pointer ml-1 bg-card outline-none focus-ring
               ${activeMenu === 'burger' 
                   ? 'border-primary shadow-md text-primary' 
                   : 'border-border hover:shadow-md text-foreground'

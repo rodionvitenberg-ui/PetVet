@@ -17,15 +17,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex bg-background overflow-hidden">
       {/* Left brand panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary/5 via-background to-primary/5 items-center justify-center p-12">
-        {/* Decorative orbs */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/[0.03] rounded-full blur-3xl" />
-        
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
-
+      <div className="hidden lg:flex lg:w-1/2 bg-muted/30 border-r border-border items-center justify-center p-12">
         <motion.div 
           className="relative z-10 max-w-lg"
           initial={{ opacity: 0, x: -40 }}
@@ -39,7 +31,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-foreground">careyour.pet</h1>
-              <p className="text-sm text-muted-foreground">Your pet's digital companion</p>
+              <p className="text-sm text-muted-foreground">{"Your pet's digital companion"}</p>
             </div>
           </div>
 
@@ -74,15 +66,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             ))}
           </div>
 
-          {/* Bottom decorative text */}
-          <motion.p 
-            className="mt-16 text-sm text-muted-foreground/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9, duration: 0.5 }}
-          >
-            Join thousands of pet owners and veterinarians
-          </motion.p>
         </motion.div>
       </div>
 

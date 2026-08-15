@@ -18,7 +18,7 @@ urlpatterns = [
     path('<int:clinic_id>/invite/', ClinicInviteCreateView.as_view(), name='clinic-invite'),
     path('join/', ClinicJoinView.as_view(), name='clinic-join'),
 
-    # Exam Templates
+    # Exam Templates — nested под клиникой: /clinic/{id}/templates/{pk}/
     path('<int:clinic_id>/templates/', ExamTemplateListCreateView.as_view(), name='clinic-templates'),
-    path('templates/<int:pk>/', ExamTemplateDetailView.as_view(), name='clinic-template-detail'),
+    path('<int:clinic_id>/templates/<int:pk>/', ExamTemplateDetailView.as_view(), name='clinic-template-detail'),
 ]

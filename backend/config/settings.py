@@ -12,7 +12,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+import sys
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -52,11 +56,12 @@ INSTALLED_APPS = [
     'django_filters',
     'django.contrib.postgres',
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'users',
     'pets',
-    'simple_history',
     'notifications',
     'channels',
     'chat',
@@ -77,7 +82,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -182,6 +186,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'ai': '20/hour',
+        'auth': '10/hour',
+    },
 }
 
 # URL, по которому файлы будут доступны в браузере
@@ -191,14 +206,14 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 SIMPLE_JWT = {
-    # Жизнь Access токена (с ним ходят за данными)
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=30), 
+    # Жизнь Access токена (с ним ходят за данными) — 60 минут
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     
-    # Жизнь Refresh токена (им обновляют Access, если тот протух)
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=60),
+    # Жизнь Refresh токена (им обновляют Access, если тот протух) — 30 дней
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     
-    # Остальное можно оставить по дефолту, но эти два - главные
-    'ROTATE_REFRESH_TOKENS': False,
+    # Ротация: каждый refresh выдаёт новый refresh и чернит старый
+    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
@@ -219,16 +234,67 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-ASGI_APPLICATION = 'config.asgi.application'
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [f"redis://{REDIS_HOST}:6379/1"],
+# === LOGGING (O-5) ===
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
+
+ASGI_APPLICATION = 'config.asgi.application'
+
+# В тестах используем InMemoryChannelLayer, чтобы не зависеть от Redis
+# (сигналы Notification → send_websocket иначе блокируют тестовый прогон).
+if 'test' in sys.argv or 'pytest' in sys.argv[0]:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [f"redis://{REDIS_HOST}:6379/1"],
+            },
+        },
+    }
 
 gettext = lambda s: s
 LANGUAGES = (
@@ -303,7 +369,7 @@ if os.getenv('EMAIL_HOST_PASSWORD'):
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 else:
-    # Если пароля нет — пишем в консоль (чтобы не ломать локальную разработку другим)
+    # Если пароля нет — используем console backend
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = 'noreply@petvet.local'
-    print("⚠️ WARNING: Email settings not found in .env. Using Console backend.")
+    logger.warning("Email settings not found in .env. Using Console backend.")

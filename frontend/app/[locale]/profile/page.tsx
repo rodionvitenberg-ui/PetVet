@@ -309,11 +309,10 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* ЛЕВАЯ КОЛОНКА (Аватар) */}
         <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center relative overflow-hidden">
+            <div className="bg-card p-6 rounded-2xl shadow-sm border border-border text-center relative overflow-hidden">
                 <div className="relative inline-block group cursor-pointer" onClick={handleAvatarClick}>
-                    <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mx-auto relative bg-gray-100">
+                    <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-background shadow-lg mx-auto relative bg-muted">
                         {user.avatar ? (
                             <img 
                                 src={user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}`} 
@@ -332,8 +331,8 @@ export default function ProfilePage() {
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                 </div>
                 
-                <h2 className="mt-4 text-xl font-bold text-gray-900">{user.username}</h2>
-                <p className="text-gray-500 text-sm mb-4">{user.email}</p>
+                <h2 className="mt-4 text-xl font-bold text-foreground">{user.username}</h2>
+                <p className="text-muted-foreground text-sm mb-4">{user.email}</p>
                 
                 <div className="flex justify-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${user.is_veterinarian ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
@@ -352,26 +351,26 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 space-y-8">
 
             {/* ФОРМА: Личные данные */}
-            <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <User size={20} className="text-blue-500" /> Personal Information
+            <form onSubmit={handleSaveProfile} className="bg-card p-6 rounded-2xl shadow-sm border border-border">
+                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                    <User size={20} className="text-primary" /> Personal Information
                 </h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">First Name</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">First Name</label>
                         <input 
                             type="text" 
-                            className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                            className="w-full border border-input rounded-xl p-3 bg-background text-foreground focus-ring transition"
                             value={formData.first_name}
                             onChange={(e) => setFormData({...formData, first_name: e.target.value})}
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Last Name</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Last Name</label>
                         <input 
                             type="text" 
-                            className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                            className="w-full border border-input rounded-xl p-3 bg-background text-foreground focus-ring transition"
                             value={formData.last_name}
                             onChange={(e) => setFormData({...formData, last_name: e.target.value})}
                         />
@@ -379,10 +378,10 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mb-4">
-                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">About / Specialization</label>
+                     <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">About / Specialization</label>
                      <textarea 
                         rows={3}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-200 outline-none transition resize-none"
+                        className="w-full border border-input rounded-xl p-3 bg-background text-foreground focus-ring transition resize-none"
                         value={formData.about}
                         placeholder={user.is_veterinarian ? "Tell us about your experience and services..." : "A few words about you..."}
                         onChange={(e) => setFormData({...formData, about: e.target.value})}
@@ -391,24 +390,24 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">City</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">City</label>
                         <div className="relative">
-                            <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                            <MapPin size={16} className="absolute left-3 top-3.5 text-muted-foreground" />
                             <input 
                                 type="text" 
-                                className="w-full border border-gray-300 rounded-xl p-3 pl-10 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                                className="w-full border border-input rounded-xl p-3 pl-10 bg-background text-foreground focus-ring transition"
                                 value={formData.city}
                                 onChange={(e) => setFormData({...formData, city: e.target.value})}
                             />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Main Phone</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Main Phone</label>
                         <div className="relative">
-                            <Phone size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                            <Phone size={16} className="absolute left-3 top-3.5 text-muted-foreground" />
                             <input 
                                 type="text" 
-                                className="w-full border border-gray-300 rounded-xl p-3 pl-10 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                                className="w-full border border-input rounded-xl p-3 pl-10 bg-background text-foreground focus-ring transition"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                                 placeholder="For account login"
@@ -458,9 +457,9 @@ export default function ProfilePage() {
                 )}
 
                 {/* Смена пароля */}
-                <div className="pt-6 border-t border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Lock size={16} className="text-gray-400" /> Change Password
+                <div className="pt-6 border-t border-border">
+                    <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <Lock size={16} className="text-muted-foreground" /> Change Password
                     </h3>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -468,7 +467,7 @@ export default function ProfilePage() {
                             <input 
                                 type="password" 
                                 placeholder="New Password"
-                                className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
+                                className="w-full border border-input rounded-xl p-3 text-sm bg-background text-foreground focus-ring"
                                 value={passwords.password}
                                 onChange={(e) => setPasswords({...passwords, password: e.target.value})}
                                 autoComplete="new-password"
@@ -478,7 +477,7 @@ export default function ProfilePage() {
                             <input 
                                 type="password" 
                                 placeholder="Confirm Password"
-                                className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
+                                className="w-full border border-input rounded-xl p-3 text-sm bg-background text-foreground focus-ring"
                                 value={passwords.confirm_password}
                                 onChange={(e) => setPasswords({...passwords, confirm_password: e.target.value})}
                                 autoComplete="new-password"
@@ -501,11 +500,11 @@ export default function ProfilePage() {
 
 
             {/* СПИСОК КОНТАКТОВ */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Phone size={20} className="text-blue-500" /> Contacts 
+            <div className="bg-card p-6 rounded-2xl shadow-sm border border-border">
+                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Phone size={20} className="text-primary" /> Contacts 
                 </h3>
-                <p className="text-sm text-gray-500 mb-6">Add contact methods so that {user.is_veterinarian ? 'owners' : 'veterinarians'} can reach you.</p>
+                <p className="text-sm text-muted-foreground mb-6">Add contact methods so that {user.is_veterinarian ? 'owners' : 'veterinarians'} can reach you.</p>
 
                 {/* Рендер списка */}
                 <div className="space-y-3 mb-6">
@@ -557,7 +556,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Форма добавления */}
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                <div className="bg-muted/50 p-4 rounded-xl border border-border">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                         <select 
                             className="p-2.5 rounded-xl border border-gray-300 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200"
@@ -597,7 +596,7 @@ export default function ProfilePage() {
             </div>
 
             {/* ОПАСНАЯ ЗОНА */}
-            <div className="bg-destructive/10 p-6 rounded-3xl border border-destructive/20">
+            <div className="bg-destructive/10 p-6 rounded-2xl border border-destructive/20">
                 <h3 className="text-lg font-bold text-destructive mb-4 flex items-center gap-2">
                     <AlertTriangle size={20} /> Dangerous Zone
                 </h3>
@@ -608,7 +607,7 @@ export default function ProfilePage() {
                 <div className="flex justify-end">
                     <button 
                         onClick={handleDeleteClick}
-                        className="bg-white border-2 border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition shadow-sm flex items-center gap-2"
+                        className="bg-card border-2 border-destructive/30 text-destructive px-6 py-3 rounded-xl font-bold hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition shadow-sm flex items-center gap-2"
                     >
                         <Trash2 size={18} />
                         Delete Account

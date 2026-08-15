@@ -2,29 +2,9 @@ from rest_framework import serializers
 from datetime import date
 from users.serializers import PublicProfileSerializer
 from .models import Pet, Category, Attribute, PetAttribute, PetImage, Tag, PetEvent, EventType, PetEventAttachment
-import re
+from .services import resolve_client
+from slugify import slugify as custom_slugify
 import uuid
-
-# === ХЕЛПЕР ДЛЯ СЛАГОВ ===
-def custom_slugify(text):
-    """
-    Простой транслит для генерации слагов без сторонних библиотек.
-    """
-    translit_map = {
-        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
-        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
-        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-    }
-    text = text.lower()
-    result = []
-    for char in text:
-        result.append(translit_map.get(char, char))
-    
-    slug = "".join(result)
-    slug = re.sub(r'[^a-z0-9]+', '-', slug).strip('-')
-    return slug
 
 # === СЕРИАЛИЗАТОРЫ СПРАВОЧНИКОВ ===
 
@@ -95,7 +75,11 @@ class EventTypeSerializer(serializers.ModelSerializer):
 class PetEventAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetEventAttachment
-        fields = ['id', 'file', 'created_at']
+        # [I-4] Добавлено поле event: без него POST /api/event-attachments/
+        # не получал event в validated_data → event.pet в perform_create падал
+        # с AttributeError ('NoneType' object has no attribute 'pet').
+        fields = ['id', 'event', 'file', 'created_at']
+        read_only_fields = ['created_at']
 
 
 class PetEventSerializer(serializers.ModelSerializer):
@@ -143,11 +127,13 @@ class PetEventSerializer(serializers.ModelSerializer):
 
     def get_pet_info(self, obj):
         if obj.pet:
+            # [P-2] Владелец события — через единый резолвер клиента
+            client = resolve_client(obj.pet)
             return {
                 "id": obj.pet.id,
                 "name": obj.pet.name,
                 "avatar": obj.pet.images.filter(is_main=True).first().image.url if obj.pet.images.filter(is_main=True).exists() else None,
-                "owner_name": obj.pet.owner_info.get('name') if getattr(obj.pet, 'owner_info', None) else None
+                "owner_name": client.get('name')
             }
         return None
 
@@ -208,7 +194,7 @@ class PetSerializer(serializers.ModelSerializer):
     father = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.filter(gender='M'), required=False, allow_null=True)
     
     age = serializers.SerializerMethodField()
-    recent_events = PetEventSerializer(source='events', many=True, read_only=True)
+    recent_events = serializers.SerializerMethodField()
 
     owner_info = serializers.SerializerMethodField()
     active_vets = serializers.SerializerMethodField()
@@ -234,29 +220,8 @@ class PetSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by']
     
     def get_owner_info(self, obj):
-       if obj.owner:
-            return {
-                "id": obj.owner.id,
-                "name": f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username,
-                "email": obj.owner.email,
-                "phone": obj.owner.phone,
-                "telegram": obj.owner.telegram,
-                "avatar": obj.owner.avatar.url if obj.owner.avatar else None,
-                "about": obj.owner.about,
-                "is_temporary": False 
-            }
-       elif obj.temp_owner_name or obj.temp_owner_phone:
-            return {
-                "id": None,
-                "name": obj.temp_owner_name or "Client (No name)",
-                "email": None,
-                "phone": obj.temp_owner_phone,
-                "telegram": None,
-                "avatar": None, 
-                "about": "Profile not yet created",
-                "is_temporary": True
-            }
-       return None
+        # [P-2] Единый резолвер клиента (Pet → owner | temp_owner)
+        return resolve_client(obj)
     
     def get_age(self, obj):
         if not obj.birth_date:

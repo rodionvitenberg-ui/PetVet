@@ -8,6 +8,10 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,6 +29,11 @@ urlpatterns = [
     path('api/common/', include('common.urls')),
     path('api/ai/', include('ai.urls')),
     path('api/clinics/', include('vetclinics.urls')),
+    path('api/breeding/', include('breeding.urls')),
+
+    # OpenAPI schema + docs (drf-spectacular)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
 
 if settings.DEBUG:

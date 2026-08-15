@@ -42,6 +42,18 @@ export interface TemporaryOwnerProfile {
     is_temporary: boolean;
 }
 
+// Объект owner_info из PetSerializer.get_owner_info (owner или shadow/temporary)
+export interface OwnerInfo {
+    id: number | null;
+    name: string;
+    email: string | null;
+    phone?: string | null;
+    telegram?: string | null;
+    avatar?: string | null;
+    about?: string | null;
+    is_temporary: boolean;
+}
+
 // === СПРАВОЧНИКИ (НОВОЕ) ===
 
 export interface Category {
@@ -105,7 +117,7 @@ export interface PetBasic {
     name: string;
     slug: string;
     owner: number | null; // ID владельца
-    owner_info?: UserProfile | TemporaryOwnerProfile;
+    owner_info?: OwnerInfo | null;
     
     // Медиа
     images?: PetImage[];
@@ -117,6 +129,8 @@ export interface PetBasic {
     birth_date?: string; // YYYY-MM-DD
     age?: string;        // Вычисляемое на бэке (например "2 года")
     description?: string;
+    clinic?: number | null; // ID клиники
+    created_at?: string;
 
     // Классификация (Read-only объекты)
     categories?: Category[]; 

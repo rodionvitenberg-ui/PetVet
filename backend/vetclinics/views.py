@@ -166,7 +166,7 @@ class ExamTemplateListCreateView(ListCreateAPIView):
             VetClinic.objects.filter(memberships__user=self.request.user, is_active=True),
             id=clinic_id
         )
-        return ExamTemplate.objects.filter(  # noqa: F821
+        return ExamTemplate.objects.filter(
             clinic_id=clinic_id, is_active=True
         ).order_by('category', 'name')
 
@@ -184,7 +184,7 @@ class ExamTemplateDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return ExamTemplate.objects.filter(  # noqa: F821
+        return ExamTemplate.objects.filter(
             clinic__memberships__user=self.request.user,
             clinic__is_active=True,
             is_active=True

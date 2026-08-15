@@ -1,5 +1,3 @@
-import { PetBasic } from './pet';
-
 export interface UserShort {
   id: number;
   email: string;
@@ -9,9 +7,16 @@ export interface UserShort {
   last_name?: string;
 }
 
+// Компактная версия питомца в чате (PetShortSerializer на бэкенде)
+export interface PetShortInChat {
+  id: number;
+  name: string;
+  avatar?: string | null;
+}
+
 export interface ChatRoom {
   id: number;
-  pet: PetBasic;
+  pet: PetShortInChat;
   vet: UserShort;
   owner: UserShort;
   last_message?: ChatMessage;

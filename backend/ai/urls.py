@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import (
-    AIConsultView,
     SystemPromptListView,
     AIChatSessionCreateView,
     AIChatSessionListView,
@@ -10,9 +9,6 @@ from .views import (
 )
 
 urlpatterns = [
-    # Legacy
-    path('consult/', AIConsultView.as_view(), name='ai-consult'),
-
     # Prompts
     path('prompts/', SystemPromptListView.as_view(), name='ai-prompts-list'),
 

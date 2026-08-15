@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link'; // [UPD] Добавлен Link для навигации
+import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Users, PawPrint, LayoutGrid, Grid3x3, BookText, CalendarCheck } from 'lucide-react';
 import PetCard from '@/components/dashboard/PetCard';
@@ -11,43 +11,41 @@ import CreatePatientModal from '@/components/dashboard/CreatePatientModal';
 import PetDetailsModal from '@/components/dashboard/PetDetailsModal';
 import PetsActionBar from '@/components/dashboard/PetsActionBar';
 import { PetBasic } from '@/types/pet';
+import { PetEvent } from '@/types/event';
 import AuthGuard from '@/components/providers/AuthGuard';
-
 import SearchInput from '@/components/ui/SearchInput';
 import PetFilters from '@/components/dashboard/PetFilters';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export default function DashboardPage() {
-    const { user } = useAuth(); 
+    const { user } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams(); 
-    
+    const searchParams = useSearchParams();
+
     const [pets, setPets] = useState<PetBasic[]>([]);
-    const [isPetsLoading, setIsPetsLoading] = useState(true); 
-    
-    // UI States
+    const [todayEvents, setTodayEvents] = useState<PetEvent[]>([]);
+    const [isPetsLoading, setIsPetsLoading] = useState(true);
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isCreatePatientModalOpen, setIsCreatePatientModalOpen] = useState(false);
     const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'my' | 'patients' | 'today'>('my');
 
-    // === НОВОЕ СОСТОЯНИЕ: Плотность сетки ===
     const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
     const isCompact = density === 'compact';
 
-    const fetchPets = async () => {
+    const fetchPets = useCallback(async () => {
         try {
             const token = localStorage.getItem('access_token');
             if (!token) return;
 
-            const queryString = searchParams.toString(); 
-            
+            const queryString = searchParams.toString();
             const res = await fetch(`${API_URL}/api/pets/?${queryString}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
+
             if (res.ok) {
                 const data = await res.json();
                 setPets(data);
@@ -57,33 +55,51 @@ export default function DashboardPage() {
         } finally {
             setIsPetsLoading(false);
         }
-    };
+    }, [searchParams]);
+
+    // Today: прямой запрос planned-событий на сегодня через /api/events/
+    const fetchTodayEvents = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 1);
+
+            const res = await fetch(
+                `${API_URL}/api/events/?start_date=${encodeURIComponent(start.toISOString())}&end_date=${encodeURIComponent(end.toISOString())}&status=planned`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            if (res.ok) {
+                const data = await res.json();
+                setTodayEvents(Array.isArray(data) ? data : data.results || []);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }, []);
 
     useEffect(() => {
         if (user) {
             fetchPets();
+            fetchTodayEvents();
         }
-    }, [user, searchParams]);
+    }, [user, fetchPets, fetchTodayEvents]);
 
     const myPets = pets.filter(p => p.owner === user?.id);
     const patients = pets.filter(p => p.owner !== user?.id);
-    
-    // Today: patients with events scheduled for today
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayPets = pets.filter(p => 
-        (p as any).recent_events?.some((ev: any) => 
-            ev.date?.startsWith(todayStr) && ev.status === 'planned'
-        )
-    );
-    
+
+    // Питомцы с запланированными событиями на сегодня
+    const todayPetIds = new Set(todayEvents.map(ev => ev.pet).filter(Boolean));
+    const todayPets = pets.filter(p => todayPetIds.has(p.id));
+
     const displayedPets = viewMode === 'my' ? myPets : viewMode === 'today' ? todayPets : patients;
-    
-    // Stats
-    const activeCount = pets.filter(p => p.is_active).length;
-    const todayEventsCount = pets.reduce((sum, p) => 
-        sum + ((p as any).recent_events?.filter((ev: any) => ev.date?.startsWith(todayStr)).length || 0), 0
-    );
-    
+
+    const todayEventsCount = todayEvents.length;
+
     const hasFilters = searchParams.toString().length > 0;
 
     useEffect(() => {
@@ -105,15 +121,13 @@ export default function DashboardPage() {
     return (
         <AuthGuard>
             <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
-                <div className="max-w-[1920px] mx-auto"> 
-                    
+                <div className="max-w-[1920px] mx-auto">
+
                     <div className="mb-8 max-w-7xl mx-auto">
                         <PetsActionBar />
                     </div>
-                    
-                    {/* HEADER с блоком фильтров */}
+
                     <header className="flex flex-col gap-5 mb-8 max-w-7xl mx-auto w-full">
-                        {/* Верхний ряд: Заголовок и Тогглы вида */}
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">
@@ -122,16 +136,15 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {/* Плотность сетки */}
                                 <div className="hidden sm:flex bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
-                                    <button 
+                                    <button
                                         onClick={() => setDensity('comfortable')}
                                         title="View as comfortable grid"
                                         className={`p-2 rounded-lg transition-all ${!isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                                     >
                                         <LayoutGrid size={20} />
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setDensity('compact')}
                                         title="View as compact list"
                                         className={`p-2 rounded-lg transition-all ${isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
@@ -140,15 +153,14 @@ export default function DashboardPage() {
                                     </button>
                                 </div>
 
-                                {/* Переключатель Врача */}
                                 {user?.is_veterinarian && (
                                     <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
                                         <button
                                             onClick={() => setViewMode('my')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
-                                                viewMode === 'my' 
-                                                ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                                                : 'text-gray-500 hover:text-gray-700'
+                                                viewMode === 'my'
+                                                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <PawPrint size={16} /> <span className="hidden sm:inline">My Pets</span>
@@ -156,9 +168,9 @@ export default function DashboardPage() {
                                         <button
                                             onClick={() => setViewMode('patients')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
-                                                viewMode === 'patients' 
-                                                ? 'bg-emerald-50 text-emerald-600 shadow-sm' 
-                                                : 'text-gray-500 hover:text-gray-700'
+                                                viewMode === 'patients'
+                                                    ? 'bg-emerald-50 text-emerald-600 shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <Users size={16} /> <span className="hidden sm:inline">Clinic</span>
@@ -166,9 +178,9 @@ export default function DashboardPage() {
                                         <button
                                             onClick={() => setViewMode('today')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
-                                                viewMode === 'today' 
-                                                ? 'bg-amber-50 text-amber-600 shadow-sm' 
-                                                : 'text-gray-500 hover:text-gray-700'
+                                                viewMode === 'today'
+                                                    ? 'bg-amber-50 text-amber-600 shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <CalendarCheck size={16} /> <span className="hidden sm:inline">Today</span>
@@ -179,9 +191,8 @@ export default function DashboardPage() {
                                     </div>
                                 )}
 
-                                {/* [UPD] Новая кнопка КАТАЛОГ */}
                                 <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
-                                    <Link 
+                                    <Link
                                         href="/dashboard/catalog"
                                         className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                                     >
@@ -191,29 +202,26 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Нижний ряд: Поиск и Фильтры */}
                         <div className="flex flex-col sm:flex-row gap-3 w-full">
-                            <SearchInput 
-                                placeholder={viewMode === 'my' 
-                                    ? "Search by nickname..." 
+                            <SearchInput
+                                placeholder={viewMode === 'my'
+                                    ? "Search by nickname..."
                                     : "Search by name, owner's last name, phone..."
-                                } 
+                                }
                             />
                             <PetFilters />
                         </div>
                     </header>
 
-                    {/* СЕТКА */}
                     <div className={`grid gap-4 sm:gap-6 mx-auto
-                        ${isCompact 
-                            ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 max-w-full' 
+                        ${isCompact
+                            ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 max-w-full'
                             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl'
                         }`}
                     >
-                        
                         {viewMode === 'my' && (
-                            <PetCard 
-                                isAddButton 
+                            <PetCard
+                                isAddButton
                                 variant={density}
                                 addButtonText={isCompact ? "Add" : "Add Pet"}
                                 onClick={() => {
@@ -223,12 +231,12 @@ export default function DashboardPage() {
                                     } else {
                                         setIsCreateModalOpen(true);
                                     }
-                                }} 
+                                }}
                             />
                         )}
 
                         {viewMode === 'patients' && user?.is_veterinarian && (
-                            <PetCard 
+                            <PetCard
                                 isAddButton
                                 variant={density}
                                 addButtonText={isCompact ? "New" : "New Patient"}
@@ -239,22 +247,22 @@ export default function DashboardPage() {
                                     } else {
                                         setIsCreatePatientModalOpen(true);
                                     }
-                                }} 
+                                }}
                             />
                         )}
 
                         {displayedPets.map(pet => (
                             <div key={pet.id} className="relative">
-                                <PetCard 
-                                    pet={pet} 
-                                    variant={density} 
-                                    onClick={() => handlePetClick(pet.id)} 
+                                <PetCard
+                                    pet={pet}
+                                    variant={density}
+                                    onClick={() => handlePetClick(pet.id)}
                                 />
-                                
+
                                 {viewMode === 'patients' && (
                                     <div className={`absolute backdrop-blur-md text-white rounded-lg font-medium z-20 flex items-center gap-1
-                                        ${isCompact 
-                                            ? 'top-2 left-2 px-1.5 py-0.5 text-[10px]' 
+                                        ${isCompact
+                                            ? 'top-2 left-2 px-1.5 py-0.5 text-[10px]'
                                             : 'top-3 left-3 px-2 py-1 text-xs'
                                         } ${pet.owner_info?.is_temporary ? "bg-yellow-500/40" : "bg-black/60"}`}
                                     >
@@ -266,6 +274,13 @@ export default function DashboardPage() {
                                 )}
                             </div>
                         ))}
+
+                        {displayedPets.length === 0 && viewMode === 'today' && (
+                            <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                                <CalendarCheck size={48} className="mx-auto mb-3 opacity-50" />
+                                <p>No events scheduled for today.</p>
+                            </div>
+                        )}
 
                         {displayedPets.length === 0 && viewMode === 'patients' && (
                             <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
@@ -285,23 +300,23 @@ export default function DashboardPage() {
                         )}
                     </div>
 
-                    <CreatePetModal 
-                        isOpen={isCreateModalOpen} 
-                        onClose={() => setIsCreateModalOpen(false)} 
+                    <CreatePetModal
+                        isOpen={isCreateModalOpen}
+                        onClose={() => setIsCreateModalOpen(false)}
                         onSuccess={fetchPets}
                     />
-                    
+
                     <CreatePatientModal
                         isOpen={isCreatePatientModalOpen}
                         onClose={() => setIsCreatePatientModalOpen(false)}
                         onSuccess={fetchPets}
                     />
-                    
+
                     {selectedPetId && (
-                        <PetDetailsModal 
-                            petId={selectedPetId} 
-                            isOpen={isDetailsOpen} 
-                            onClose={() => setIsDetailsOpen(false)} 
+                        <PetDetailsModal
+                            petId={selectedPetId}
+                            isOpen={isDetailsOpen}
+                            onClose={() => setIsDetailsOpen(false)}
                         />
                     )}
                 </div>

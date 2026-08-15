@@ -1,37 +1,10 @@
-import os
-import base64
 import json
-import re
 import requests
 from datetime import date
 from typing import Generator
 from django.conf import settings
-from pets.models import Pet, PetEvent, PetImage
+from pets.models import Pet, PetEvent
 from .models import SystemPrompt
-
-
-def encode_image_base64(image_field) -> str | None:
-    """
-    Given a Django ImageFieldFile, read the file and return a base64 data-URI.
-    Returns None if the file doesn't exist or can't be read.
-    """
-    try:
-        if not image_field or not image_field.name:
-            return None
-        with image_field.open('rb') as f:
-            raw = f.read()
-            ext = os.path.splitext(image_field.name)[1].lower()
-            mime = {
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.png': 'image/png',
-                '.gif': 'image/gif',
-                '.webp': 'image/webp',
-            }.get(ext, 'image/jpeg')
-            b64 = base64.b64encode(raw).decode('utf-8')
-            return f"data:{mime};base64,{b64}"
-    except Exception:
-        return None
 
 
 def build_pet_context(pet: Pet) -> str:
@@ -108,47 +81,6 @@ def build_pet_context(pet: Pet) -> str:
         lines.append("No medical history records.")
 
     return '\n'.join(lines)
-
-
-def build_images_list(pet: Pet) -> list[str]:
-    """
-    Return a list of base64 data-URIs for all PetImages of the pet.
-    NOTE: DeepSeek Chat does NOT support images. This function is kept
-    for future multimodal models. For now it returns an empty list.
-    """
-    return []
-
-
-def _extract_json_from_text(text: str) -> dict | None:
-    """
-    Try to extract a JSON object from the model's response text.
-    DeepSeek may wrap JSON in markdown code blocks or add extra text.
-    """
-    # Try to find a JSON block inside ```json ... ``` markers
-    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-    if json_match:
-        try:
-            return json.loads(json_match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Try to parse the entire text as JSON
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    # Try to find anything that looks like { ... } with urgency/title/content
-    obj_match = re.search(r'(\{(?:[^{}]|(?:\{[^{}]*\}))*\})', text, re.DOTALL)
-    if obj_match:
-        try:
-            candidate = json.loads(obj_match.group(1))
-            if 'urgency' in candidate or 'title' in candidate or 'content' in candidate:
-                return candidate
-        except json.JSONDecodeError:
-            pass
-
-    return None
 
 
 def get_active_prompt(prompt_id: int | None = None) -> SystemPrompt | None:
@@ -264,89 +196,6 @@ def call_deepseek_chat(
                         except (json.JSONDecodeError, KeyError, IndexError):
                             continue
             return token_generator()
-
-    except requests.RequestException as e:
-        raise RuntimeError(f"DeepSeek API call failed: {e}")
-
-
-def call_deepseek(system_prompt: str, user_query: str, images: list[str] | None = None) -> dict:
-    """
-    Send a request to the DeepSeek API and return parsed JSON.
-    DeepSeek does NOT support response_format="json_object" (OpenAI-only)
-    and does NOT support multimodal images.
-    Returns: { "urgency": "low"|"medium"|"high", "title": "...", "content": "..." }
-    """
-    api_key = getattr(settings, 'DEEPSEEK_API_KEY', None)
-    model = getattr(settings, 'DEEPSEEK_MODEL', 'deepseek-chat')
-    endpoint = 'https://api.deepseek.com/v1/chat/completions'
-
-    if not api_key:
-        raise ValueError("DEEPSEEK_API_KEY is not configured")
-
-    # Build the user message — instruct the model to return only JSON inside the text
-    text_payload = (
-        f"Analyze the following pet profile and answer the owner's question.\n\n"
-        f"{system_prompt}\n\n"
-        f"Owner's question: {user_query}\n\n"
-        f"IMPORTANT: Reply with ONLY a valid JSON object, no markdown wrapping, "
-        f"no explanation, just raw JSON. Format:\n"
-        f'{{"urgency": "low"|"medium"|"high", "title": "Short summary (max 100 chars)", '
-        f'"content": "Detailed analysis"}}'
-    )
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a veterinary AI assistant. Always respond with valid JSON only.",
-        },
-        {
-            "role": "user",
-            "content": text_payload,
-        },
-    ]
-
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 2000,
-    }
-
-    try:
-        resp = requests.post(
-            endpoint,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data['choices'][0]['message']['content']
-
-        # Try to extract JSON from the response text
-        parsed = _extract_json_from_text(content)
-
-        if parsed is None:
-            # Fallback: return the raw text as content
-            return {
-                "urgency": "low",
-                "title": "AI Analysis",
-                "content": content.strip(),
-            }
-
-        # Validate and sanitize
-        urgency = parsed.get('urgency', 'low')
-        if urgency not in ('low', 'medium', 'high'):
-            urgency = 'low'
-
-        return {
-            "urgency": urgency,
-            "title": parsed.get('title', 'AI Analysis')[:200],
-            "content": parsed.get('content', 'No analysis available.'),
-        }
 
     except requests.RequestException as e:
         raise RuntimeError(f"DeepSeek API call failed: {e}")

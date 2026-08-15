@@ -16,6 +16,11 @@ venv/
 env/
 db.sqlite3
 
+# Пользовательский контент и артефакты запуска
+backend/media/
+staticfiles/
+celerybeat-schedule
+
 # Node / JS (для frontend и mobile)
 node_modules/
 npm-debug.log

@@ -37,7 +37,7 @@ export interface ExamTemplate {
   clinic: number;
   name: string;
   category: 'examination' | 'vaccination' | 'surgery' | 'parasite' | 'grooming' | 'laboratory' | 'other';
-  default_fields: Record<string, any>;
+  default_fields: Record<string, unknown>;
   is_active: boolean;
   created_at: string;
   updated_at: string;

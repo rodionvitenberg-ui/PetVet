@@ -1,6 +1,4 @@
 // types/breeding.ts
-import { PetBasic } from './pet';
-
 export interface HeatCycle {
     id: number;
     pet: number; // ID питомца

@@ -13,30 +13,9 @@ import PaymentModal from '@/components/billing/PaymentModal';
 import CreateEventModal from '@/components/dashboard/CreateEventModal';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { InvoiceDocument } from '@/components/billing/InvoiceDocument';
+import type { Invoice, InvoiceItem } from '@/types/invoice';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-interface InvoiceItem {
-    id: number;
-    name_at_moment: string;
-    quantity: number;
-    price_at_moment: number;
-    subtotal: number;
-}
-
-interface Invoice {
-    id: number;
-    status: 'draft' | 'unpaid' | 'paid' | 'cancelled';
-    total_amount: string;
-    created_at: string;
-    // [UPD] Обновили интерфейс клиента
-    client_info?: { id: number | null; name: string; is_shadow?: boolean };
-    guest_name?: string;
-    pet_name?: string;
-    pet?: number;
-    event?: number;
-    items: InvoiceItem[];
-}
 
 export default function InvoicesPage() {
     const { user } = useAuth();

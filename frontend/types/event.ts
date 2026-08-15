@@ -1,8 +1,7 @@
 // types/event.ts
-import { PetImage } from './pet';
 
-// Типы категорий событий (совпадают с backend choices)
-export type EventCategory = 'medical' | 'reproduction' | 'show' | 'care' | 'other';
+// Типы категорий событий (совпадают с backend choices — pets/models.py EventType.CATEGORY_CHOICES)
+export type EventCategory = 'medical' | 'reproduction' | 'show' | 'care' | 'surgery' | 'parasite' | 'other';
 
 export type EventStatus = 'planned' | 'completed' | 'missed';
 
@@ -37,12 +36,12 @@ export interface PetEventAttachment {
     created_at: string;
 }
 
-// Мини-версия питомца внутри события
+// Мини-версия питомца внутри события (поле pet_info на бэкенде)
 export interface PetShortInEvent {
     id: number;
     name: string;
-    owner_id?: number;
-    images?: PetImage[];
+    avatar?: string | null;
+    owner_name?: string | null;
 }
 
 export interface PetEventCreator {
@@ -50,6 +49,7 @@ export interface PetEventCreator {
     name: string;
     is_vet: boolean;
     clinic_name?: string | null;
+    avatar?: string | null;
 }
 
 // ОСНОВНАЯ МОДЕЛЬ СОБЫТИЯ
@@ -59,23 +59,29 @@ export interface PetEvent {
     description?: string;
     date: string;       // YYYY-MM-DD
     next_date?: string | null;
-    
+
     // Тип теперь объект, а не строка!
     event_type: EventType;
     event_type_display?: string; // fallback
-    
+
     status: EventStatus;
-    
+
+    // Гость или питомец (один из них обязателен на бэкенде)
+    guest_name?: string | null;
+    guest_phone?: string | null;
+    admin_notes?: string | null;
+
     // Динамические данные (Вес, Судья, Ранг...)
-    data?: Record<string, any>; 
-    
-    pet: PetShortInEvent;
-    
+    data?: Record<string, unknown>;
+
+    // Сервер отдаёт pet как ID + pet_info как объект
+    pet: number | null;
+    pet_info?: PetShortInEvent | null;
+
     attachments?: PetEventAttachment[];
-    
+
     is_verified: boolean;
     created_at: string;
-    created_by?: number; // ID юзера
     created_by_info?: PetEventCreator;
 }
 
@@ -88,7 +94,7 @@ export interface PetEventPayload {
     date: string;
     status: EventStatus;
     next_date?: string | null;
-    
+
     // JSON данные
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
 }
