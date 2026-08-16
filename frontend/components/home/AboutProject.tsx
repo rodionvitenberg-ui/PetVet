@@ -99,7 +99,7 @@ export const AboutProject = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           <a
-            href="#features"
+            href="/about"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group text-sm font-medium"
           >
             <span>{t('learn_more')}</span>

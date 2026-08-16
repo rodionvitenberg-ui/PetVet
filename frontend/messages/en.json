@@ -49,6 +49,49 @@
     "security_desc": "You decide who gets access to your pet's data: the vet, a relative, or a pet sitter. Share with a single QR code.",
     "learn_more": "Learn more about features"
   },
+  "AboutPage": {
+    "title": "Everything About CareYour.Pet",
+    "subtitle": "A complete guide to the platform: what it does, what's inside, and how owners, veterinarians, and clinics work with it.",
+    "what_title": "What is CareYour.Pet?",
+    "what_body": "CareYour.Pet is a single ecosystem for pet health. It turns scattered paper records and forgotten appointments into one digital card that connects the owner with trusted veterinary specialists. All medical history, routine care, and communication live in one place — accessible anywhere, on any device.",
+    "roles_title": "Who the platform is for",
+    "roles": [
+      { "title": "Pet owner", "desc": "Keeps the pet's medical card, vaccinations, weight, and visits in one place. Gets reminders, asks the AI assistant, and shares the card with a vet by QR code." },
+      { "title": "Veterinarian", "desc": "Creates patient cards before the owner registers, uses exam templates, issues invoices, and chats with owners in real time." },
+      { "title": "Clinic", "desc": "Gets a unified workspace: patients, team members, procedure templates, service catalog, and billing in a single dashboard." }
+    ],
+    "features_title": "What's inside the platform",
+    "features": [
+      { "title": "Digital medical card", "desc": "EAV-based attributes, photos, and pedigree stored in a structured card for each pet." },
+      { "title": "Planboard", "desc": "Drag-and-drop planning for routine care and treatments day by day." },
+      { "title": "Calendar", "desc": "All events — vaccinations, visits, treatments — on a shared calendar." },
+      { "title": "AI assistant", "desc": "Ask questions about your pet and get streamed answers powered by DeepSeek." },
+      { "title": "Chat with a vet", "desc": "Real-time messaging between owner and veterinarian over WebSocket." },
+      { "title": "QR access", "desc": "Share a temporary read/write link to the pet's card, valid for one hour." },
+      { "title": "Invoices and payments", "desc": "Service catalog with taxes and discounts, and online invoice payment." },
+      { "title": "Reminders", "desc": "Flexible in-app and email notifications for upcoming events." },
+      { "title": "Find a vet", "desc": "Map of nearby clinics built on Leaflet." }
+    ],
+    "how_owner_title": "How to start as an owner",
+    "how_owner_steps": [
+      "Create an account or try the demo.",
+      "Add your pet and fill in its digital card.",
+      "Track vaccinations, weight, and visits on the planboard and calendar.",
+      "Ask the AI assistant or chat with a veterinarian.",
+      "Share the card with a clinic by QR code when needed."
+    ],
+    "how_vet_title": "How to start as a veterinarian",
+    "how_vet_steps": [
+      "Register and submit your qualification for verification.",
+      "Create patient cards and use exam templates.",
+      "Set up your service catalog and issue invoices.",
+      "Chat with owners and manage your clinic team.",
+      "Invite owners to the platform and grow your practice."
+    ],
+    "cta_title": "Ready to start?",
+    "cta_button": "Create an account",
+    "cta_demo": "Try the demo"
+  },
   "Auth": {
     "welcome_back": "Welcome Back",
     "subtitle": "Sign in to manage your pets and appointments",
@@ -73,6 +116,7 @@
     "button": "Become a Veterinarian"
   },
   "Footer": {
+    "about": "About the Project",
     "description": "A modern platform for pet owners and veterinarians. Digital passports, medical records, and smart tools for pet care.",
     "platform": "Platform",
     "perscab": "Petboard",

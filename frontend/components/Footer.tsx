@@ -9,7 +9,8 @@ import {
   Mail, 
   MapPin, 
   Shield, 
-  FileText
+  FileText,
+  Info
 } from 'lucide-react';
 
 export default function Footer() {
@@ -59,6 +60,11 @@ export default function Footer() {
         <div>
             <h3 className="text-background font-bold mb-4">{t('rulinf')}</h3>
             <ul className="space-y-3 text-sm">
+                <li>
+                    <Link href="/about" className="flex items-center gap-2 hover:text-primary transition">
+                        <Info size={14} /> {t('about')}
+                    </Link>
+                </li>
                 <li>
                     <Link href="/privacy" className="flex items-center gap-2 hover:text-primary transition">
                         <Shield size={14} /> {t('policyconf')}
