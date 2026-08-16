@@ -1,10 +1,10 @@
-// types/invoice.ts — соответствует backend/billing/serializers.py (InvoiceSerializer, InvoiceItemSerializer)
+// types/invoice.ts — mirrors backend/billing/serializers.py (InvoiceSerializer, InvoiceItemSerializer)
 
 export type InvoiceStatus = 'draft' | 'unpaid' | 'paid' | 'cancelled';
 
 export interface InvoiceItem {
     id: number;
-    item_id?: number; // write-only (только для отправки)
+    item_id?: number; // write-only (sent to the backend only)
     quantity: number;
     name_at_moment: string;
     price_at_moment: number;
@@ -36,7 +36,7 @@ export interface Invoice {
     notes?: string;
 }
 
-// Payload для создания счёта
+// Payload for creating an invoice
 export interface InvoicePayload {
     status?: InvoiceStatus;
     payment_method?: Invoice['payment_method'];

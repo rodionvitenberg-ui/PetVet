@@ -88,15 +88,12 @@ export default function CalendarPage() {
                     const startDate = new Date(ev.date);
                     // Если end_date нет, ставим +1 час по дефолту
                     const endDate = ev.next_date ? new Date(ev.next_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
-
-                    // Если это просто напоминалка без длительности, лучше фиксировать визуально как 1 час
-                    // Либо можно добавить поле duration на бэке позже
                     
                     return {
                         id: ev.id,
                         title: ev.guest_name ? `👤 ${ev.guest_name}` : `🐾 ${ev.pet_info?.name || 'Питомец'} - ${ev.title}`,
                         start: startDate,
-                        end: new Date(startDate.getTime() + 60 * 60 * 1000), // Пока хардкод 1 час для визуализации
+                        end: endDate,
                         resource: ev,
                         isGuest: !ev.pet,
                         status: ev.status

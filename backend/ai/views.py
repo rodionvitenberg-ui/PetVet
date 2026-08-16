@@ -110,31 +110,49 @@ class AIChatSessionCreateView(APIView, _GetUserPetMixin):
         # Build messages for AI
         messages = build_chat_messages([], system_prompt_text, query)
 
-        try:
-            result = call_deepseek_chat(messages, stream=False)
-            ai_content = result['content']
+        session_data = AIChatSessionSerializer(session, context={'request': request}).data
 
-            ai_msg = AIChatMessage.objects.create(
-                session=session,
-                role=AIChatMessage.Role.ASSISTANT,
-                content=ai_content,
-            )
+        # Stream the first response via SSE so the user sees tokens, not one blob.
+        def sse_event_stream() -> Generator[str, None, None]:
+            full_response = ""
+            try:
+                # Send session info first, so the client can render the chat shell.
+                first_data = json.dumps({"session": session_data})
+                yield f"data: {first_data}\n\n"
 
-            # Update session.updated_at
-            session.save(update_fields=['updated_at'])
+                token_gen = call_deepseek_chat(messages, stream=True)
+                for token in token_gen:
+                    full_response += token
+                    event_data = json.dumps({"token": token})
+                    yield f"data: {event_data}\n\n"
 
-            return Response({
-                "session": AIChatSessionSerializer(session, context={'request': request}).data,
-                "message": AIChatMessageSerializer(ai_msg, context={'request': request}).data,
-            }, status=status.HTTP_201_CREATED)
+                ai_msg = AIChatMessage.objects.create(
+                    session=session,
+                    role=AIChatMessage.Role.ASSISTANT,
+                    content=full_response,
+                )
+                session.save(update_fields=['updated_at'])
 
-        except Exception as e:
-            # Cleanup on failure
-            session.delete()
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+                done_data = json.dumps({
+                    "done": True,
+                    "message_id": ai_msg.id,
+                })
+                yield f"data: {done_data}\n\n"
+
+            except Exception as e:
+                session.delete()
+                error_data = json.dumps({"error": str(e), "done": True})
+                yield f"data: {error_data}\n\n"
+
+        response = StreamingHttpResponse(
+            sse_event_stream(),
+            content_type='text/event-stream',
+            status=200,
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        response['Connection'] = 'keep-alive'
+        return response
 
 
 class AIChatSessionListView(ListAPIView):

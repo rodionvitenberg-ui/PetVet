@@ -115,7 +115,7 @@ export default function ClinicPage() {
     return (
       <AuthGuard>
         <div className="min-h-screen pt-24 flex items-center justify-center">
-          <Loader2 className="animate-spin text-gray-400" size={32} />
+          <Loader2 className="animate-spin text-muted-foreground" size={32} />
         </div>
       </AuthGuard>
     );
@@ -127,37 +127,37 @@ export default function ClinicPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
+      <div className="min-h-screen bg-muted/50 pt-24 pb-10 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           
           {/* Back button */}
-          <button onClick={() => router.push('/profile')} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition">
+          <button onClick={() => router.push('/profile')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition">
             <ArrowLeft size={18} />
             <span className="text-sm font-medium">Back to Profile</span>
           </button>
 
           {/* Clinic Header Card */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6">
+          <div className="bg-card rounded-3xl shadow-sm border border-border p-6 sm:p-8 mb-6">
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="bg-emerald-100 p-3 rounded-2xl">
-                  <Building2 size={28} className="text-emerald-600" />
+                <div className="bg-success/10 p-3 rounded-2xl">
+                  <Building2 size={28} className="text-success" />
                 </div>
                 <div>
                   {isEditing ? (
                     <input
                       type="text"
-                      className="text-2xl font-bold text-gray-800 border-b-2 border-emerald-300 outline-none bg-transparent w-full"
+                      className="text-2xl font-bold text-foreground border-b-2 border-emerald-300 outline-none bg-transparent w-full"
                       value={editForm.name}
                       onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                       autoFocus
                     />
                   ) : (
-                    <h1 className="text-2xl font-bold text-gray-800">{clinic.name}</h1>
+                    <h1 className="text-2xl font-bold text-foreground">{clinic.name}</h1>
                   )}
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {members.length} member{members.length !== 1 ? 's' : ''}
-                    {isAdmin && <span className="ml-2 bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">Admin</span>}
+                    {isAdmin && <span className="ml-2 bg-success/10 text-success text-xs font-bold px-2 py-0.5 rounded-full">Admin</span>}
                   </p>
                 </div>
               </div>
@@ -176,50 +176,50 @@ export default function ClinicPage() {
             {/* Clinic details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
-                <MapPin size={18} className="text-gray-400 shrink-0 mt-0.5" />
+                <MapPin size={18} className="text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase">Address</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">Address</p>
                   {isEditing ? (
                     <input
                       type="text"
-                      className="text-sm text-gray-800 border-b border-gray-200 outline-none bg-transparent w-full"
+                      className="text-sm text-foreground border-b border-border outline-none bg-transparent w-full"
                       value={editForm.address}
                       onChange={e => setEditForm({ ...editForm, address: e.target.value })}
                     />
                   ) : (
-                    <p className="text-sm text-gray-700">{clinic.address || '—'}</p>
+                    <p className="text-sm text-foreground">{clinic.address || '—'}</p>
                   )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Phone size={18} className="text-gray-400 shrink-0 mt-0.5" />
+                <Phone size={18} className="text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase">Phone</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">Phone</p>
                   {isEditing ? (
                     <input
                       type="text"
-                      className="text-sm text-gray-800 border-b border-gray-200 outline-none bg-transparent w-full"
+                      className="text-sm text-foreground border-b border-border outline-none bg-transparent w-full"
                       value={editForm.phone}
                       onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
                     />
                   ) : (
-                    <p className="text-sm text-gray-700">{clinic.phone || '—'}</p>
+                    <p className="text-sm text-foreground">{clinic.phone || '—'}</p>
                   )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Mail size={18} className="text-gray-400 shrink-0 mt-0.5" />
+                <Mail size={18} className="text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase">Email</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">Email</p>
                   {isEditing ? (
                     <input
                       type="email"
-                      className="text-sm text-gray-800 border-b border-gray-200 outline-none bg-transparent w-full"
+                      className="text-sm text-foreground border-b border-border outline-none bg-transparent w-full"
                       value={editForm.email}
                       onChange={e => setEditForm({ ...editForm, email: e.target.value })}
                     />
                   ) : (
-                    <p className="text-sm text-gray-700">{clinic.email || '—'}</p>
+                    <p className="text-sm text-foreground">{clinic.email || '—'}</p>
                   )}
                 </div>
               </div>
@@ -227,32 +227,32 @@ export default function ClinicPage() {
 
             {isEditing && (
               <div className="mt-4">
-                <p className="text-xs font-bold text-gray-500 uppercase mb-1">Description</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Description</p>
                 <textarea
                   rows={3}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 transition"
+                  className="w-full border border-border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200 transition"
                   value={editForm.description}
                   onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                 />
               </div>
             )}
             {!isEditing && clinic.description && (
-              <p className="text-sm text-gray-600 mt-4 leading-relaxed">{clinic.description}</p>
+              <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{clinic.description}</p>
             )}
           </div>
 
           {/* Tabs: Members / Templates */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6">
-            <div className="flex items-center gap-1 mb-6 border-b border-gray-100 pb-4">
+          <div className="bg-card rounded-3xl shadow-sm border border-border p-6 sm:p-8 mb-6">
+            <div className="flex items-center gap-1 mb-6 border-b border-border pb-4">
               <button
                 onClick={() => setActiveTab('members')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'members' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'members' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
               >
                 <Users size={18} /> Veterinarians
               </button>
               <button
                 onClick={() => setActiveTab('templates')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'templates' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'templates' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
               >
                 <ClipboardList size={18} /> Templates
               </button>
@@ -261,8 +261,8 @@ export default function ClinicPage() {
             {activeTab === 'members' ? (
             <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <Users size={20} className="text-gray-500" /> Veterinarians
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Users size={20} className="text-muted-foreground" /> Veterinarians
               </h2>
               {isAdmin && (
                 <button
@@ -278,8 +278,8 @@ export default function ClinicPage() {
 
             {/* Invite link */}
             {inviteLink && (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                <Link2 size={18} className="text-emerald-600 shrink-0" />
+              <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                <Link2 size={18} className="text-success shrink-0" />
                 <input
                   type="text"
                   readOnly
@@ -288,7 +288,7 @@ export default function ClinicPage() {
                 />
                 <button
                   onClick={handleCopyLink}
-                  className="p-2 bg-white rounded-lg hover:bg-emerald-100 transition text-emerald-600"
+                  className="p-2 bg-card rounded-lg hover:bg-success/10 transition text-success"
                 >
                   <Copy size={16} />
                 </button>
@@ -300,28 +300,28 @@ export default function ClinicPage() {
               {members.map(member => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition"
+                  className="flex items-center justify-between p-4 rounded-xl hover:bg-muted transition"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-gray-600">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-muted-foreground">
                         {(member.first_name || member.username)[0].toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-800">
+                      <p className="text-sm font-bold text-foreground">
                         {member.first_name && member.last_name
                           ? `${member.first_name} ${member.last_name}`
                           : member.username}
                       </p>
-                      <p className="text-xs text-gray-400">{member.email}</p>
+                      <p className="text-xs text-muted-foreground">{member.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       member.role === 'admin'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-gray-100 text-gray-600'
+                        ? 'bg-success/10 text-success'
+                        : 'bg-muted text-muted-foreground'
                     }`}>
                       {member.role}
                     </span>
@@ -329,7 +329,7 @@ export default function ClinicPage() {
                       <button
                         onClick={() => handleRemoveMember(member.user)}
                         disabled={removingId === member.user}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
                       >
                         {removingId === member.user ? (
                           <Loader2 size={16} className="animate-spin" />

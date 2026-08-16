@@ -49,9 +49,9 @@ export default function PetFilters() {
   const currentSpecies = searchParams.get('species')?.toString() || "";
 
   // Общие стили для селектов, чтобы они выглядели одинаково
-  const selectClasses = "border border-gray-200 rounded-xl pl-3 pr-8 py-2 text-sm bg-white outline-none cursor-pointer hover:border-blue-300 transition focus:ring-2 focus:ring-blue-100 appearance-none min-w-[130px]";
-  const iconWrapperClasses = "absolute right-2 top-1/2 -translate-y-1/2 text-gray-400";
-  const clearBtnClasses = "absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded-full hover:bg-gray-100";
+  const selectClasses = "border border-border rounded-xl pl-3 pr-8 py-2 text-sm bg-card outline-none cursor-pointer hover:border-primary/40 transition focus:ring-2 focus:ring-primary/20 appearance-none min-w-[130px]";
+  const iconWrapperClasses = "absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground";
+  const clearBtnClasses = "absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive transition-colors p-0.5 rounded-full hover:bg-muted";
 
   return (
     <div className="flex flex-wrap gap-3 items-center">

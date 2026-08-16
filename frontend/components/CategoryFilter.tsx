@@ -33,8 +33,8 @@ export default function CategoryFilter() {
                 className={`
                   flex flex-col items-center gap-2 min-w-[64px] cursor-pointer group transition-all
                   ${isActive 
-                    ? 'text-black border-b-2 border-black pb-2' 
-                    : 'text-gray-500 hover:text-black border-b-2 border-transparent hover:border-gray-200 pb-2'
+                    ? 'text-foreground border-b-2 border-foreground pb-2' 
+                    : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent hover:border-border pb-2'
                   }
                 `}
               >

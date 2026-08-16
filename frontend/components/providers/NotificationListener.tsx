@@ -4,8 +4,6 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { addToast } from "@heroui/toast";
-// Для Tauri нужно будет установить пакет: npm install @tauri-apps/api
-// Пока используем dynamic import или проверку window, чтобы не ломать веб-сборку
 
 // По умолчанию подключаемся к тому же хосту, с которого открыт сайт (same-origin).
 // Это работает и локально (ws://localhost:3000 → nginx проксирует /ws/ на бэкенд),

@@ -7,7 +7,7 @@ export interface UserShort {
   last_name?: string;
 }
 
-// Компактная версия питомца в чате (PetShortSerializer на бэкенде)
+// Compact pet representation in chat (PetShortSerializer on the backend)
 export interface PetShortInChat {
   id: number;
   name: string;
@@ -27,11 +27,11 @@ export interface ChatRoom {
 export interface ChatMessage {
   id: number;
   room: number;
-  sender: number; // ID пользователя (число)
+  sender: number; // User ID (number)
   sender_name?: string;
   sender_avatar?: string | null;
   text: string;
-  attachment?: string | null; // URL или путь к файлу
+  attachment?: string | null; // URL or file path
   is_read: boolean;
   created_at: string;
 }

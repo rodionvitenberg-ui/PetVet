@@ -4,6 +4,11 @@ import { usePetForm, PetFormMode } from '@/hooks/usePetForm';
 import { PetDetail } from '@/types/pet';
 import { ArrowLeft, X, Loader2 } from 'lucide-react';
 import { StepBasicInfo, StepDetails, StepPhotos } from './PetFormSteps';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface PetFormWizardProps {
   mode: PetFormMode;
@@ -56,12 +61,9 @@ export default function PetFormWizard({
         case 1:
             return (
                 <StepBasicInfo 
-                    // [FIX] Передаем data вместо formData
                     data={formData} 
-                    // [FIX] Разворачиваем categories из словаря
                     categories={dictionaries.categories}
-                    // [FIX] Явная типизация для TS
-                    onChange={(field: any, value: any) => updateField(field, value)}
+                    onChange={updateField}
                     onCategorySelect={handleCategorySelect}
                     mode={mode}
                 />
@@ -69,19 +71,12 @@ export default function PetFormWizard({
         case 2:
             return (
                 <StepDetails 
-                    // [FIX] Передаем data вместо formData
                     data={formData}
-                    // [FIX] Передаем конкретные списки
                     attributes={dictionaries.attributes}
                     tags={dictionaries.tags}
-                    
-                    // [FIX] Явная типизация: field это string, кастим к keyof formData
-                    onChange={(field: string, value: any) => updateField(field as any, value)}
-                    
+                    onChange={updateField}
                     onAttributeChange={setAttributeValue}
                     onCreateAttribute={createCustomAttribute}
-                    
-                    // [FIX] Добавили недостающие пропсы
                     onTagToggle={toggleTag}
                     onCreateTag={createCustomTag}
                 />
@@ -92,7 +87,7 @@ export default function PetFormWizard({
                     files={files}
                     previewUrls={previewUrls}
                     onFileChange={handleFileChange}
-                    onRemove={removeFile} // [FIX] Исправили имя пропа (было onRemoveFile)
+                    onRemove={removeFile}
                 />
             );
         default:
@@ -115,55 +110,59 @@ export default function PetFormWizard({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-[var(--radius-xl)] p-0"
+      >
         
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10">
+        <div className="z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
            <div className="flex items-center gap-3">
-               {step > 1 && (
-                   <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition">
-                       <ArrowLeft size={20}/>
-                   </button>
-               )}
-               <div>
-                   <h2 className="text-xl font-bold text-gray-900">{getTitle()}</h2>
-                   <div className="flex gap-1 mt-1">
-                       {[1, 2, 3].map(s => (
-                           <div key={s} className={`h-1.5 w-8 rounded-full transition-colors ${s <= step ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                       ))}
-                   </div>
-               </div>
-           </div>
-           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"><X size={20}/></button>
-        </div>
+                {step > 1 && (
+                    <button onClick={prevStep} className="rounded-full p-2 text-muted-foreground transition hover:bg-muted">
+                        <ArrowLeft size={20}/>
+                    </button>
+                )}
+                <div>
+                    <h2 className="text-xl font-bold text-foreground">{getTitle()}</h2>
+                    <div className="mt-1 flex gap-1">
+                        {[1, 2, 3].map(s => (
+                            <div key={s} className={`h-1.5 w-8 rounded-full transition-colors ${s <= step ? 'bg-primary' : 'bg-muted'}`} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <button onClick={onClose} className="rounded-full p-2 text-muted-foreground transition hover:bg-muted"><X size={20}/></button>
+         </div>
 
         {/* CONTENT */}
         <div ref={contentRef} className="flex-1 overflow-y-auto custom-scrollbar p-6">
            {isLoading ? (
                <div className="flex flex-col items-center justify-center h-40 space-y-3">
-                   <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
-                   <span className="text-gray-400 text-sm">Loading data...</span>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"/>
+                    <span className="text-sm text-muted-foreground">Loading data...</span>
                </div>
            ) : renderContent()}
         </div>
         
         {/* ERROR */}
-        {error && <div className="px-6 pb-2 text-red-500 text-sm text-center animate-pulse font-medium">{error}</div>}
+        {error && <div className="px-6 pb-2 text-center text-sm font-medium text-destructive animate-pulse">{error}</div>}
 
         {/* FOOTER */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
-            <button 
-                onClick={handleFooterAction} 
+        <div className="border-t border-border bg-muted/40 p-6">
+            <Button
+                onClick={handleFooterAction}
                 disabled={isSubmitting || isLoading}
-                className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2 shadow-lg shadow-blue-200"
+                className="w-full"
+                size="lg"
             >
-                {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
+                {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
                 {step === 3 ? (mode === 'edit' ? 'Save Changes' : 'Create Card') : 'Next'}
-            </button>
+            </Button>
         </div>
 
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

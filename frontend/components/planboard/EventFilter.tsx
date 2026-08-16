@@ -65,11 +65,11 @@ export default function EventFilter() {
 
     return (
         <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 <Filter size={14} />
             </div>
             <select
-                className="pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-xl bg-white outline-none cursor-pointer hover:border-blue-300 transition focus:ring-2 focus:ring-blue-100 appearance-none min-w-[160px]"
+                className="pl-9 pr-8 py-2 text-sm border border-border rounded-xl bg-card outline-none cursor-pointer hover:border-primary/40 transition focus:ring-2 focus:ring-primary/20 appearance-none min-w-[160px]"
                 onChange={(e) => handleFilter(e.target.value)}
                 value={currentType}
                 disabled={loading}
@@ -82,14 +82,14 @@ export default function EventFilter() {
             
             {loading && (
                 <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                    <Loader2 size={12} className="animate-spin text-gray-400" />
+                    <Loader2 size={12} className="animate-spin text-muted-foreground" />
                 </div>
             )}
 
             {currentType && (
                 <button 
                     onClick={() => handleFilter("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive"
                     title="Reset filter"
                 >
                     <X size={14} />

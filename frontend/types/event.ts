@@ -1,16 +1,16 @@
 // types/event.ts
 
-// Типы категорий событий (совпадают с backend choices — pets/models.py EventType.CATEGORY_CHOICES)
+// Event category types (match backend choices in pets/models.py EventType.CATEGORY_CHOICES)
 export type EventCategory = 'medical' | 'reproduction' | 'show' | 'care' | 'surgery' | 'parasite' | 'other';
 
 export type EventStatus = 'planned' | 'completed' | 'missed';
 
-// Схема JSON-полей (приходит с бэкенда в EventType)
+// JSON schema for dynamic event fields (received from the backend in EventType)
 export interface EventSchemaField {
-    name: string; // ключ в JSON (например, "judge")
-    label: string; // Подпись (например, "Судья")
+    name: string; // JSON key (e.g. "judge")
+    label: string; // Display label (e.g. "Judge")
     type: 'text' | 'number' | 'date' | 'select' | 'boolean';
-    options?: string[]; // для select
+    options?: string[]; // for select fields
     required?: boolean;
 }
 
@@ -18,14 +18,14 @@ export interface EventSchema {
     fields?: EventSchemaField[];
 }
 
-// Тип события (Справочник)
+// Event type (reference/dictionary entry)
 export interface EventType {
     id: number;
     name: string;
     slug: string;
     category: EventCategory;
     icon?: string | null;
-    default_schema?: EventSchema; // JSON Schema
+    default_schema?: EventSchema; // JSON schema
     is_universal: boolean;
     is_custom: boolean;
 }
@@ -36,7 +36,7 @@ export interface PetEventAttachment {
     created_at: string;
 }
 
-// Мини-версия питомца внутри события (поле pet_info на бэкенде)
+// Minimal pet representation inside an event (pet_info on the backend)
 export interface PetShortInEvent {
     id: number;
     name: string;
@@ -52,7 +52,7 @@ export interface PetEventCreator {
     avatar?: string | null;
 }
 
-// ОСНОВНАЯ МОДЕЛЬ СОБЫТИЯ
+// MAIN EVENT MODEL
 export interface PetEvent {
     id: number;
     title: string;
@@ -60,21 +60,21 @@ export interface PetEvent {
     date: string;       // YYYY-MM-DD
     next_date?: string | null;
 
-    // Тип теперь объект, а не строка!
+    // Type is now an object, not a string!
     event_type: EventType;
     event_type_display?: string; // fallback
 
     status: EventStatus;
 
-    // Гость или питомец (один из них обязателен на бэкенде)
+    // Guest or pet (one of them is required on the backend)
     guest_name?: string | null;
     guest_phone?: string | null;
     admin_notes?: string | null;
 
-    // Динамические данные (Вес, Судья, Ранг...)
+    // Dynamic data (Weight, Judge, Rank...)
     data?: Record<string, unknown>;
 
-    // Сервер отдаёт pet как ID + pet_info как объект
+    // The server returns pet as ID + pet_info as an object
     pet: number | null;
     pet_info?: PetShortInEvent | null;
 
@@ -85,16 +85,16 @@ export interface PetEvent {
     created_by_info?: PetEventCreator;
 }
 
-// Payload для создания/редактирования
+// Payload for creating/editing
 export interface PetEventPayload {
-    pet: number; // ID питомца
-    event_type_id: number; // ID типа
+    pet: number; // Pet ID
+    event_type_id: number; // Type ID
     title: string;
     description?: string;
     date: string;
     status: EventStatus;
     next_date?: string | null;
 
-    // JSON данные
+    // JSON data
     data?: Record<string, unknown>;
 }

@@ -1,27 +1,75 @@
-# PetVet (CareYourPet) — Платформа управления здоровьем питомцев
+# 🐾 CareYour.Pet — Платформа управления здоровьем питомцев
 
-Монорепозиторий ветеринарной платформы: карточки питомцев, план-доска событий, календарь, AI-консультации, ветеринарные клиники и онлайн-оплата. Владелец ведёт здоровье питомца, ветеринар работает с «теневыми» картами до подтверждения владельца, а клиника получает единый кабинет для пациентов, биллинга и шаблонов.
+> **CareYour.Pet** — это единая экосистема для владельцев животных, ветеринарных врачей и клиник: цифровая медкарта питомца, планирование ухода, AI-консультации и онлайн-оплата — в одном месте.
 
-**Статус (2026-08-15):** Backend — ✅ здоровый, ошибки исправлены (P0-безопасность + integrity + рефакторинг по ponytail, 23/23 тестов green). Frontend — ⏳ работает, но требует доработки (7 незакрытых пунктов аудита).
-
----
-
-## Оглавление
-
-1. [Архитектура](#архитектура)
-2. [Быстрый старт (локальная разработка)](#быстрый-старт-локальная-разработка)
-3. [Docker Compose](#docker-compose)
-4. [Backend](#backend)
-5. [Frontend](#frontend)
-6. [Переменные окружения](#переменные-окружения)
-7. [Развёртывание](#развёртывание)
-8. [Статус проекта](#статус-проекта)
-9. [Роадмап](#роадмап)
-10. [Документация](#документация)
+[![Status](https://img.shields.io/badge/status-production%20ready-22c55e?style=flat-square)](https://careyour.pet) [![Frontend](https://img.shields.io/badge/frontend-Next.js%2016-0ea5e9?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org) [![Backend](https://img.shields.io/badge/backend-Django%206-092e20?style=flat-square&logo=django)](https://www.djangoproject.com) [![Database](https://img.shields.io/badge/db-PostgreSQL%2015-4169e1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org) [![Docs](https://img.shields.io/badge/docs-Swagger%20UI-6d28d9?style=flat-square)](https://careyour.pet/api/docs/)
 
 ---
 
-## Архитектура
+## 📖 Оглавление
+
+1. [О проекте](#-о-проекте)
+2. [Кому и зачем](#-кому-и-зачем)
+3. [Возможности](#-возможности)
+4. [Архитектура](#-архитектура)
+5. [Структура репозитория](#-структура-репозитория)
+6. [Быстрый старт](#-быстрый-старт)
+7. [Переменные окружения](#-переменные-окружения)
+8. [API](#-api)
+9. [Карта функциональности](#-карта-функциональности)
+10. [Тестирование и CI](#-тестирование-и-ci)
+11. [Развёртывание и эксплуатация](#-развёртывание-и-эксплуатация)
+12. [Документация](#-документация)
+
+---
+
+## 🎯 О проекте
+
+**CareYour.Pet** решает главную проблему заботы о животном: разрозненные бумажные карты, забытые прививки и потерянные контакты врачей. Платформа собирает всю медицинскую и уходовую историю питомца в одну цифровую карту и соединяет владельца с ветеринарными специалистами.
+
+Три ключевые роли работают в одном продукте:
+
+| Роль | Что получает |
+|------|--------------|
+| 🧑 Владелец | Цифровую медкарту питомца, планирование ухода, AI-консультации, чат с врачом, онлайн-оплату |
+| 👨‍⚕️ Врач | «Теневые» карты до регистрации владельца, каталог услуг, шаблоны осмотров, чаты и счета |
+| 🏥 Клиника | Единый кабинет: пациенты, команда, шаблоны процедур, биллинг |
+
+---
+
+## 🏁 Кому и зачем
+
+| Пользователь | Сценарий |
+|--------------|----------|
+| **Владелец кошки/собаки** | Хранит прививки, вес, обработки и визиты в одной карте; получает напоминания; задаёт вопросы AI-консультанту; делится картой с врачом по QR |
+| **Ветеринарный врач** | Быстро заводит «теневую» карту пациента до регистрации владельца; ведёт протоколы осмотров по шаблонам; выставляет счета; общается в чате |
+| **Клиника** | Управляет пациентами, врачами, шаблонами процедур и каталогом услуг; формирует счета со снимком цен |
+
+---
+
+## ✨ Возможности
+
+### Для владельца
+- 🐕 **Цифровая медкарта питомца** — EAV-модель характеристик, фото, родословная (`/pets/[id]`)
+- 📅 **План-доска ухода** — drag-n-drop рутинные уходы и лечения (`/planboard`)
+- 🗓️ **Календарь событий** — прививки, визиты, обработки (`/calendar`)
+- 🤖 **AI-консультант** — чат на DeepSeek с потоковым выводом ответов (SSE) (`/dashboard/ai-chat`)
+- 💬 **Чат с врачом** — реальное время через WebSocket (`/dashboard/messages`)
+- 🔗 **QR-доступ** — временная ссылка на карту (read/write, TTL 1 час) (`/share`)
+- 🧾 **Счета и оплата** — каталог услуг и онлайн-оплата (`/billing/invoices`)
+- 🔔 **Напоминания** — гибкие in-app + email (Celery)
+- 📱 **Ветеринары рядом** — карта клиник на Leaflet (`/find-vet`)
+
+### Для врача и клиники
+- 🩺 **«Теневые» карты** — врач создаёт карту до регистрации владельца
+- 🧰 **Каталог услуг** — свой прайс с налогами, скидками и остатками (`/dashboard/catalog`)
+- 📋 **Шаблоны осмотров** — переиспользуемые протоколы процедур
+- 🗂️ **Кабинет клиники** — пациенты, команда, приглашения (`/dashboard/clinic/[id]`)
+- 👥 **Многопользовательский доступ** — врач ↔ владелец ↔ клиника
+
+---
+
+## 🏗 Архитектура
 
 ```
                          Internet
@@ -34,24 +82,75 @@
                │             │
                │        ┌────┴────┐
                │        │         │
-               │    Postgres    Redis   <-- только внутренняя сеть Docker
+               │    Postgres    Redis   ← только внутренняя сеть Docker
                │                 │
                │      Celery worker + beat
                └─────────────────┘
 ```
 
-| Каталог | Назначение | Стек |
-|---------|------------|------|
-| `frontend/` | Веб-портал (SPA/SSR) | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, next-intl |
-| `backend/` | REST + WebSocket API | Django 6.0, DRF 3.16, Channels 4.3 (Daphne), Celery 5.3, PostgreSQL, Redis |
-| `nginx/` | Прокси, SSL, protected media | nginx + certbot |
-| `petvet-mobile/` | Мобильное приложение (не в фокусе) | Expo / React Native |
+| Компонент | Стек |
+|-----------|------|
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, next-intl (i18n en/ru) |
+| **Backend** | Django 6.0, DRF 3.16, Channels 4.3 (Daphne/ASGI), Celery 5.3, SimpleJWT |
+| **Данные** | PostgreSQL 15, Redis 7 |
+| **Инфраструктура** | nginx (TLS, защищённые медиа), docker compose, GitHub Actions CI |
 
 ---
 
-## Быстрый старт (локальная разработка)
+## 📁 Структура репозитория
 
-### Backend
+```
+PetVet/
+├── frontend/          # Next.js веб-портал (SPA/SSR, i18n en/ru)
+├── backend/           # Django REST + WebSocket API
+├── nginx/             # Прокси, SSL, защищённые медиа
+├── petvet-mobile/     # Мобильное приложение (Expo/React Native, не в фокусе)
+├── docs/              # Архитектурная и операционная документация
+├── scripts/           # Служебные скрипты (backup.sh)
+├── .github/workflows/ # CI: check, migrations, tests, tsc, build
+└── docker-compose.yml # Полный продакшн-стек
+```
+
+### Backend — приложения
+
+| App | Модели | Назначение |
+|-----|--------|------------|
+| `users` | User, UserContact, VetVerificationRequest | Регистрация, активация, Google OAuth, верификация врачей |
+| `pets` | Category, Tag, Attribute, Pet, PetImage, PetAttribute, EventType, PetEvent, PetEventAttachment, PetAccess | Ядро: EAV-карты питомцев, события, доступ по QR |
+| `vetclinics` | VetClinic, ClinicMember, ExamTemplate, ClinicInvite | Клиники, приглашения, шаблоны осмотров |
+| `billing` | CatalogItem, EventTemplate, TemplateItem, Invoice, InvoiceItem | Каталог услуг, счета (snapshot цен), шаблоны |
+| `chat` | ChatRoom, ChatMessage | Чаты врач↔владелец (REST + WebSocket) |
+| `notifications` | Notification, Reminder, NotificationSettings | Уведомления (in-app + email), напоминания, Celery |
+| `ai` | SystemPrompt, AIChatSession, AIChatMessage | AI-консультации (DeepSeek), SSE-стриминг |
+| `breeding` | HeatCycle, Mating, Litter | Разведение |
+| `common` | — | Словари, защищённые медиа, healthcheck |
+
+### Frontend — ключевые страницы
+
+| Роут | Что это | Как пользоваться |
+|------|---------|------------------|
+| `/` | Лендинг | Обзор продукта, вход/регистрация |
+| `/login`, `/register`, `/verify` | Аутентификация | Email + пароль или Google OAuth |
+| `/dashboard` | Личный кабинет | Список питомцев, фильтры, быстрые действия, создание карты |
+| `/dashboard/ai-chat` | AI-консультант | Выберите питомца и задайте вопрос — ответ стримится в реальном времени |
+| `/pets/[id]` | Карточка питомца | Медицинская история, фото, родословная, события |
+| `/pets/create` | Создание карты | Мастер из 3 шагов: базово → детали → фото |
+| `/planboard` | План-доска | Ежедневные уходы и лечения; перенос событий перетаскиванием |
+| `/calendar` | Календарь | Все события по датам (react-big-calendar) |
+| `/dashboard/messages` | Чаты | Переписка с врачом/владельцем (WebSocket) |
+| `/dashboard/catalog` | Каталог услуг | Прайс врача: налоги, скидки, остатки |
+| `/dashboard/clinic/[id]` | Кабинет клиники | Пациенты, команда, шаблоны, счета |
+| `/billing/invoices` | Счета | Просмотр и оплата счетов |
+| `/find-vet` | Карта ветеринаров | Поиск клиник на Leaflet-карте |
+| `/share` | QR-доступ | Принятие временной ссылки на карту питомца |
+
+---
+
+## 🚀 Быстрый старт
+
+### Локальная разработка — Backend
+
+> ⚠️ Все команды из `backend/` с активированным venv. `--noinput` — для неинтерактивных окружений (CI/агенты).
 
 ```bash
 cd backend
@@ -59,17 +158,17 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# БД настроена в .env; применяем миграции
+# БД настроена в backend/.env; применяем миграции
 python manage.py migrate --noinput
 
-# Опционально: наполнение демо-данными
+# Опционально: демо-данные питомцев
 python manage.py seed_demo_pets --noinput
 
 # Запуск (REST + WebSocket)
 python manage.py runserver
 ```
 
-Ключевые команды:
+Полезные команды:
 
 | Команда | Описание |
 |---------|----------|
@@ -78,10 +177,9 @@ python manage.py runserver
 | `python manage.py makemigrations --check --dry-run` | Проверка незакоммиченных миграций |
 | `python manage.py seed_demo_pets` | Демо-данные питомцев |
 | `python manage.py seed_production_data` | Продакшн-данные (категории, шаблоны) |
+| `python manage.py createsuperuser --noinput` | Создать админа (задать пароль через `DJANGO_SUPERUSER_PASSWORD`) |
 
-> ⚠️ Все команды запускать из `backend/` с активированным venv. `--noinput` — для неинтерактивных окружений (CI/агенты).
-
-### Frontend
+### Локальная разработка — Frontend
 
 ```bash
 cd frontend
@@ -96,9 +194,11 @@ npm run dev        # http://localhost:3000
 | `npm run start` | Запуск собранного приложения |
 | `npm run lint` | ESLint |
 
----
+### Полный стек — Docker Compose
 
-## Docker Compose
+```bash
+docker compose up -d --build
+```
 
 | Сервис | Образ / команда | Порт |
 |--------|-----------------|------|
@@ -111,154 +211,9 @@ npm run dev        # http://localhost:3000
 | `celery_worker` | `./backend` → `celery -A config worker` | — |
 | `celery_beat` | `./backend` → `celery -A config beat` | — |
 
-```bash
-docker compose up -d --build
-```
-
-Проксируется через nginx: `https://careyour.pet` → frontend (веб) и backend (`/api/`, protected `/media/vet_docs|chat_attachments|event_docs|health_docs/`).
-
 ---
 
-## Backend
-
-### Стек
-
-Django 6.0 • DRF 3.16.1 • Channels 4.3.2 (Daphne) • Celery 5.3.6 • SimpleJWT 5.5.1 • modeltranslation 0.19 • django-filter 25.2 • PostgreSQL 15 • Redis 7
-
-### Приложения
-
-| App | Модели | Назначение |
-|-----|--------|------------|
-| `users` | User, UserContact, VetVerificationRequest | Регистрация, активация, Google OAuth, верификация врачей |
-| `pets` | Category, Tag, Attribute, Pet, PetImage, PetAttribute, EventType, PetEvent, PetEventAttachment, PetAccess | Ядро: карточки питомцев (EAV), события, доступ по QR |
-| `vetclinics` | VetClinic, ClinicMember, ExamTemplate, ClinicInvite | Клиники, приглашения, шаблоны осмотров |
-| `billing` | CatalogItem, EventTemplate, TemplateItem, Invoice, InvoiceItem | Каталог услуг, счета (snapshot цен), шаблоны событий |
-| `chat` | ChatRoom, ChatMessage | Чаты врач↔владелец (REST + WebSocket) |
-| `notifications` | Notification, Reminder, NotificationSettings | Уведомления (in-app + email), напоминания, Celery-задачи |
-| `ai` | SystemPrompt, AIChatSession, AIChatMessage | AI-консультации (DeepSeek), сессии, SSE-стриминг |
-| `breeding` | HeatCycle, Mating, Litter | Разведение (смонтировано, минимальное использование) |
-| `common` | — | Словари (`/api/common/dictionaries/`), protected media |
-
-### Доменная модель (ядро)
-
-```
-User (owner | veterinarian | is_verified)
- ├── pets (owner)             → Pet
- ├── created_pets             → shadow-карты (врач до регистрации владельца)
- ├── granted_accesses         → PetAccess (read | write)
- ├── verification_requests    → VetVerificationRequest
- └── contacts                 → UserContact
-
-Pet
- ├── categories / tags / attributes (PetAttribute — EAV, attr_type: text|number|select|checkbox|date)
- ├── mother/father (самородословная)
- ├── images (PetImage)
- ├── events (PetEvent → PetEventAttachment; status: planned|completed|missed)
- ├── temp_owner_name/phone    → shadow-пациент
- └── clinic (FK → VetClinic)
-
-PetEvent       → notifications (owner + access grants) + Reminder (Celery)
-PetAccess      → QR-доступ через TimestampSigner (TTL 1h) → ChatRoom (сигнал)
-ChatRoom       → ChatMessage (text | attachment)
-CatalogItem    → Invoice → InvoiceItem (снимок name/price/tax_at_moment)
-EventTemplate  → TemplateItem
-```
-
-### API surface
-
-| Prefix | Функции |
-|--------|---------|
-| `/api/pets/` | pets, categories, attributes, tags, events, event-types, event-attachments, pet_images |
-| `/api/auth/` | register, activate, google, me, demo-login, contacts, verification |
-| `/api/token/` | SimpleJWT login / refresh (access 60m, refresh 30d, rotation) |
-| `/api/chat/` | rooms, messages, attachments/upload |
-| `/api/billing/` | catalog, invoices, templates |
-| `/api/common/` | dictionaries, protected-media |
-| `/api/ai/` | prompts, sessions (SSE-streaming) |
-| `/api/clinics/` | clinic CRUD, members, invites, join, templates |
-| `/api/breeding/` | heat-cycles, matings, litters, generate_offspring |
-| `/api/notifications/` | notifications, notification-settings |
-| WS | `/ws/chat/{room_id}/`, `/ws/notifications/` (JWT в query_string) |
-
-### Ключевые паттерны
-
-1. **EAV + server-driven UI** — Attribute.attr_type, EventType.default_schema (JSON).
-2. **Shadow pets** — врач создаёт карту до регистрации владельца (`temp_owner_*`).
-3. **QR share** — `TimestampSigner` с уровнем доступа `?access_level=read|write` (default **read**).
-4. **Invoice snapshot** — `name/price/tax_at_moment` фиксируются при формировании счёта.
-5. **Единый доступ** — `pets/access.py`: `pet_access_q()` / `user_can_access_pet()` — единый источник правды для pets/events/attachments/AI/billing.
-6. **Celery-напоминания** — hourly email, flexible in-app (1 мин), daily repeating events (09:00).
-7. **Protected media** — `vet_docs`, `chat_attachments`, `event_docs`, `health_docs` отдаются только авторизованным (Django; nginx проксирует эти пути).
-
-### Тесты
-
-```bash
-cd backend && source venv/bin/activate && python manage.py test pets users billing
-```
-
-**23/23 green (2026-08-15):** pets/users/billing — изоляция питомцев, событий и счетов; роль через PATCH; верификация; totals/tax/stock; attachments 403/201.
-
----
-
-## Frontend
-
-### Стек
-
-Next.js 16 (App Router) • React 19 • TypeScript • Tailwind CSS 4 • next-intl 4 (i18n) • motion • HeroUI (@heroui/react) • react-big-calendar • leaflet • @react-pdf/renderer • @dnd-kit
-
-### Структура
-
-```
-frontend/
-├── app/
-│   ├── [locale]/           # i18n-сегмент (en/ru)
-│   │   ├── page.tsx        # Landing
-│   │   ├── login|register|verify|demo/   # Auth
-│   │   ├── planboard/      # Дни питомца (drag-n-drop)
-│   │   ├── calendar/       # Календарь событий
-│   │   ├── find-vet/       # Карта ветеринаров (leaflet)
-│   │   ├── pets/           # Карточка питомца, создание, события
-│   │   ├── dashboard/      # Личный кабинет: pets, catalog, ai-chat, clinic, messages
-│   │   ├── billing/invoices/  # Счета
-│   │   ├── become-vet|for-clinics|about|privacy|terms|share/  # Маркетинговые/статические
-│   ├── globals.css         # Tailwind 4 + CSS-переменные
-│   └── middleware.ts       # next-intl middleware (localePrefix: 'never')
-├── components/
-│   ├── home/ auth/ dashboard/ pet-form/ planboard/ billing/
-│   ├── calendar/ map/ pdf/ notifications/ providers/ ui/
-├── hooks/                  # usePetForm, useChatWebSocket
-├── i18n/                   # routing.ts (locales: en, ru)
-├── lib/                    # apiClient.ts (JWT, refresh, fetch)
-├── messages/               # en.json, ru.json
-├── services/               # aiChatService, chat, clinicService
-└── types/                  # ai-chat.ts, clinic.ts + типы API
-```
-
-### Ключевые страницы
-
-| Роут | Назначение |
-|------|------------|
-| `/` | Landing (Hero, AboutProject, PetsGrid, ForVeterinarians) |
-| `/login`, `/register`, `/verify`, `/demo` | Auth (Google OAuth, демо-вход) |
-| `/planboard` + `/planboard/pets/[id]` | План-доска: рутинные уходы и лечения питомца (drag-n-drop) |
-| `/calendar` | Календарь событий (react-big-calendar) |
-| `/pets/[id]`, `/pets/create`, `/pets/[id]/events/create` | Карточка/фото/медицина/родословная, создание событий |
-| `/dashboard` | Личный кабинет: питомцы, фильтры, действия |
-| `/dashboard/catalog` | Каталог услуг ветеринара |
-| `/dashboard/ai-chat` | AI-консультация (SSE-стриминг) |
-| `/dashboard/clinic/[id]` | Кабинет клиники: пациенты, шаблоны, счета |
-| `/dashboard/messages` | Чаты врач↔владелец |
-| `/billing/invoices` | Счета и оплата |
-| `/find-vet` | Карта ветеринаров (leaflet) |
-| `/share` | Принятие QR-доступа к питомцу |
-
-### Контексты и провайдеры
-
-`AuthProvider` (JWT + Google OAuth), `ChatProvider` (WebSocket), `AppModeProvider` (режим владелец/врач/клиника), `NotificationListener` (WS уведомления), `NotificationSettingsModal` (настройки напоминаний).
-
----
-
-## Переменные окружения
+## 🔐 Переменные окружения
 
 ### Backend — `backend/.env`
 
@@ -273,7 +228,7 @@ frontend/
 | `DEEPSEEK_API_KEY` | AI-провайдер (DeepSeek) |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | SMTP (gmail) |
 
-> ⚠️ `.env` содержит секреты и **не должен** попадать в git. Для эталонной конфигурации нужен `.env.example` (см. роадмап, P-4).
+> ⚠️ `.env` содержит секреты и **не должен** попадать в git. Эталонная конфигурация — `.env.example` в корне.
 
 ### Frontend — `frontend/.env.local`
 
@@ -284,108 +239,168 @@ frontend/
 
 ---
 
-## Развёртывание
+## 📡 API
 
-Продакшн запускается через `docker compose up -d --build`:
+Интерактивная документация: **https://careyour.pet/api/docs/** (Swagger UI, drf-spectacular).
 
-1. **nginx** терминирует SSL (certbot), проксирует `:3000` (web) и `:8000` (`/api/`, protected media).
-2. **backend** — Daphne (ASGI) для REST + WebSocket; статика/медиа в Docker volumes.
-3. **celery_worker / celery_beat** — задача `send_reminder_emails`, `send_flexible_reminders`, `process_repeating_events`.
-4. **Redis** — только внутренняя сеть (< 6379 не публикуется — security fix P0-5).
-5. **Protected media**: nginx regex `^/media/(vet_docs|chat_attachments|event_docs|health_docs)/` → Django `ProtectedMediaView` (401 без auth, проверка доступа).
-
-Деплой-скрипт: `./deploy.sh`.
-
----
-
-## Статус проекта
-
-### Backend — ✅ ЗДОРОВ (2026-08-15)
-
-Недавние исправления ошибок (этапы 0–2 дорожной карты):
-
-| Область | Было | Стало |
-|---------|------|-------|
-| **IDOR invoices** | `Invoice.objects.all()` — любой видит счета | изоляция по `created_by/client/pet owner/access` + `IsInvoiceEditor`, 8 тестов |
-| **Protected media** | документы ветеринаров открыты через `/media/` | `ProtectedMediaView` + nginx regex; DictionaryView починен (200) |
-| **JWT** | access 30d / refresh 60d, без rotation | access 60m / refresh 30d + rotation + blacklist |
-| **PermissionDenied** | attachment к чужому событию → **500 NameError** | 403 (импорт фикс + `user_can_access_pet`) |
-| **Redis** | порт 6379 открыт наружу; celery не получал `REDIS_HOST` | порт убран; celery получает `REDIS_HOST=redis` |
-| **Self-service role** | любой становился врачом через PATCH | role игнорируется; только admin + верификация |
-| **QR access** | всегда `write` | `?access_level=read\|write`, default **read** |
-| **RegisterView** | дубль класса (первый мёртвый) | единственная реализация |
-| **users.signals** | верификация врача не срабатывала | `import users.signals` → approve/reject работает |
-| **breeding** | мёртвый API (не в urls) | смонтирован `/api/breeding/` |
-| **Totals/stock** | tax не считался; цены конкатенировались как строки | Decimal-снапшоты, tax + discount, списание stock при paid |
-| **Duplicate endpoint** | Celery ссылался на несуществующий `/duplicate/` | `POST /api/events/{id}/duplicate/` реализован |
-
-**Тесты: 23/23 green** — `python manage.py test --noinput`.
-
-### Frontend — ⏳ РАБОТАЕТ, ТРЕБУЕТ ДОРАБОТКИ
-
-Из аудита исправлено 11 из 18 пунктов (единая анимация `motion`, удалены лишние иконки, CSS-переменные, декомпозиция `PetDetailsModal` → 4 компонента, удалены неиспользуемые библиотеки (sonner, tw-animate-css), починены токены и Rules-of-Hooks).
-
-**Осталось (7):**
-
-| # | Проблема | Severity |
-|---|----------|----------|
-| P4 | `AboutProject` — 3-card AI slop | 🟡 Major (~30 мин) |
-| P5 | Dark mode отсутствует | 🟡 Major (~1 час) |
-| P7 | border-radius не консистентен | 🟡 Major (~30 мин) |
-| P8 | focus-visible доступность | 🟡 Major (~30 мин) |
-| P9 | Header `h-20` не адаптивен | 🟡 Major (~1 час) |
-| P10 | LoginPage требует редизайна | 🟡 Major (~1.5 часа) |
-| P14/P15 | Русские комментарии; костыль `isClient` | 🟢 Minor |
+| Prefix | Функции |
+|--------|---------|
+| `/api/pets/` | Карты питомцев, категории, атрибуты, теги, события, вложения |
+| `/api/auth/` | Регистрация, активация, Google, me, demo-login, верификация врача |
+| `/api/token/` | SimpleJWT login / refresh (access 60m, refresh 30d + rotation) |
+| `/api/chat/` | Комнаты, сообщения, загрузка вложений |
+| `/api/billing/` | Каталог, счета, шаблоны |
+| `/api/common/` | Словари, защищённые медиа, `health/` |
+| `/api/ai/` | Промпты, сессии AI (SSE-streaming) |
+| `/api/clinics/` | CRUD клиник, участники, приглашения, шаблоны |
+| `/api/breeding/` | Циклы, вязки, пометы |
+| `/api/notifications/` | Уведомления, настройки |
+| `/api/schema/` | OpenAPI-схема |
+| WS | `/ws/chat/{room_id}/`, `/ws/notifications/` (JWT в query_string) |
 
 ---
 
-## Роадмап
+## 🗺 Карта функциональности
 
-### Backend — Этап 3 (Product Integrity)
+Ниже — сводная карта «функция → где живёт в коде».
 
-- [x] Единый резолвер **Client** (`resolve_client` в `pets/services.py`; guest/temp_owner/Invoice client унифицирован). Полноценная модель Client — отдельный ADR при необходимости
-- [x] Спорное поле `Pet.user` (OneToOne) — удалено (миграция `pets.0009`)
-- [x] `EventType.CATEGORY_CHOICES`: `surgery`, `parasite` присутствуют
-- [x] `simple-history` — убрано из INSTALLED_APPS и requirements
-- [x] `CatalogItem.code`: unique по `(owner, code)` (констрайнты в billing/models.py)
+### Аутентификация и профиль
 
-### Backend — Этап 4 (Ops)
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| Регистрация + активация по email | `users/views.py` → `RegisterView`, `ActivateView` | `/register`, `/verify` |
+| Google OAuth | `users/views.py` → `GoogleAuthView` | `GoogleAuthWrapper`, `@react-oauth/google` |
+| JWT (access 60m / refresh 30d + rotation + blacklist) | `config/settings.py` (SimpleJWT + tokens) | `lib/apiClient.ts` (авто-refresh) |
+| Демо-вход | `users/views.py` → `DemoLoginView` | `/demo` |
+| Профиль и контакты | `users/serializers.py` | `components/profile/` |
+| Верификация врача | `users/models.py` → `VetVerificationRequest` + signals | `components/auth/AuthLayout.tsx` |
+| Удаление аккаунта | `users/views.py` | `components/DeleteAccountModal.tsx` |
 
-- [x] CI (GitHub Actions) — `.github/workflows/ci.yml` (check, migrations-check, tests, tsc, build)
-- [x] Healthcheck — `GET /api/common/health/` (db + redis; runtime 200)
-- [x] Бэкапы — `scripts/backup.sh` (`pg_dump` + media, ротация) + `docs/OPS.md`
-- [x] Nginx: HSTS/CSP/nosniff/X-Frame/Referrer; rate limit на auth (10/h)
-- [x] Логирование — `LOGGING` конфиг + `print()` → logger
-- [ ] Sentry (backend + frontend) — требует `SENTRY_DSN`
-- [ ] DB collation refresh (`ALTER DATABASE ... REFRESH COLLATION VERSION`)
+### Питомцы и медицинская карта
 
-### Frontend
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| EAV-карта питомца (атрибуты всех типов) | `pets/models.py` → `PetAttribute` (attr_type) | `components/pet-form/PetFormSteps.tsx` |
+| Создание/редактирование (мастер 3 шага) | `pets/serializers.py` → `PetSerializer` | `/pets/create`, `usePetForm.ts` |
+| Медкарта, фото, родословная | `pets/models.py` → `PetImage`, mother/father | `/pets/[id]` → `components/pet-page/` |
+| События здоровья (planned/completed/missed) | `pets/models.py` → `PetEvent` | `components/dashboard/CreateEventModal.tsx`, `components/events/` |
+| Вложения к событиям (защищённые) | `pets/views.py` → attachments | `ProtectedMediaView` |
+| «Теневые» карты (врач → владелец) | `pets/models.py` → `temp_owner_*` | `/pets/create-client` |
+| QR-доступ (read/write, TTL 1h) | `pets/services.py` → `TimestampSigner` | `/share`, `PetShareWidget.tsx` |
+| Единый доступ (проверка прав) | `pets/access.py` → `user_can_access_pet()` | — |
 
-- [ ] Скорейшие победы: P14 + P15 + P8 (~30 мин)
-- [ ] P4 AboutProject (~30 мин)
-- [ ] P7 border-radius, P9 Header, P10 LoginPage
-- [ ] P5 Dark mode
+### Планирование и уход
+
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| План-доска дней питомца | `pets/events` (repeating) | `/planboard` + `@dnd-kit` |
+| Календарь событий | `pets/events` | `/calendar` + `react-big-calendar` |
+| Дублирование события | `POST /api/events/{id}/duplicate/` | `CreateEventModal` |
+
+### AI-консультант
+
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| Сессии и сообщения | `ai/models.py` (AIChatSession, AIChatMessage) | `types/ai-chat.ts` |
+| Потоковый ответ (SSE) | `ai/views.py` + `ai/services.py` (DeepSeek) | `components/dashboard/AIChatWindow.tsx`, `services/aiChatService.ts` |
+| Системные промпты | `ai/models.py` → `SystemPrompt` | `AIChatSidebar.tsx` |
+
+### Клиники, врачи, биллинг
+
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| Кабинет клиники | `vetclinics/models.py` (VetClinic, ClinicMember) | `/dashboard/clinic/[id]` |
+| Приглашения в клинику | `vetclinics/models.py` → `ClinicInvite` | `CreateClinicModal.tsx` |
+| Каталог услуг (налоги/скидки/остатки) | `billing/models.py` → `CatalogItem` | `components/billing/CatalogTab.tsx` |
+| Счета со снимком цен | `billing/models.py` → `Invoice`/`InvoiceItem` | `/billing/invoices`, `PaymentModal.tsx` |
+| Шаблоны осмотров/событий | `vetclinics`/`billing` (ExamTemplate, EventTemplate) | `ClinicTemplates.tsx`, `TemplatesTab.tsx` |
+| Карта ветеринаров | `vetclinics` viewset | `/find-vet` + `react-leaflet` |
+
+### Коммуникации и уведомления
+
+| Функция | Backend | Frontend |
+|---------|---------|----------|
+| Чат врач↔владелец (REST + WS) | `chat/` → `ChatRoom`, `ChatMessage`, consumers | `/dashboard/messages`, `useChatWebSocket.ts` |
+| In-app уведомления (WS) | `notifications/` → consumers | `NotificationListener.tsx`, `NotificationsDropdown.tsx` |
+| Email-напоминания (Celery) | `notifications/tasks.py` (hourly, flexible, repeating) | `NotificationsSettingsModal.tsx` |
 
 ---
 
-## Документация
+## 🧪 Тестирование и CI
+
+### Тесты
+
+```bash
+cd backend && source venv/bin/activate && python manage.py test pets users billing --noinput
+```
+
+**23/23 green (2026-08-15):** изоляция питомцев, событий и счетов; роль через PATCH; верификация; totals/tax/stock; attachments 403/201.
+
+### CI — GitHub Actions (`.github/workflows/ci.yml`)
+
+| Шаг | Что проверяет |
+|-----|---------------|
+| backend check | Конфигурация Django |
+| backend migrations | Нет незакоммиченных изменений схемы |
+| backend tests | 23 теста |
+| frontend tsc | TypeScript без ошибок |
+| frontend build | Продакшн-сборка Next.js |
+
+---
+
+## 🚢 Развёртывание и эксплуатация
+
+Полная операционная документация — в [`docs/OPS.md`](docs/OPS.md).
+
+```bash
+./deploy.sh                # rsync на сервер
+docker compose up -d --build
+docker compose exec backend python manage.py migrate --noinput
+docker compose exec backend python manage.py collectstatic --noinput
+```
+
+### Monitoring
+
+- **Healthcheck:** `GET /api/common/health/` → `{"status":"ok","checks":{"db":"ok","redis":"ok"}}`
+- **Бэкапы:** `scripts/backup.sh` → pg_dump(gzip) + media, ротация 7 дней (cron)
+- **Логи:** `docker compose logs -f backend|celery_worker|celery_beat`
+
+### Безопасность
+
+- TLS 1.2/1.3, HSTS, CSP, nosniff, X-Frame-Options, Referrer-Policy
+- JWT с ротацией refresh + blacklist, троттлинг (auth 10/ч, AI 20/ч)
+- Защищённые медиа (`vet_docs`, `chat_attachments`, `event_docs`, `health_docs`) — только авторизованным
+- Redis не публикует порты наружу; секреты только в `.env*` (не в git)
+
+---
+
+## 📚 Документация
 
 | Документ | Содержание |
 |----------|------------|
-| `docs/BACKEND-MAP.md` | Полная карта бэкенда: приложения, домены, API, потоки, найденные проблемы |
-| `docs/BACKEND-ROADMAP.md` | Дорожная карта этапов 0–4; зафиксированные DoD |
-| `docs/FRONTEND-AUDIT.md` | Аудит UI: 11 исправлено / 7 осталось |
-| `docs/ANALYSIS.md` | Первичный анализ проекта |
-| `docs/TODO.md`, `docs/SECURITY-TODO.md` | Задачи и security-бэклог (⚠️ местами расходятся с кодом — сверяйте с BACKEND-MAP) |
-| `docs/OPS.md` | Операционная документация: бэкап/восстановление, деплой, мониторинг healthcheck, логи, секреты |
-| `docs/REFACTORING-2026-08-15.md` | Сводка работ по ponytail-аудиту и ROADMAP (этапы A–D, P-2/P-3/P-4, O-1…O-5) |
-| `.env.example` | Шаблон переменных окружения без секретов |
-| `scripts/backup.sh` | Бэкап Postgres + media (cron) |
-| `.github/workflows/ci.yml` | CI: backend (check/tests/migrations) + frontend (tsc/build) |
-| `docs/adr/0001-ai-chat-sse-streaming.md` | ADR: SSE-стриминг AI-чата |
+| [`CONTEXT.md`](CONTEXT.md) | Глоссарий домена: единый словарь терминов |
+| [`docs/BACKEND-MAP.md`](docs/BACKEND-MAP.md) | Полная карта бэкенда: приложения, домены, API, потоки |
+| [`docs/BACKEND-ROADMAP.md`](docs/BACKEND-ROADMAP.md) | Дорожная карта этапов 0–4 |
+| [`docs/FRONTEND-AUDIT.md`](docs/FRONTEND-AUDIT.md) | Аудит UI: исправления и остатки |
+| [`docs/AUDIT-2026-08-16.md`](docs/AUDIT-2026-08-16.md) | Полный аудит стека (оценка 8.5/10) |
+| [`docs/OPS.md`](docs/OPS.md) | Бэкапы, деплой, мониторинг, логи, секреты |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Дизайн-токены и UI-подходы |
+| [`docs/adr/0001-ai-chat-sse-streaming.md`](docs/adr/0001-ai-chat-sse-streaming.md) | ADR: SSE-стриминг AI-чата |
+| [`.env.example`](.env.example) | Шаблон переменных окружения без секретов |
 
 ---
 
-## Лицензия
+## 🏆 Статус проекта
 
-Приватный проект. Репозиторий: `https://github.com/rodionvitenberg-ui/PetVet`.
+| Направление | Оценка | Комментарий |
+|-------------|--------|-------------|
+| Frontend | **8.5/10** | Дизайн-токены, тёмная тема, i18n, a11y, декомпозированные формы |
+| Backend | **8.5/10** | Чистые эндпоинты, N+1 закрыт, безопасность адекватная, тесты |
+| DevOps | **8.5/10** | HTTPS, security-заголовки, CI, бэкапы, healthcheck |
+| **Итог** | **8.5/10** | **Production ready** — готов к демонстрации и мягкому запуску |
+
+---
+
+## 📄 Лицензия
+
+Приватный проект. Демо: **https://careyour.pet** · Репозиторий: `https://github.com/rodionvitenberg-ui/PetVet`

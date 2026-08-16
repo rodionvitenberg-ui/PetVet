@@ -1,4 +1,5 @@
 'use client';
+import { addToast } from "@heroui/toast";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -89,11 +90,11 @@ export default function BecomeVetPage() {
                 const data = await res.json();
                 setRequest(data);
             } else {
-                alert('Ошибка загрузки. Попробуйте файл меньшего размера.');
+                addToast({ title: "Error", description: "Ошибка загрузки. Попробуйте файл меньшего размера.", color: "danger", variant: "flat" });
             }
         } catch (e) {
             console.error(e);
-            alert('Ошибка сети');
+            addToast({ title: "Error", description: "Ошибка сети", color: "danger", variant: "flat" });
         } finally {
             setIsSubmitting(false);
         }
@@ -130,21 +131,21 @@ export default function BecomeVetPage() {
                         <ChevronLeft size={20} /> <span className="text-white">Go Back</span>
                     </button>
 
-                    <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Verification</h1>
-                        <p className="text-gray-500 mb-8">
+                    <div className="bg-card rounded-[2rem] shadow-xl border border-border p-8">
+                        <h1 className="text-3xl font-bold text-foreground mb-2">Complete Verification</h1>
+                        <p className="text-muted-foreground mb-8">
                             To access veterinarian features, we need to verify your qualifications.
                         </p>
 
                         {request ? (
                             <div className="space-y-6">
                                 {request.status === 'pending' && (
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="bg-accent/15 border border-yellow-200 rounded-2xl p-6 text-center">
+                                        <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4">
                                             <Clock size={32} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900">Заявка на проверке</h3>
-                                        <p className="text-gray-600 mt-2">
+                                        <h3 className="text-xl font-bold text-foreground">Заявка на проверке</h3>
+                                        <p className="text-muted-foreground mt-2">
                                             We are checking your documents. Usually, this takes up to 24 hours. 
                                             You will receive a notification about the decision.
                                         </p>
@@ -152,12 +153,12 @@ export default function BecomeVetPage() {
                                 )}
 
                                 {request.status === 'approved' && (
-                                    <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="bg-success/10 border border-green-200 rounded-2xl p-6 text-center">
+                                        <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto mb-4">
                                             <CheckCircle size={32} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900">You are verified!</h3>
-                                        <p className="text-gray-600 mt-2">
+                                        <h3 className="text-xl font-bold text-foreground">You are verified!</h3>
+                                        <p className="text-muted-foreground mt-2">
                                             Your status has been verified. You now have access to tools for working with patients.
                                         </p>
                                         <button onClick={() => router.push('/dashboard')} className="mt-4 px-6 py-2 bg-green-600 text-white rounded-xl font-bold">
@@ -167,22 +168,22 @@ export default function BecomeVetPage() {
                                 )}
 
                                 {request.status === 'rejected' && (
-                                    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6 text-center">
+                                        <div className="w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto mb-4">
                                             <XCircle size={32} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900">Request Rejected</h3>
-                                        <p className="text-gray-600 mt-2">
+                                        <h3 className="text-xl font-bold text-foreground">Request Rejected</h3>
+                                        <p className="text-muted-foreground mt-2">
                                             Unfortunately, we could not verify your status.
                                         </p>
                                         {request.rejection_reason && (
-                                            <div className="mt-4 p-3 bg-white rounded-xl text-sm font-medium text-red-600 border border-red-100">
+                                            <div className="mt-4 p-3 bg-card rounded-xl text-sm font-medium text-destructive border border-destructive/20">
                                                 Reason: {request.rejection_reason}
                                             </div>
                                         )}
                                         <button 
                                             onClick={() => { setRequest(null); setFile(null); setPreviewUrl(null); }} 
-                                            className="mt-6 text-blue-600 font-bold hover:underline"
+                                            className="mt-6 text-primary font-bold hover:underline"
                                         >
                                             Try Again
                                         </button>
@@ -191,11 +192,11 @@ export default function BecomeVetPage() {
                             </div>
                         ) : (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
-                                    <div className="shrink-0 text-blue-500"><FileText size={24} /></div>
+                                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/15 flex gap-4">
+                                    <div className="shrink-0 text-primary"><FileText size={24} /></div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900">What needs to be uploaded?</h4>
-                                        <p className="text-sm text-gray-600 mt-1">
+                                        <h4 className="font-bold text-foreground">What needs to be uploaded?</h4>
+                                        <p className="text-sm text-muted-foreground mt-1">
                                             A photo or scan of your <b>veterinary degree</b>. 
                                             Your name in the profile must match the name in the document.
                                         </p>
@@ -205,7 +206,7 @@ export default function BecomeVetPage() {
                                 <div className="space-y-4">
                                     <label className={`
                                         border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all
-                                        ${file ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'}
+                                        ${file ? 'border-blue-500 bg-primary/10' : 'border-border hover:border-border hover:bg-muted'}
                                     `}>
                                         {previewUrl ? (
                                             <div className="relative w-full h-48">
@@ -216,9 +217,9 @@ export default function BecomeVetPage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <Upload className="text-gray-400 mb-3" size={40} />
-                                                <span className="font-bold text-gray-700">Click to upload photo</span>
-                                                <span className="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</span>
+                                                <Upload className="text-muted-foreground mb-3" size={40} />
+                                                <span className="font-bold text-foreground">Click to upload photo</span>
+                                                <span className="text-xs text-muted-foreground mt-1">JPG, PNG up to 5MB</span>
                                             </>
                                         )}
                                         <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -227,7 +228,7 @@ export default function BecomeVetPage() {
                                     <button 
                                         onClick={handleSubmit} 
                                         disabled={!file || isSubmitting}
-                                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full py-4 bg-primary hover:bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? 'Sending...' : 'Submit for Review'}
                                     </button>

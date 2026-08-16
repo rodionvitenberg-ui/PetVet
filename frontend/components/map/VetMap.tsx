@@ -1,4 +1,5 @@
 'use client';
+import { addToast } from "@heroui/toast";
 
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -26,7 +27,7 @@ const VetIcon = L.divIcon({
 
 // Кастомная иконка для Юзера
 const UserIcon = L.divIcon({
-  html: `<div class="relative flex h-4 w-4"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-4 w-4 bg-blue-600 border-2 border-white"></span></div>`,
+  html: `<div class="relative flex h-4 w-4"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-4 w-4 bg-primary border-2 border-white"></span></div>`,
   className: "bg-transparent flex items-center justify-center",
   iconSize: [16, 16],
 });
@@ -61,7 +62,7 @@ export default function VetMap() {
   // 1. ПОЛУЧАЕМ ГЕОПОЗИЦИЮ
   useEffect(() => {
     if (!navigator.geolocation) {
-      alert("Ваш браузер не поддерживает геолокацию");
+      addToast({ title: "Error", description: "Ваш браузер не поддерживает геолокацию", color: "danger", variant: "flat" });
       setLoading(false);
       return;
     }
@@ -130,12 +131,12 @@ export default function VetMap() {
 
   if (permissionDenied) {
       return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-gray-50 rounded-3xl border border-gray-200">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
+          <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-muted rounded-3xl border border-border">
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4 text-destructive">
                   <Navigation size={32} />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Access to geolocation denied</h2>
-              <p className="text-gray-500 mt-2 max-w-md">
+              <h2 className="text-xl font-bold text-foreground">Access to geolocation denied</h2>
+              <p className="text-muted-foreground mt-2 max-w-md">
                   We cannot find nearby clinics because you have denied access to your location.
               </p>
           </div>
@@ -144,15 +145,15 @@ export default function VetMap() {
 
   if (loading || !position) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-50/50 rounded-3xl animate-pulse">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-3" />
-        <p className="text-gray-400 font-medium">Determining location...</p>
+      <div className="flex flex-col items-center justify-center h-full bg-muted/50 rounded-3xl animate-pulse">
+        <Loader2 className="w-10 h-10 text-primary animate-spin mb-3" />
+        <p className="text-muted-foreground font-medium">Determining location...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full rounded-3xl overflow-hidden shadow-xl border border-gray-200 relative z-0">
+    <div className="h-full w-full rounded-3xl overflow-hidden shadow-xl border border-border relative z-0">
       <MapContainer center={position} zoom={14} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -173,22 +174,22 @@ export default function VetMap() {
           >
             <Popup className="custom-popup">
               <div className="p-1 min-w-[200px]">
-                <h3 className="font-bold text-gray-900 text-sm mb-1">{clinic.name}</h3>
+                <h3 className="font-bold text-foreground text-sm mb-1">{clinic.name}</h3>
                 {(clinic.street || clinic.housenumber) && (
-                    <p className="text-xs text-gray-500 flex items-start gap-1 mb-2">
+                    <p className="text-xs text-muted-foreground flex items-start gap-1 mb-2">
                         <MapPin size={12} className="mt-0.5 shrink-0" />
                         {clinic.street} {clinic.housenumber}
                     </p>
                 )}
                 
                 {clinic.phone && (
-                   <a href={`tel:${clinic.phone}`} className="block w-full text-center bg-blue-50 text-blue-600 text-xs font-bold py-1.5 rounded-lg hover:bg-blue-100 transition mb-1">
+                   <a href={`tel:${clinic.phone}`} className="block w-full text-center bg-primary/10 text-primary text-xs font-bold py-1.5 rounded-lg hover:bg-primary/10 transition mb-1">
                       {clinic.phone}
                    </a>
                 )}
                 
                 {clinic.website && (
-                    <a href={clinic.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center text-xs text-gray-400 hover:text-blue-500 hover:underline">
+                    <a href={clinic.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center text-xs text-muted-foreground hover:text-primary hover:underline">
                         Go to Website
                     </a>
                 )}
@@ -197,7 +198,7 @@ export default function VetMap() {
                    href={`https://yandex.ru/maps/?pt=${clinic.lon},${clinic.lat}&z=16&l=map`} 
                    target="_blank" 
                    rel="noreferrer"
-                   className="mt-2 text-[10px] text-gray-400 block text-center border-t pt-1"
+                   className="mt-2 text-[10px] text-muted-foreground block text-center border-t pt-1"
                 >
                     Open in Navigator
                 </a>
@@ -207,7 +208,7 @@ export default function VetMap() {
         ))}
       </MapContainer>
       
-      <div className="absolute bottom-6 left-6 z-[400] bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-gray-100 text-xs font-bold text-gray-700">
+      <div className="absolute bottom-6 left-6 z-[400] bg-card/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-border text-xs font-bold text-foreground">
           Found clinics nearby: {clinics.length}
       </div>
     </div>

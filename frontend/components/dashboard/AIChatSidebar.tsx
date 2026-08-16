@@ -24,6 +24,7 @@ interface AIChatSidebarProps {
   activeSessionId: number | null;
   refreshTrigger: number; // increment to refresh sessions list
   userPets: PetBasic[];
+  filterPetId?: number | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -35,6 +36,7 @@ export default function AIChatSidebar({
   activeSessionId,
   refreshTrigger,
   userPets,
+  filterPetId,
 }: AIChatSidebarProps) {
   const [sessions, setSessions] = useState<AIChatSession[]>([]);
   const [prompts, setPrompts] = useState<SystemPrompt[]>([]);
@@ -96,7 +98,7 @@ export default function AIChatSidebar({
               if (toastKey) closeToast(toastKey);
               performDelete(sessionId);
             }}
-            className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition"
+            className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold hover:bg-destructive/90 transition"
           >
             Delete
           </button>
@@ -104,7 +106,7 @@ export default function AIChatSidebar({
             onClick={() => {
               if (toastKey) closeToast(toastKey);
             }}
-            className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition"
+            className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-bold hover:bg-muted transition"
           >
             Cancel
           </button>
@@ -149,6 +151,10 @@ export default function AIChatSidebar({
 
   const selectedPet = userPets.find(p => p.id === selectedPetId);
   const selectedPrompt = prompts.find(p => p.id === selectedPromptId);
+  // При входе с ?petId=X показываем только переписки этого питомца.
+  const visibleSessions = filterPetId
+    ? sessions.filter(s => s.pet?.id === filterPetId)
+    : sessions;
 
   const getPetImageUrl = (session: AIChatSession): string | null => {
     const img = session.pet?.images?.[0]?.image;
@@ -157,15 +163,15 @@ export default function AIChatSidebar({
   };
 
   return (
-    <div ref={sidebarRef} className="w-full h-full bg-gray-50 flex flex-col border-r border-gray-200">
+    <div ref={sidebarRef} className="w-full h-full bg-muted flex flex-col border-r border-border">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white">
+      <div className="p-4 border-b border-border bg-card">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="bg-[#FFCBA4] p-1.5 rounded-lg">
-              <Sparkles size={18} className="text-black/80" />
+              <Sparkles size={18} className="text-foreground/80" />
             </div>
-            <h2 className="font-bold text-lg text-gray-800">AI Assistant</h2>
+            <h2 className="font-bold text-lg text-foreground">AI Assistant</h2>
           </div>
         </div>
         
@@ -176,8 +182,8 @@ export default function AIChatSidebar({
           className={`
             w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all
             ${showNewChatForm
-              ? 'bg-gray-200 text-gray-700'
-              : 'bg-black text-white hover:bg-gray-800'}
+              ? 'bg-muted text-foreground'
+              : 'bg-foreground text-background hover:bg-foreground/90'}
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
@@ -188,29 +194,29 @@ export default function AIChatSidebar({
 
       {/* New Chat Form */}
       {showNewChatForm && (
-        <div className="p-4 bg-white border-b border-gray-200 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="p-4 bg-card border-b border-border space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
           {/* Pet Selector */}
           <div className="relative">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Pet</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">Pet</label>
             <button
               onClick={() => {
                 setPetDropdownOpen(prev => !prev);
                 setPromptDropdownOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-left hover:border-gray-300 transition"
+              className="w-full flex items-center gap-2 px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-left hover:border-border transition"
             >
               {selectedPet ? (
                 <>
-                  <PawPrint size={16} className="text-gray-500 shrink-0" />
-                  <span className="text-gray-800 truncate">{selectedPet.name}</span>
+                  <PawPrint size={16} className="text-muted-foreground shrink-0" />
+                  <span className="text-foreground truncate">{selectedPet.name}</span>
                 </>
               ) : (
-                <span className="text-gray-400">Select a pet...</span>
+                <span className="text-muted-foreground">Select a pet...</span>
               )}
-              <ChevronDown size={14} className="text-gray-400 ml-auto shrink-0" />
+              <ChevronDown size={14} className="text-muted-foreground ml-auto shrink-0" />
             </button>
             {petDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20 py-1">
+              <div className="absolute top-full left-0 mt-1 w-full bg-card rounded-xl shadow-lg border border-border overflow-hidden z-20 py-1">
                 {userPets.map(pet => (
                   <button
                     key={pet.id}
@@ -220,7 +226,7 @@ export default function AIChatSidebar({
                     }}
                     className={`
                       w-full flex items-center gap-2 px-3 py-2 text-sm transition
-                      ${selectedPetId === pet.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 hover:bg-gray-50'}
+                      ${selectedPetId === pet.id ? 'bg-primary/10 text-primary font-bold' : 'text-foreground hover:bg-muted'}
                     `}
                   >
                     <PawPrint size={14} />
@@ -234,25 +240,25 @@ export default function AIChatSidebar({
           {/* Prompt Selector */}
           {prompts.length > 0 && (
             <div className="relative">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Persona</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">Persona</label>
               <button
                 onClick={() => {
                   setPromptDropdownOpen(prev => !prev);
                   setPetDropdownOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-left hover:border-gray-300 transition"
+                className="w-full flex items-center gap-2 px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-left hover:border-border transition"
               >
-                <span className="text-gray-800 truncate">{selectedPrompt?.name || 'Default'}</span>
-                <ChevronDown size={14} className="text-gray-400 ml-auto shrink-0" />
+                <span className="text-foreground truncate">{selectedPrompt?.name || 'Default'}</span>
+                <ChevronDown size={14} className="text-muted-foreground ml-auto shrink-0" />
               </button>
               {promptDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20 py-1">
+                <div className="absolute top-full left-0 mt-1 w-full bg-card rounded-xl shadow-lg border border-border overflow-hidden z-20 py-1">
                   <button
                     onClick={() => {
                       setSelectedPromptId(undefined);
                       setPromptDropdownOpen(false);
                     }}
-                    className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
                     Default
                   </button>
@@ -265,7 +271,7 @@ export default function AIChatSidebar({
                       }}
                       className={`
                         w-full px-3 py-2 text-sm transition
-                        ${selectedPromptId === p.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 hover:bg-gray-50'}
+                        ${selectedPromptId === p.id ? 'bg-primary/10 text-primary font-bold' : 'text-foreground hover:bg-muted'}
                       `}
                     >
                       {p.name}
@@ -280,7 +286,7 @@ export default function AIChatSidebar({
           <button
             onClick={handleStartNewChat}
             disabled={!selectedPetId}
-            className="w-full py-2.5 bg-[#FFCBA4] text-black font-bold rounded-xl hover:bg-[#ffbca0] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#FFCBA4] text-foreground font-bold rounded-xl hover:bg-[#ffbca0] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
           >
             <Sparkles size={16} />
             Start Chat
@@ -292,17 +298,17 @@ export default function AIChatSidebar({
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {isLoading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-gray-400" size={24} />
+            <Loader2 className="animate-spin text-muted-foreground" size={24} />
           </div>
-        ) : sessions.length === 0 ? (
-          <div className="p-6 text-center text-gray-400">
+        ) : visibleSessions.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground">
             <MessageSquare size={32} className="mx-auto mb-2 opacity-40" />
             <p className="text-sm">No conversations yet.</p>
             <p className="text-xs mt-1">Start a new chat about your pet.</p>
           </div>
         ) : (
           <div className="py-2">
-            {sessions.map(session => {
+            {visibleSessions.map(session => {
               const petImage = getPetImageUrl(session);
               return (
                 <div
@@ -311,29 +317,29 @@ export default function AIChatSidebar({
                   className={`
                     mx-2 mb-1 p-3 rounded-xl cursor-pointer transition-all group
                     ${activeSessionId === session.id
-                      ? 'bg-white shadow-sm border border-gray-200'
-                      : 'hover:bg-white/70 border border-transparent'
+                      ? 'bg-card shadow-sm border border-border'
+                      : 'hover:bg-card/70 border border-transparent'
                     }
                   `}
                 >
                   <div className="flex items-start gap-3">
                     {/* Pet avatar */}
-                    <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-300 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full overflow-hidden bg-muted shrink-0 border border-border flex items-center justify-center">
                       {petImage ? (
                         <img src={petImage} className="w-full h-full object-cover" alt="" />
                       ) : (
-                        <PawPrint size={14} className="text-gray-400" />
+                        <PawPrint size={14} className="text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-gray-800 truncate">
+                        <p className="text-xs font-bold text-foreground truncate">
                           {session.pet?.name || 'Unknown'}
                         </p>
                         <button
                           onClick={(e) => handleDelete(e, session.id)}
                           disabled={deletingId === session.id}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded-lg transition text-gray-400 hover:text-red-500 disabled:opacity-100"
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded-lg transition text-muted-foreground hover:text-destructive disabled:opacity-100"
                         >
                           {deletingId === session.id ? (
                             <Loader2 size={14} className="animate-spin" />
@@ -342,10 +348,10 @@ export default function AIChatSidebar({
                           )}
                         </button>
                       </div>
-                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                         {session.title}
                       </p>
-                      <p className="text-[10px] text-gray-400 mt-1">
+                      <p className="text-[10px] text-muted-foreground mt-1">
                         {new Date(session.updated_at).toLocaleDateString()}
                       </p>
                     </div>

@@ -43,14 +43,14 @@ export default function PetCard({
     return (
       <div 
         onClick={onClick}
-        className={`rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition group gap-3 bg-white/50 
+        className={`rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/10 transition group gap-3 bg-card/50 
         ${isCompact ? 'aspect-[4/3] min-h-[180px]' : 'aspect-[4/5] min-h-[300px] gap-4'}`}
       >
-        <div className={`rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-blue-500 transition shadow-sm
+        <div className={`rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-card group-hover:text-primary transition shadow-sm
             ${isCompact ? 'w-10 h-10' : 'w-16 h-16'}`}>
             <Plus size={isCompact ? 20 : 32} />
         </div>
-        <span className={`font-bold text-gray-500 group-hover:text-blue-500 transition text-center px-2
+        <span className={`font-bold text-muted-foreground group-hover:text-primary transition text-center px-2
             ${isCompact ? 'text-xs' : 'text-base'}`}>
             {addButtonText || 'Add Pet'}
         </span>
@@ -70,7 +70,7 @@ export default function PetCard({
         className={`group relative rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-500
             ${isCompact ? 'aspect-[4/3]' : 'aspect-[4/5]'}`}
       >
-        <div className="absolute inset-0 bg-gray-200">
+        <div className="absolute inset-0 bg-muted">
           {mainImageUrl ? (
              <img 
                src={mainImageUrl} 
@@ -78,7 +78,7 @@ export default function PetCard({
                alt={pet.name} 
              />
           ) : (
-             <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
+             <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
                 No photo
              </div>
           )}
@@ -106,16 +106,16 @@ export default function PetCard({
               <div className="flex flex-col items-end gap-1 mb-1">
                   <div>
                       {pet.gender === 'M' ? (
-                         <Mars className="text-blue-300" size={isCompact ? 18 : 24} />
+                         <Mars className="text-primary/60" size={isCompact ? 18 : 24} />
                       ) : (
-                         <Venus className="text-pink-300" size={isCompact ? 18 : 24} />
+                         <Venus className="text-accent/60" size={isCompact ? 18 : 24} />
                       )}
                   </div>
 
                   {pet.is_public && (
-                      <div className="flex items-center gap-1 bg-green-500/20 px-2 py-0.5 rounded-md backdrop-blur-md border border-green-500/30">
-                          <Globe size={isCompact ? 8 : 10} className="text-green-300" />
-                          {!isCompact && <span className="text-[10px] font-bold text-green-200 uppercase tracking-wide">Public</span>}
+<div className="flex items-center gap-1 bg-success/20 px-2 py-0.5 rounded-md backdrop-blur-md border border-success/30">
+                          <Globe size={isCompact ? 8 : 10} className="text-success" />
+                          {!isCompact && <span className="text-[10px] font-bold text-success uppercase tracking-wide">Public</span>}
                       </div>
                   )}
               </div>
@@ -124,12 +124,12 @@ export default function PetCard({
            {!isCompact && (
                <div className="flex items-center gap-2 mt-3 overflow-hidden">
                   {pet.species && (
-                      <span className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
+                      <span className="text-[10px] px-2 py-1 bg-card/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
                          {pet.species}
                       </span>
                   )}
                   {pet.breed && (
-                      <span className="text-[10px] px-2 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
+                      <span className="text-[10px] px-2 py-1 bg-card/10 backdrop-blur-md rounded-lg border border-white/10 truncate max-w-[120px]">
                          {pet.breed}
                       </span>
                   )}

@@ -25,7 +25,7 @@
 | V10 | users.signals подключение | apps.py | import users.signals | 🔴 **не импортируется** |
 
 **Вывод этапа 0:** Провалены V2, V4, V5, V6, V7, V8, V10 — зафиксировано 2026-08-15.
-**Обновление после P0-фиксов:** V5 (dictionaries 200 ✅), V6 (invoice isolation ✅ + 8 тестов), V7 (PermissionDenied ✅), V8 (JWT ✅), V10 (users.signals ✅). Остались: V2 (миграция notifications не закоммичена), V9 (celery — проверить отдельно).
+**Обновление после P0-фиксов:** V5 (dictionaries 200 ✅), V6 (invoice isolation ✅ + 8 тестов), V7 (PermissionDenied ✅), V8 (JWT ✅), V10 (users.signals ✅). **V2 ✅ закрыта** 2026-08-15 (миграция `notifications.0005` закоммичена; `makemigrations --check` → No changes). Остался: V9 (celery — проверить отдельно).
 
 ---
 
@@ -164,55 +164,55 @@
 
 **DoD:** ✅ кнопка «Schedule now» из `process_repeating_events` теперь ведёт на реальный endpoint.
 
-### P-2. Domain unify
-- [ ] **Client entity** — свести guest_name (PetEvent) / guest (Invoice) / temp_owner (Pet) к единой модели `Client` (или единому полю-дженерику)
-- [ ] **Pet.user OneToOne** — удалить или переименовать/задокументировать (путаница с owner)
-- [ ] **EventType.CATEGORY_CHOICES** — добавить `surgery`, `parasite` (использует AI-фильтр `build_pet_context`/`pets/services`)
-- [ ] **simple-history** — или повесить HistoricalRecords на Pet/PetEvent/Invoice, или убрать из INSTALLED_APPS
-- [ ] **CatalogItem.code** — unique per `(owner, code)` вместо global
+### P-2. Domain unify — ✅ DONE 2026-08-15
+- [x] **Client entity** — вместо полноценной модели принят единый резолвер `resolve_client()` (Pet owner/temp_owner · PetEvent guest · Invoice client/guest); контракт `{id, name, phone, email, telegram, avatar, about, is_temporary}`
+- [x] **Pet.user OneToOne** — удалено (миграция `pets.0009`)
+- [x] **EventType.CATEGORY_CHOICES** — `surgery`, `parasite` присутствуют
+- [x] **simple-history** — убрано из INSTALLED_APPS и requirements
+- [x] **CatalogItem.code** — unique по `(owner, code)` (констрейнты в billing/models.py)
 
-**DoD:** ADR/доменные термины зафиксированы в CONTEXT.md; код соответствует.
+**DoD:** ✅ термины зафиксированы в `CONTEXT.md`; код соответствует. Полноценная модель Client — отдельный ADR при необходимости.
 
-### P-3. AI hardening
-- [ ] Rate limit: DRF `DEFAULT_THROTTLE_RATES` (например, `ai: 20/hour`)
-- [ ] Audit log: `AIConsultLog` (user, pet, prompt, response hash, timestamp)
-- [ ] `DEEPSEEK_API_KEY` не логировать
-- [ ] Убрать legacy `AIConsultView` (или оставить как alias)
+### P-3. AI hardening — ✅ DONE 2026-08-15 (кроме опционального audit log)
+- [x] Rate limit: DRF `DEFAULT_THROTTLE_RATES` — `ai: 20/hour`
+- [ ] Audit log: `AIConsultLog` (user, pet, prompt, response hash, timestamp) — не делали, опционально
+- [x] `DEEPSEEK_API_KEY` не логировать (проверено: ключ нигде не выводится)
+- [x] Убрать legacy `AIConsultView` — удалён полностью (view, url, serializers, helper-функции)
 
-**DoD:** пачка запросов к `/api/ai/consult/` получает 429.
+**DoD:** legacy `/api/ai/consult/` не существует; запросы к новому чату ограничены `ai: 20/hour`.
 
-### P-4. OpenAPI / документация
-- [ ] `drf-spectacular` → `/api/schema/`, `/api/docs/`
-- [ ] Обновить `frontend/types/*.ts` синхронно с serializers
-- [ ] `.env.example` (без секретов) в корне
+### P-4. OpenAPI / документация — ✅ DONE 2026-08-15
+- [x] `drf-spectacular` → `/api/schema/`, `/api/docs/` (Swagger UI)
+- [x] Обновить `frontend/types/*.ts` синхронно с serializers (event.ts, invoice.ts, clinic.ts …)
+- [x] `.env.example` (без секретов) в корне
 
-**DoD:** схема генерируется; типы фронта соответствуют.
+**DoD:** ✅ схема генерируется; типы фронта соответствуют.
 
 ---
 
 ## Этап 4 — Ops / Scale (после стабилизации)
 
-### O-1. CI
-- [ ] GitHub Actions: `python manage.py test` (backend), `npm run build` (frontend), lint
-- [ ] Миграции в pipeline: перед деплоем `makemigrations --check && migrate`
+### O-1. CI — ✅ DONE 2026-08-15
+- [x] GitHub Actions: `python manage.py test` (backend), `tsc --noEmit` + `build` (frontend)
+- [x] Миграции в pipeline: `makemigrations --check` перед тестами
 
 ### O-2. Observability
-- [ ] Sentry (backend + frontend)
-- [ ] Healthchecks: `/api/health/` (db, redis), уведомление в tg
+- [ ] Sentry (backend + frontend) — требует `SENTRY_DSN`
+- [x] Healthchecks: `GET /api/common/health/` (db + redis, runtime 200); уведомление в tg не делали
 
-### O-3. Backups
-- [ ] Скрипт `pg_dump` cron + restore drill
-- [ ] Документация в `docs/OPS.md`
+### O-3. Backups — ✅ DONE 2026-08-15
+- [x] Скрипт `pg_dump` cron (`scripts/backup.sh`) + restore drill в `docs/OPS.md`
+- [x] Документация в `docs/OPS.md`
 
-### O-4. Security headers
-- [ ] Nginx: HSTS, CSP, X-Content-Type-Options
-- [ ] Убрать дубль `location /ws/`
-- [ ] Rate limit на auth endpoints (DRF throttle)
+### O-4. Security headers — ✅ DONE 2026-08-15
+- [x] Nginx: HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+- [x] Убран дубль `nginx.conf` (идентичный файл в корне удалён)
+- [x] Rate limit на auth endpoints (DRF throttle `auth: 10/hour`)
 
-### O-5. Logging
-- [ ] Заменить `print()` на `logging.getLogger(__name__).warning(...)`
-- [ ] `EMAIL` failures → log, не print
-- [ ] `LOGGING` конфиг в settings.py
+### O-5. Logging — ✅ DONE 2026-08-15
+- [x] Заменить `print()` → `logger.warning(...)`
+- [x] `EMAIL` failures → log (не print)
+- [x] `LOGGING` конфиг в settings.py
 
 ### O-6. DB hygiene
 - [ ] `ALTER DATABASE pet_db_vet REFRESH COLLATION VERSION` (убрать warning)

@@ -1,4 +1,5 @@
 'use client';
+import { addToast } from "@heroui/toast";
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -11,7 +12,9 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import SearchInput from '@/components/ui/SearchInput';
 import PaymentModal from '@/components/billing/PaymentModal';
 import CreateEventModal from '@/components/dashboard/CreateEventModal';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+// PDFDownloadLink is client-only (@react-pdf/renderer): load it without SSR
+import dynamic from 'next/dynamic';
+const PDFDownloadLink = dynamic(() => import('@react-pdf/renderer').then(m => m.PDFDownloadLink), { ssr: false });
 import { InvoiceDocument } from '@/components/billing/InvoiceDocument';
 import type { Invoice, InvoiceItem } from '@/types/invoice';
 
@@ -26,9 +29,6 @@ export default function InvoicesPage() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     
-    const [isClient, setIsClient] = useState(false);
-    useEffect(() => setIsClient(true), []);
-
     const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, id: number | null, amount: string }>({ isOpen: false, id: null, amount: '0' });
     const [isPaySubmitting, setIsPaySubmitting] = useState(false);
 
@@ -95,14 +95,34 @@ export default function InvoicesPage() {
             }
         } catch (e) {
             console.error(e);
-            alert("Error updating invoice status. Please try again.");
+            addToast({ title: "Error", description: "Error updating invoice status. Please try again.", color: "danger", variant: "flat" });
         } finally {
             setIsPaySubmitting(false);
         }
     };
 
+    const handleExportCsv = () => {
+        const header = ['Invoice', 'Client', 'Pet', 'Amount', 'Status', 'Date'];
+        const rows = invoices.map(inv => [
+            `#${inv.id}`,
+            inv.client_info?.name || inv.guest_name || 'Anonymous',
+            inv.pet_name || '',
+            inv.total_amount,
+            inv.status,
+            new Date(inv.created_at).toLocaleDateString()
+        ]);
+        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleOpenDetails = async (invoice: Invoice) => {
-        if (!invoice.event || !invoice.pet) return alert("This invoice is not linked to an event.");
+        if (!invoice.event || !invoice.pet) return addToast({ title: "Error", description: "This invoice is not linked to an event.", color: "danger", variant: "flat" });
         setIsEventLoading(true);
         const token = localStorage.getItem('access_token');
         try {
@@ -129,7 +149,7 @@ export default function InvoicesPage() {
         };
         return (
             <div className="relative">
-                <select value={currentStatus} onChange={(e) => handleChange(e.target.value)} className="pl-3 pr-8 py-2.5 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100 appearance-none cursor-pointer min-w-[150px]">
+                <select value={currentStatus} onChange={(e) => handleChange(e.target.value)} className="pl-3 pr-8 py-2.5 border border-border rounded-xl bg-card text-sm outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer min-w-[150px]">
                     <option value="">All Statuses</option>
                     <option value="unpaid">Awaiting Payment</option>
                     <option value="paid">Paid</option>
@@ -137,54 +157,54 @@ export default function InvoicesPage() {
                     <option value="cancelled">Cancelled</option>
                 </select>
                 {currentStatus ? (
-                    <button onClick={() => handleChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X size={14} /></button>
+                    <button onClick={() => handleChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive"><X size={14} /></button>
                 ) : (
-                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={14} />
                 )}
             </div>
         );
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
+        <div className="min-h-screen bg-muted/50 pt-24 pb-10 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto space-y-6">
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Invoices and Payments</h1>
-                        <p className="text-gray-500 text-sm">Financial control of the clinic</p>
+                        <h1 className="text-2xl font-bold text-foreground">Invoices and Payments</h1>
+                        <p className="text-muted-foreground text-sm">Financial control of the clinic</p>
                     </div>
                     
                     <div className="flex gap-4">
-                        <div className="bg-white p-3 pr-6 rounded-xl border border-red-100 shadow-sm flex items-center gap-3">
-                            <div className="p-2 bg-red-50 text-red-600 rounded-lg"><AlertCircle size={20} /></div>
+                        <div className="bg-card p-3 pr-6 rounded-xl border border-destructive/20 shadow-sm flex items-center gap-3">
+                            <div className="p-2 bg-destructive/10 text-destructive rounded-lg"><AlertCircle size={20} /></div>
                             <div>
-                                <div className="text-xs text-gray-500 font-bold uppercase">Client Debts</div>
-                                <div className="text-lg font-bold text-gray-900">{stats.unpaid.toFixed(2)} €</div>
+                                <div className="text-xs text-muted-foreground font-bold uppercase">Client Debts</div>
+                                <div className="text-lg font-bold text-foreground">{stats.unpaid.toFixed(2)} €</div>
                             </div>
                         </div>
-                        <div className="bg-white p-3 pr-6 rounded-xl border border-green-100 shadow-sm flex items-center gap-3">
-                            <div className="p-2 bg-green-50 text-green-600 rounded-lg"><CheckCircle2 size={20} /></div>
+                        <div className="bg-card p-3 pr-6 rounded-xl border border-green-100 shadow-sm flex items-center gap-3">
+                            <div className="p-2 bg-success/10 text-success rounded-lg"><CheckCircle2 size={20} /></div>
                             <div>
-                                <div className="text-xs text-gray-500 font-bold uppercase">Paid</div>
-                                <div className="text-lg font-bold text-gray-900">{stats.paid.toFixed(2)} €</div>
+                                <div className="text-xs text-muted-foreground font-bold uppercase">Paid</div>
+                                <div className="text-lg font-bold text-foreground">{stats.paid.toFixed(2)} €</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4">
+                <div className="bg-card p-4 rounded-2xl border border-border shadow-sm flex flex-col sm:flex-row gap-4">
                     <SearchInput placeholder="Search by invoice number, client..." />
                     <StatusFilter />
-                    <button className="ml-auto flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium px-4 py-2 hover:bg-gray-50 rounded-lg transition">
+                    <button onClick={handleExportCsv} disabled={invoices.length === 0} className="ml-auto flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium px-4 py-2 hover:bg-muted rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
                         <Download size={18} /> <span className="hidden sm:inline">Export CSV</span>
                     </button>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-100">
+                            <thead className="bg-muted text-muted-foreground font-bold uppercase text-xs border-b border-border">
                                 <tr>
                                     <th className="px-6 py-4">Invoice</th>
                                     <th className="px-6 py-4">Client / Patient</th>
@@ -193,58 +213,58 @@ export default function InvoicesPage() {
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-border">
                                 {loading ? (
                                     [...Array(5)].map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-32 mb-2"></div><div className="h-3 bg-gray-100 rounded w-20"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
-                                            <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded-full w-20"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-16"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-32 mb-2"></div><div className="h-3 bg-muted rounded w-20"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-16"></div></td>
+                                            <td className="px-6 py-4"><div className="h-6 bg-muted rounded-full w-20"></div></td>
                                             <td className="px-6 py-4"></td>
                                         </tr>
                                     ))
                                 ) : invoices.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                             <FileText size={48} className="mx-auto mb-3 opacity-20" />
                                             Invoices not found
                                         </td>
                                     </tr>
                                 ) : (
                                     invoices.map((inv) => (
-                                        <tr key={inv.id} className="hover:bg-gray-50 group transition">
+                                        <tr key={inv.id} className="hover:bg-muted group transition">
                                             <td className="px-6 py-4 align-top">
-                                                <div className="font-bold text-gray-900">#{inv.id}</div>
-                                                <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                <div className="font-bold text-foreground">#{inv.id}</div>
+                                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                                     <Clock size={10} /> {new Date(inv.created_at).toLocaleDateString()}
                                                 </div>
                                             </td>
                                             
                                             <td className="px-6 py-4 align-top">
                                                 {/* [UPD] Отображение клиента с поддержкой теневых */}
-                                                <div className="font-medium text-gray-900 flex items-center gap-2">
+                                                <div className="font-medium text-foreground flex items-center gap-2">
                                                     {inv.client_info?.name || inv.guest_name || "Anonymous"}
                                                     {inv.client_info?.is_shadow && (
-                                                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold uppercase">Temp</span>
+                                                        <span className="text-[10px] bg-accent/20 text-yellow-800 px-1.5 py-0.5 rounded font-bold uppercase">Temp</span>
                                                     )}
                                                 </div>
                                                 {inv.pet_name && (
-                                                    <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1 font-bold">{inv.pet_name}</div>
+                                                    <div className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full inline-block mt-1 font-bold">{inv.pet_name}</div>
                                                 )}
-                                                <div className="text-xs text-gray-400 mt-1 truncate max-w-[200px]">{inv.items.map(i => i.name_at_moment).join(', ')}</div>
+                                                <div className="text-xs text-muted-foreground mt-1 truncate max-w-[200px]">{inv.items.map(i => i.name_at_moment).join(', ')}</div>
                                             </td>
                                             
                                             <td className="px-6 py-4 align-top">
-                                                <div className="font-mono font-bold text-gray-900 text-lg">{inv.total_amount} €</div>
-                                                <div className="text-xs text-gray-400">{inv.items.length} items</div>
+                                                <div className="font-mono font-bold text-foreground text-lg">{inv.total_amount} €</div>
+                                                <div className="text-xs text-muted-foreground">{inv.items.length} items</div>
                                             </td>
                                             
                                             <td className="px-6 py-4 align-top">
-                                                {inv.status === 'paid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700"><CheckCircle2 size={12} /> Paid</span>}
-                                                {inv.status === 'unpaid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 animate-pulse"><Clock size={12} /> Unpaid</span>}
-                                                {inv.status === 'draft' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600"><FileText size={12} /> Draft</span>}
-                                                {inv.status === 'cancelled' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600"><Ban size={12} /> Cancelled</span>}
+                                                {inv.status === 'paid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-success/10 text-success"><CheckCircle2 size={12} /> Paid</span>}
+                                                {inv.status === 'unpaid' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground animate-pulse"><Clock size={12} /> Unpaid</span>}
+                                                {inv.status === 'draft' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground"><FileText size={12} /> Draft</span>}
+                                                {inv.status === 'cancelled' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive"><Ban size={12} /> Cancelled</span>}
                                             </td>
                                             
                                             <td className="px-6 py-4 text-right align-top">
@@ -254,34 +274,28 @@ export default function InvoicesPage() {
                                                         <button 
                                                             onClick={() => openPaymentModal(inv.id, inv.total_amount)}
                                                             title="Mark as Paid"
-                                                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition"
+                                                            className="p-2 bg-success/10 text-success rounded-lg hover:bg-success/10 transition"
                                                         >
                                                             <CreditCard size={18} />
                                                         </button>
                                                     )}
                                                     
-                                                    {isClient ? (
-                                                        <PDFDownloadLink
-                                                            document={<InvoiceDocument invoice={inv} user={user} />}
-                                                            fileName={`invoice_${inv.id}.pdf`}
-                                                            className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition flex items-center justify-center"
-                                                            title="Download PDF"
-                                                        >
-                                                            {({ loading }) => (
-                                                                loading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />
-                                                            )}
-                                                        </PDFDownloadLink>
-                                                    ) : (
-                                                        <button disabled className="p-2 bg-gray-100 text-gray-600 rounded-lg opacity-50">
-                                                            <Loader2 size={18} className="animate-spin" />
-                                                        </button>
-                                                    )}
+                                                    <PDFDownloadLink
+                                                        document={<InvoiceDocument invoice={inv} user={user} />}
+                                                        fileName={`invoice_${inv.id}.pdf`}
+                                                        className="p-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted transition flex items-center justify-center"
+                                                        title="Download PDF"
+                                                    >
+                                                        {({ loading }) => (
+                                                            loading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />
+                                                        )}
+                                                    </PDFDownloadLink>
 
                                                     <button 
                                                         onClick={() => handleOpenDetails(inv)}
                                                         disabled={isEventLoading}
                                                         title="Go to Services and Products"
-                                                        className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
+                                                        className="p-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted transition disabled:opacity-50"
                                                     >
                                                         {isEventLoading ? <Loader2 size={18} className="animate-spin"/> : <ArrowUpRight size={18} />}
                                                     </button>

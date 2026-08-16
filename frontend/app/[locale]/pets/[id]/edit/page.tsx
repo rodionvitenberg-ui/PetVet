@@ -26,9 +26,6 @@ export default function MobileEditPetPage({ params }: PageProps) {
   
   const t = useTranslations('Passport');
   const locale = useLocale();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => setIsClient(true), []);
 
   // 1. Загружаем данные питомца
   useEffect(() => {
@@ -66,7 +63,7 @@ export default function MobileEditPetPage({ params }: PageProps) {
   });
 
   if (loadingInitial || !initialPet) {
-      return <div className="min-h-screen flex items-center justify-center bg-gray-50">Загрузка...</div>;
+      return <div className="min-h-screen flex items-center justify-center bg-muted">Загрузка...</div>;
   }
 
   const handleNext = () => {
@@ -77,21 +74,21 @@ export default function MobileEditPetPage({ params }: PageProps) {
   const handleFieldChange = (field: string, value: any) => updateField(field as any, value);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-23 pb-20 px-4">
+    <div className="min-h-screen bg-muted pt-23 pb-20 px-4">
       <div className="max-w-xl mx-auto">
         
         {/* ХЕДЕР */}
         <div className="flex items-center gap-4 mb-6">
             <button 
                 onClick={() => step === 1 ? router.back() : prevStep()}
-                className="p-2 bg-white hover:bg-gray-100 rounded-full transition text-gray-600 shadow-sm border border-gray-200"
+                className="p-2 bg-card hover:bg-muted rounded-full transition text-muted-foreground shadow-sm border border-border"
             >
                 <ArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Редактирование</h1>
+            <h1 className="text-2xl font-bold text-foreground">Редактирование</h1>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-6 sm:p-8 min-h-[50vh] flex flex-col">
+        <div className="bg-card rounded-[2rem] shadow-xl border border-border p-6 sm:p-8 min-h-[50vh] flex flex-col">
             <div className="flex-1">
                 {step === 1 && (
                     <StepBasicInfo 
@@ -115,14 +112,14 @@ export default function MobileEditPetPage({ params }: PageProps) {
                 )}
             </div>
 
-            {error && <div className="mt-4 p-3 text-red-600 bg-red-50 rounded-lg text-sm text-center">{error}</div>}
+            {error && <div className="mt-4 p-3 text-destructive bg-destructive/10 rounded-lg text-sm text-center">{error}</div>}
 
-            <div className="mt-8 pt-6 border-t border-gray-100 space-y-3">
+            <div className="mt-8 pt-6 border-t border-border space-y-3">
 
                 <button 
                     onClick={handleNext} 
                     disabled={isSubmitting}
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition"
+                    className="w-full py-4 bg-primary hover:bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition"
                 >
                     {isSubmitting ? 'Сохраняем...' : step < 3 ? 'Далее' : 'Сохранить изменения'}
                 </button>

@@ -15,16 +15,19 @@ export const AboutProject = () => {
 
   const features = [
     {
+      index: '01',
       icon: <Cloud size={20} />,
       title: t('archive_title'),
       desc: t('archive_desc'),
     },
     {
+      index: '02',
       icon: <FileText size={20} />,
       title: t('passport_title'),
       desc: t('passport_desc'),
     },
     {
+      index: '03',
       icon: <ShieldCheck size={20} />,
       title: t('security_title'),
       desc: t('security_desc'),
@@ -63,17 +66,25 @@ export const AboutProject = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.5, delay: index * 0.12, ease: [0.25, 0.1, 0.25, 1] }}
-              className="group relative p-7 rounded-2xl border border-border bg-card hover:shadow-lg transition-shadow"
+              className="group relative p-6 rounded-xl border border-border bg-card hover:shadow-md transition-shadow overflow-hidden"
             >
-              <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-5">
-                {feat.icon}
+              {/* Акцентная линия вместо пузырчатой "AI-карточки" */}
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-primary/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <div className="flex items-center justify-between mb-5">
+                <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  {feat.icon}
+                </div>
+                <span className="text-xs font-bold text-muted-foreground/50 tracking-widest">
+                  {feat.index}
+                </span>
               </div>
 
               <h3 className="text-lg font-bold text-foreground mb-2">
                 {feat.title}
               </h3>
 
-              <p className="text-[15px] text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {feat.desc}
               </p>
             </motion.div>

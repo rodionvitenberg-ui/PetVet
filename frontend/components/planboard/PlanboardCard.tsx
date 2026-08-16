@@ -26,9 +26,9 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
     if (compact) {
         return (
             <div className={`
-                group flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-grab active:cursor-grabbing transition-all bg-white
-                ${isCompleted ? 'opacity-60 bg-gray-50 border-gray-100' : 'hover:border-blue-300 hover:shadow-sm'}
-                ${isOverdue && !isCompleted ? 'border-red-200 bg-red-50/30' : 'border-gray-200'}
+                group flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-grab active:cursor-grabbing transition-all bg-card
+                ${isCompleted ? 'opacity-60 bg-muted border-border' : 'hover:border-primary/40 hover:shadow-sm'}
+                ${isOverdue && !isCompleted ? 'border-destructive/20 bg-destructive/10' : 'border-border'}
             `}>
                 {/* Чекбокс */}
                 <button 
@@ -36,8 +36,8 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
                     className={`
                         w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
                         ${isCompleted 
-                            ? 'bg-green-500 border-green-500 text-white' 
-                            : 'bg-white border-gray-300 hover:border-blue-500'
+                            ? 'bg-success border-success text-success-foreground'
+                            : 'bg-card border-border hover:border-primary'
                         }
                     `}
                 >
@@ -45,18 +45,18 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
                 </button>
                 
                 {/* Время */}
-                <span className={`font-mono font-bold whitespace-nowrap ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                <span className={`font-mono font-bold whitespace-nowrap ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </span>
 
                 {/* Заголовок */}
-                <span className={`truncate font-medium flex-1 ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                <span className={`truncate font-medium flex-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                     {event.title}
                 </span>
 
                 {/* Индикатор вложений (скрепка) */}
                 {event.attachments && event.attachments.length > 0 && (
-                    <Paperclip size={10} className="text-gray-400 shrink-0" />
+                    <Paperclip size={10} className="text-muted-foreground shrink-0" />
                 )}
             </div>
         );
@@ -65,23 +65,23 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
     // === ОБЫЧНЫЙ (ПРОСТОРНЫЙ) РЕЖИМ ===
     
     // Определение стилей в зависимости от варианта
-    let containerClasses = "bg-white border-l-4 shadow-sm";
+    let containerClasses = "bg-card border-l-4 shadow-sm";
     let borderClass = "";
     
     if (variant === 'completed') {
-        containerClasses = "bg-gray-50 border-l-4 border-gray-300 opacity-60 grayscale";
-        borderClass = "border-gray-300";
+        containerClasses = "bg-muted border-l-4 border-border opacity-60 grayscale";
+        borderClass = "border-border";
     } else if (variant === 'urgent') {
-        containerClasses = "bg-white border-l-4 border-red-500 shadow-sm";
-        borderClass = "border-red-500";
+        containerClasses = "bg-card border-l-4 border-destructive shadow-sm";
+        borderClass = "border-destructive";
     } else {
         // default / plans
-        containerClasses = "bg-white border-l-4 border-blue-500 shadow-sm";
-        borderClass = "border-blue-500";
+        containerClasses = "bg-card border-l-4 border-primary shadow-sm";
+        borderClass = "border-primary";
     }
 
     if (isOverdue && !isCompleted) {
-        containerClasses += " ring-1 ring-red-400";
+        containerClasses += " ring-1 ring-destructive/40";
     }
 
     return (
@@ -98,8 +98,8 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
                     className={`
                         mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
                         ${isCompleted 
-                            ? 'bg-green-500 border-green-500 text-white' 
-                            : 'border-gray-300 hover:border-blue-500 text-transparent'
+                            ? 'bg-success border-success text-success-foreground'
+                            : 'border-border hover:border-primary text-transparent'
                         }
                     `}
                 >
@@ -108,13 +108,13 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
 
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h4 className={`font-bold text-sm leading-tight mb-1 ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                        <h4 className={`font-bold text-sm leading-tight mb-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                             {event.title}
                         </h4>
                         
                         {/* Время */}
                         <div className={`flex items-center gap-1 text-xs font-bold whitespace-nowrap ml-2
-                            ${isOverdue ? 'text-red-600 animate-pulse' : 'text-gray-500'}
+                            ${isOverdue ? 'text-destructive animate-pulse' : 'text-muted-foreground'}
                         `}>
                             <Clock size={12} />
                             {eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -122,16 +122,16 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
                     </div>
 
                     {event.description && (
-                        <p className="text-xs text-gray-500 line-clamp-2 mt-1">
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                             {event.description}
                         </p>
                     )}
 
                     {/* Футер карточки */}
-                    <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100/50">
+                    <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/50">
                         {/* Тип события (если есть иконка) */}
                         {event.event_type && (
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-1.5 py-0.5 rounded">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded">
                                 {event.event_type.icon && <img src={event.event_type.icon} className="w-3 h-3 opacity-50" />}
                                 {event.event_type.name}
                             </div>
@@ -139,7 +139,7 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
 
                         {/* Вложения */}
                         {event.attachments && event.attachments.length > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-bold">
+                            <div className="flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-bold">
                                 <Paperclip size={10} />
                                 {event.attachments.length}
                             </div>
@@ -148,7 +148,7 @@ export default function PlanboardCard({ event, onToggle, variant = 'default', co
                 </div>
 
                 {/* Стрелочка при наведении (подсказка, что можно кликнуть) */}
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground">
                     <ChevronRight size={16} />
                 </div>
             </div>

@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import { createClinic } from '@/services/clinicService';
 import { addToast } from "@heroui/toast";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface CreateClinicModalProps {
   isOpen: boolean;
@@ -38,85 +49,78 @@ export default function CreateClinicModal({ isOpen, onClose, onCreated }: Create
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="bg-emerald-100 p-2 rounded-lg">
-              <Building2 size={20} className="text-emerald-600" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-800">Create Clinic</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="flex-row items-center gap-2 sm:text-left">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success">
+            <Building2 size={20} />
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
-            <X size={20} className="text-gray-500" />
-          </button>
-        </div>
+          <DialogTitle>Create Clinic</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Clinic Name *</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="clinic-name">Clinic Name *</Label>
+            <Input
+              id="clinic-name"
               type="text"
               required
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Happy Paws Clinic"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Address</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="clinic-address">Address</Label>
+            <Input
+              id="clinic-address"
               type="text"
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition"
               value={form.address}
               onChange={e => setForm({ ...form, address: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Phone</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="clinic-phone">Phone</Label>
+              <Input
+                id="clinic-phone"
                 type="text"
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition"
                 value={form.phone}
                 onChange={e => setForm({ ...form, phone: e.target.value })}
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Email</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="clinic-email">Email</Label>
+              <Input
+                id="clinic-email"
                 type="email"
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
               />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Description</label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="clinic-description">Description</Label>
+            <Textarea
+              id="clinic-description"
               rows={3}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-200 outline-none transition resize-none"
+              className="resize-none"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               placeholder="Brief description of your clinic..."
             />
           </div>
-          <button
+          <Button
             type="submit"
             disabled={loading || !form.name.trim()}
-            className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-md"
+            className="w-full bg-success text-success-foreground hover:bg-success/90"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : <Building2 size={18} />}
+            {loading ? <Loader2 className="animate-spin" /> : <Building2 />}
             Create Clinic
-          </button>
+          </Button>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

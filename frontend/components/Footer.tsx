@@ -44,13 +44,13 @@ export default function Footer() {
             <h3 className="text-background font-bold mb-4">{t('platform')}</h3>
             <ul className="space-y-3 text-sm">
                 <li>
-                    <Link href="/dashboard" className="hover:text-blue-400 transition">{t('perscab')}</Link>
+                    <Link href="/dashboard" className="hover:text-primary transition">{t('perscab')}</Link>
                 </li>
                 <li>
-                    <Link href="/find-vet" className="hover:text-blue-400 transition">{t('findvet')}</Link>
+                    <Link href="/find-vet" className="hover:text-primary transition">{t('findvet')}</Link>
                 </li>
                 <li>
-                    <Link href="/become-vet" className="hover:text-blue-400 transition">{t('forspec')}</Link>
+                    <Link href="/become-vet" className="hover:text-primary transition">{t('forspec')}</Link>
                 </li>
             </ul>
         </div>
@@ -60,12 +60,12 @@ export default function Footer() {
             <h3 className="text-background font-bold mb-4">{t('rulinf')}</h3>
             <ul className="space-y-3 text-sm">
                 <li>
-                    <Link href="/privacy" className="flex items-center gap-2 hover:text-blue-400 transition">
+                    <Link href="/privacy" className="flex items-center gap-2 hover:text-primary transition">
                         <Shield size={14} /> {t('policyconf')}
                     </Link>
                 </li>
                 <li>
-                    <Link href="/terms" className="flex items-center gap-2 hover:text-blue-400 transition">
+                    <Link href="/terms" className="flex items-center gap-2 hover:text-primary transition">
                         <FileText size={14} /> {t('uslisp')}
                     </Link>
                 </li>

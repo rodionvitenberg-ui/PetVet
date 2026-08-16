@@ -1,7 +1,8 @@
 {
   "HomePage": {
     "title": "Test",
-    "subtitle": "Test"
+    "subtitle": "Test",
+    "pets_grid_title": "Our furry users"
   },
   "Passport": {
   "title": "PET HEALTH PASSPORT",

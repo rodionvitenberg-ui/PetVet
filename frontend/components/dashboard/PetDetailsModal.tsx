@@ -1,8 +1,7 @@
 'use client';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { PetPassportDocument } from '@/components/pdf/PetPassportDocument';
+import { addToast } from "@heroui/toast";
 import { useTranslations, useLocale } from 'next-intl';
-import { FileDown, Activity, ChevronLeft } from 'lucide-react';
+import { Activity, ChevronLeft } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import EditPetModal from './EditPetModal';
 import UpdateGalleryModal from './UpdateGalleryModal';
@@ -13,9 +12,15 @@ import DeletePetModal from './DeletePetModal';
 import { PetDetail, UserProfile } from '@/types/pet';
 import { PetEvent } from '@/types/event';
 import { getMediaUrl } from './PetDetailUtils';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import PetPhotoCarousel from './PetPhotoCarousel';
 import PetInfoTab from './PetInfoTab';
 import PetMedicalTab from './PetMedicalTab';
+
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -25,6 +30,8 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
   const [pet, setPet] = useState<PetDetail | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'medical'>('info');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [panYByPet, setPanYByPet] = usePersistedState<Record<number, number>>('petModal.panYByPet', {});
+  const [savedImageIndex, setSavedImageIndex] = usePersistedState<Record<number, number>>('petModal.savedImageIndex', {});
   const [loading, setLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -58,6 +65,11 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
     setSwipeStart(null);
   };
 
+  const saveViewState = (index: number) => {
+    if (!displayPetId) return;
+    setSavedImageIndex(prev => ({ ...prev, [displayPetId]: index }));
+  };
+
   useEffect(() => {
     if (isOpen && petId) setDisplayPetId(petId);
   }, [isOpen, petId]);
@@ -70,7 +82,7 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
     })
       .then(res => { if (!res.ok) throw new Error(res.statusText); return res.json(); })
-      .then(data => { setPet(data); setCurrentImageIndex(0); })
+      .then(data => { setPet(data); setCurrentImageIndex(savedImageIndex[data.id] ?? 0); })
       .catch(err => console.error("Error loading pet:", err))
       .finally(() => setLoading(false));
   };
@@ -95,19 +107,33 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
       window.location.reload();
     } catch (error) {
       console.error(error);
-      alert("Failed to delete pet.");
+      addToast({ title: "Error", description: "Failed to delete pet.", color: "danger", variant: "flat" });
     } finally { setIsDeleting(false); }
   };
 
   const openCreateHealthEvent = () => { setEditingEvent(null); setIsHealthModalOpen(true); };
   const openEditHealthEvent = (event: PetEvent) => { setEditingEvent(event); setIsHealthModalOpen(true); };
 
-  if (!isOpen) return null;
-
   const isLoadingState = loading || !pet;
   const allImages = pet?.images?.map(img => img.image) || [];
-  const nextImage = () => { if (allImages.length > 0) setCurrentImageIndex((prev) => (prev + 1) % allImages.length); };
-  const prevImage = () => { if (allImages.length > 0) setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length); };
+  const nextImage = () => {
+    if (allImages.length > 0) {
+      setCurrentImageIndex((prev) => {
+        const next = (prev + 1) % allImages.length;
+        saveViewState(next);
+        return next;
+      });
+    }
+  };
+  const prevImage = () => {
+    if (allImages.length > 0) {
+      setCurrentImageIndex((prev) => {
+        const next = (prev - 1 + allImages.length) % allImages.length;
+        saveViewState(next);
+        return next;
+      });
+    }
+  };
   const handleParentClick = (id: number) => { setDisplayPetId(id); setActiveTab('info'); };
   const canDelete = currentUser && pet && (currentUser.id === pet.owner || currentUser.id === pet.created_by);
 
@@ -122,15 +148,16 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
         </>
       )}
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
-        <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-          
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          className="flex h-[85vh] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 rounded-[var(--radius-2xl)]"
+          showCloseButton={false}
+        >
           {isLoadingState && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white">
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
               <div className="flex flex-col items-center gap-3">
-                <Activity className="w-10 h-10 text-blue-500 animate-spin" />
-                <p className="text-gray-400 font-medium">Loading profile...</p>
+                <Activity className="h-10 w-10 animate-spin text-primary" />
+                <p className="font-medium text-muted-foreground">Loading profile...</p>
               </div>
             </div>
           )}
@@ -144,6 +171,8 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
             petGender={pet?.gender}
             petBreed={pet?.breed}
             petBirthDate={pet?.birth_date}
+            panY={displayPetId ? panYByPet[displayPetId] ?? 0 : 0}
+            onPanYChange={(y) => displayPetId && setPanYByPet(prev => ({ ...prev, [displayPetId]: y }))}
             onClose={onClose}
             onOwnerClick={pet?.owner_info && !pet.owner_info.is_temporary ? () => setSelectedUserProfile(pet?.owner_info as UserProfile) : undefined}
             onSwipeStart={handleSwipeStart}
@@ -151,29 +180,29 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
           />
 
           {petId !== displayPetId && (
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); setDisplayPetId(petId); }}
-              className="cursor-pointer absolute top-4 left-4 px-3 py-2 bg-black/20 hover:bg-black/40 text-white rounded-full z-40 transition flex items-center gap-2 text-sm font-bold pointer-events-auto"
+              className="pointer-events-auto absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full bg-black/20 px-3 py-2 text-sm font-bold text-white transition hover:bg-black/40"
             >
               <ChevronLeft size={16} /> Return
             </button>
           )}
 
-          <div className="flex border-b border-gray-100 bg-white z-10 shrink-0">
-            <button onClick={(e) => { e.stopPropagation(); setActiveTab('info'); }}
-              className={`cursor-pointer flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'info' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
+          <div className="z-10 flex shrink-0 border-b border-border bg-card">
+            <button onClick={() => setActiveTab('info')}
+              className={`relative flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'info' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               Profile
-              {activeTab === 'info' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
+              {activeTab === 'info' && <span className="absolute bottom-0 left-0 h-0.5 w-full bg-foreground" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); setActiveTab('medical'); }}
-              className={`cursor-pointer flex-1 py-4 font-bold text-sm transition-all relative ${activeTab === 'medical' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
+            <button onClick={() => setActiveTab('medical')}
+              className={`relative flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'medical' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               Medical Record
-              {activeTab === 'medical' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900" />}
+              {activeTab === 'medical' && <span className="absolute bottom-0 left-0 h-0.5 w-full bg-foreground" />}
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
-            <div className="max-w-xl mx-auto space-y-8">
+          <div className="custom-scrollbar flex-1 overflow-y-auto bg-card p-6">
+            <div className="mx-auto max-w-xl space-y-8">
               {pet && (
                 <div className={activeTab === 'info' ? '' : 'hidden'}>
                   <PetInfoTab
@@ -201,8 +230,8 @@ export default function PetDetailsModal({ petId, isOpen, onClose }: { petId: num
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
       <UserProfileModal isOpen={!!selectedUserProfile} onClose={() => setSelectedUserProfile(null)} user={selectedUserProfile} />
     </>
   );

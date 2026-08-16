@@ -69,9 +69,9 @@ export default function Header() {
               <Image 
                 src="/logo1.png" 
                 alt="PetVet Logo" 
-                width={48} 
-                height={48} 
-                className="object-contain md:w-14 md:h-14"
+                width={60} 
+                height={60} 
+                className="object-contain md:w-[70px] md:h-[70px]"
                 priority
               />
            </div>
@@ -188,7 +188,7 @@ export default function Header() {
 
                    {/* Счетчик сообщений (Badge) */}
                    {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white ring-2 ring-background">
+<span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground ring-2 ring-background">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                    )}
@@ -358,8 +358,8 @@ export default function Header() {
                         {unreadCount > 0 ? <MessageCircleMoreIcon size={24}/> : <MessageCircleIcon size={24} />}
                     </div>
                     <span>
-                        {t('messages') || 'Сообщения'} 
-                        {unreadCount > 0 && <span className="ml-2 text-red-500 font-bold">({unreadCount})</span>}
+                        {t('messages')}
+                        {unreadCount > 0 && <span className="ml-2 text-destructive font-bold">({unreadCount})</span>}
                     </span>
                  </Link>
               </div>

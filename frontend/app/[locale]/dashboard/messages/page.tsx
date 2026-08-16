@@ -1,4 +1,5 @@
 'use client';
+import { addToast } from "@heroui/toast";
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -121,12 +122,12 @@ export default function MessagesPage() {
       if (!file) return;
 
       if (file.size > MAX_FILE_SIZE) {
-          alert('File too large. Maximum 10 MB.');
+          addToast({ title: "Error", description: "File too large. Maximum 10 MB.", color: "danger", variant: "flat" });
           return;
       }
 
       if (!ALLOWED_TYPES.includes(file.type)) {
-          alert('Unsupported format. Use images, PDF or Word documents.');
+          addToast({ title: "Error", description: "Unsupported format. Use images, PDF or Word documents.", color: "danger", variant: "flat" });
           return;
       }
 
@@ -168,7 +169,7 @@ export default function MessagesPage() {
             attachmentId = data.id; 
         } catch (error) {
             console.error('Upload failed:', error);
-            alert('Failed to upload file');
+            addToast({ title: "Error", description: "Failed to upload file", color: "danger", variant: "flat" });
             setIsUploading(false);
             return;
         }
@@ -187,18 +188,18 @@ export default function MessagesPage() {
       : null;
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+    <div className="flex h-[calc(100vh-6rem)] bg-card rounded-3xl shadow-sm border border-border overflow-hidden mt-6">
       
       {/* SIDEBAR: ROOMS */}
-      <div className="w-1/3 border-r border-gray-100 bg-gray-50 flex flex-col">
-        <div className="p-4 border-b border-gray-200 bg-white">
-            <h2 className="font-bold text-lg text-gray-800">Messages</h2>
+      <div className="w-1/3 border-r border-border bg-muted flex flex-col">
+        <div className="p-4 border-b border-border bg-card">
+            <h2 className="font-bold text-lg text-foreground">Messages</h2>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
             {isLoadingRooms ? (
-                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-muted-foreground" /></div>
             ) : rooms.length === 0 ? (
-                <div className="p-4 text-center text-gray-400 text-sm">No active chats</div>
+                <div className="p-4 text-center text-muted-foreground text-sm">No active chats</div>
             ) : (
                 rooms.map(room => {
                     const otherUser = room.vet?.id === user?.id ? room.owner : room.vet;
@@ -206,20 +207,20 @@ export default function MessagesPage() {
                         <div 
                             key={room.id}
                             onClick={() => setSelectedRoomId(room.id)}
-                            className={`p-4 cursor-pointer hover:bg-blue-50 transition-colors flex items-center gap-3 border-b border-gray-100 ${selectedRoomId === room.id ? 'bg-white border-l-4 border-l-blue-500 shadow-sm' : ''}`}
+                            className={`p-4 cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-3 border-b border-border ${selectedRoomId === room.id ? 'bg-card border-l-4 border-l-blue-500 shadow-sm' : ''}`}
                         >
-                            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0 border border-gray-300">
+                            <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 border border-border">
                                 {otherUser?.avatar ? (
                                     <img src={getFullUrl(otherUser.avatar)!} className="w-full h-full object-cover" />
                                 ) : (
-                                    <UserIcon className="w-full h-full p-2 text-gray-400" />
+                                    <UserIcon className="w-full h-full p-2 text-muted-foreground" />
                                 )}
                             </div>
                             <div className="overflow-hidden">
-                                <p className="font-bold text-gray-900 truncate text-sm">
+                                <p className="font-bold text-foreground truncate text-sm">
                                     {otherUser?.first_name || otherUser?.username || 'User'}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{room.last_message?.text || 'No messages'}</p>
+                                <p className="text-xs text-muted-foreground truncate">{room.last_message?.text || 'No messages'}</p>
                             </div>
                         </div>
                     );
@@ -229,14 +230,14 @@ export default function MessagesPage() {
       </div>
 
       {/* CHAT AREA */}
-      <div className="flex-1 flex flex-col bg-white h-full relative">
+      <div className="flex-1 flex flex-col bg-card h-full relative">
         {selectedRoomId ? (
           <>
-            <div className="p-4 border-b border-gray-100 flex items-center gap-3 shadow-sm z-10 bg-white">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs border border-blue-200">
+            <div className="p-4 border-b border-border flex items-center gap-3 shadow-sm z-10 bg-card">
+                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
                     {(interlocutor?.first_name || interlocutor?.username || '?')[0].toUpperCase()}
                 </div>
-                <h3 className="font-bold text-gray-800">
+                <h3 className="font-bold text-foreground">
                     {interlocutor?.first_name || interlocutor?.username}
                 </h3>
             </div>
@@ -244,17 +245,17 @@ export default function MessagesPage() {
             {/* [FIX] Добавили ref сюда и убрали messagesEndRef */}
             <div 
                 ref={messagesContainerRef} 
-                className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 custom-scrollbar"
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/50 custom-scrollbar"
             >
               {!historyLoaded ? (
-                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-500" /></div>
+                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
               ) : (
                 messages.map((msg, idx) => {
                   const isMe = msg.sender === user?.id;
                   return (
                     <div key={msg.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] rounded-2xl p-3 shadow-sm ${
-                          isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                          isMe ? 'bg-primary text-white rounded-br-none' : 'bg-card text-foreground border border-border rounded-bl-none'
                       }`}>
                         
                         {msg.text && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>}
@@ -279,7 +280,7 @@ export default function MessagesPage() {
                                       href={getFullUrl(msg.attachment)!} 
                                       target="_blank" 
                                       rel="noreferrer"
-                                      className={`flex items-center gap-2 text-xs font-bold px-2 py-1.5 rounded hover:underline ${isMe ? 'text-white' : 'text-blue-600'}`}
+                                      className={`flex items-center gap-2 text-xs font-bold px-2 py-1.5 rounded hover:underline ${isMe ? 'text-white' : 'text-primary'}`}
                                     >
                                         <FileText size={16} />
                                         Download File
@@ -298,24 +299,24 @@ export default function MessagesPage() {
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-gray-100">
+            <div className="p-4 bg-card border-t border-border">
                 {attachment && (
-                    <div className="mb-3 flex items-center gap-3 bg-blue-50 border border-blue-100 p-2 rounded-xl w-fit animate-in fade-in slide-in-from-bottom-2">
-                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-500 shadow-sm">
+                    <div className="mb-3 flex items-center gap-3 bg-primary/10 border border-primary/15 p-2 rounded-xl w-fit animate-in fade-in slide-in-from-bottom-2">
+                        <div className="w-8 h-8 bg-card rounded-lg flex items-center justify-center text-primary shadow-sm">
                             {attachment.type.startsWith('image') ? <ImageIcon size={16} /> : <FileText size={16} />}
                         </div>
                         <div className="max-w-[200px]">
-                            <p className="text-xs font-bold text-gray-700 truncate">{attachment.name}</p>
-                            <p className="text-[10px] text-gray-500">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p className="text-xs font-bold text-foreground truncate">{attachment.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
-                        <button onClick={removeAttachment} className="p-1 hover:bg-blue-200 rounded-full text-blue-600 transition">
+                        <button onClick={removeAttachment} className="p-1 hover:bg-primary/20 rounded-full text-primary transition">
                             <X size={14} />
                         </button>
                     </div>
                 )}
 
               <form onSubmit={handleSendMessage} className="flex items-end gap-2">
-                <label className="p-3 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors mb-0.5">
+                <label className="p-3 text-muted-foreground hover:text-primary hover:bg-muted rounded-xl cursor-pointer transition-colors mb-0.5">
                     <Paperclip size={20} />
                     <input 
                         type="file" 
@@ -335,7 +336,7 @@ export default function MessagesPage() {
                       }
                   }}
                   placeholder="Напишите сообщение..."
-                  className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-gray-50 text-sm resize-none custom-scrollbar"
+                  className="flex-1 px-4 py-3 border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-muted text-sm resize-none custom-scrollbar"
                   rows={1}
                   style={{ maxHeight: '100px' }}
                   disabled={!isConnected || isUploading}
@@ -344,7 +345,7 @@ export default function MessagesPage() {
                 <button
                   type="submit"
                   disabled={(!inputText.trim() && !attachment) || !isConnected || isUploading}
-                  className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 mb-0.5"
+                  className="bg-primary text-white p-3 rounded-xl hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-primary/20 mb-0.5"
                 >
                   {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </button>
@@ -353,11 +354,11 @@ export default function MessagesPage() {
           </>
         ) : (
           /* [FIX] Заглушка теперь точно по центру */
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-slate-50 h-full w-full">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted h-full w-full">
+            <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center mb-4 shadow-sm border border-border">
                 <UserIcon className="w-10 h-10 opacity-20" />
             </div>
-            <p className="font-medium text-gray-500">Choose a chat to start messaging</p>
+            <p className="font-medium text-muted-foreground">Choose a chat to start messaging</p>
           </div>
         )}
       </div>

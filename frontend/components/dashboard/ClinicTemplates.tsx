@@ -75,7 +75,7 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
   if (loading) {
     return (
       <div className="flex justify-center py-10">
-        <Loader2 className="animate-spin text-gray-400" size={24} />
+        <Loader2 className="animate-spin text-muted-foreground" size={24} />
       </div>
     );
   }
@@ -83,10 +83,10 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-gray-500">Pre-filled templates for quick examination records.</p>
+        <p className="text-sm text-muted-foreground">Pre-filled templates for quick examination records.</p>
         <button
           onClick={() => setShowCreate(prev => !prev)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-black text-white hover:bg-gray-800 transition"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-foreground text-background hover:bg-foreground/90 transition"
         >
           {showCreate ? <X size={16} /> : <Plus size={16} />}
           {showCreate ? 'Cancel' : 'New Template'}
@@ -95,21 +95,21 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
 
       {/* Create Form */}
       {showCreate && (
-        <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
+        <div className="mb-6 p-4 bg-muted border border-border rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Template Name</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">Template Name</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+              className="w-full border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Annual Checkup — Dog"
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Category</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">Category</label>
             <select
-              className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+              className="w-full border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
               value={form.category}
               onChange={e => setForm({ ...form, category: e.target.value })}
             >
@@ -119,10 +119,10 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Default Fields (JSON)</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">Default Fields (JSON)</label>
             <textarea
               rows={3}
-              className="w-full border border-gray-300 rounded-xl p-3 text-sm font-mono focus:ring-2 focus:ring-blue-100 outline-none resize-none"
+              className="w-full border border-border rounded-xl p-3 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none resize-none"
               value={form.default_fields}
               onChange={e => setForm({ ...form, default_fields: e.target.value })}
               placeholder='{"title": "Annual Checkup", "description": "", "status": "planned"}'
@@ -131,7 +131,7 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
           <button
             onClick={handleCreate}
             disabled={saving || !form.name.trim()}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary disabled:opacity-50 transition flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
             Save Template
@@ -141,7 +141,7 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
 
       {/* Templates List */}
       {templates.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-sm">
+        <div className="text-center py-10 border-2 border-dashed border-border rounded-2xl text-muted-foreground text-sm">
           No templates yet. Create one to speed up your examinations.
         </div>
       ) : (
@@ -149,22 +149,22 @@ export default function ClinicTemplates({ clinicId }: ClinicTemplatesProps) {
           {templates.map(template => (
             <div
               key={template.id}
-              className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:bg-white transition"
+              className="flex items-center justify-between p-4 rounded-xl bg-muted border border-border hover:bg-card transition"
             >
               <div className="flex items-center gap-3">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  template.category === 'vaccination' ? 'bg-blue-100 text-blue-700' :
-                  template.category === 'surgery' ? 'bg-red-100 text-red-700' :
-                  template.category === 'examination' ? 'bg-emerald-100 text-emerald-700' :
-                  'bg-gray-100 text-gray-600'
+                  template.category === 'vaccination' ? 'bg-primary/10 text-primary' :
+                  template.category === 'surgery' ? 'bg-destructive/10 text-destructive' :
+                  template.category === 'examination' ? 'bg-success/10 text-success' :
+                  'bg-muted text-muted-foreground'
                 }`}>
                   {CATEGORIES.find(c => c.value === template.category)?.label || template.category}
                 </span>
-                <span className="text-sm font-bold text-gray-800">{template.name}</span>
+                <span className="text-sm font-bold text-foreground">{template.name}</span>
               </div>
               <button
                 onClick={() => handleDelete(template.id)}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
               >
                 <Trash2 size={16} />
               </button>

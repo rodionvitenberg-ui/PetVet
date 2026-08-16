@@ -1,6 +1,6 @@
 // types/pet.ts
 
-import { PetEvent } from './event'; // Обрати внимание: HealthEvent переименован
+import { PetEvent } from './event'; // Note: HealthEvent has been renamed
 
 export interface PetImage {
     id: number;
@@ -32,7 +32,7 @@ export interface UserProfile {
     is_temporary?: boolean;
 }
 
-// Временный владелец (для карт, созданных врачом)
+// Temporary owner (for cards created by a vet before owner registration)
 export interface TemporaryOwnerProfile {
     id: null;
     name: string;
@@ -42,7 +42,7 @@ export interface TemporaryOwnerProfile {
     is_temporary: boolean;
 }
 
-// Объект owner_info из PetSerializer.get_owner_info (owner или shadow/temporary)
+// The owner_info object from PetSerializer.get_owner_info (owner or shadow/temporary)
 export interface OwnerInfo {
     id: number | null;
     name: string;
@@ -54,7 +54,7 @@ export interface OwnerInfo {
     is_temporary: boolean;
 }
 
-// === СПРАВОЧНИКИ (НОВОЕ) ===
+// === REFERENCE DATA ===
 
 export interface Category {
     id: number;
@@ -74,7 +74,7 @@ export interface PetTag {
     icon?: string | null;
     target_gender?: 'M' | 'F' | null;
     is_universal: boolean;
-    is_custom: boolean; // Создан ли пользователем
+    is_custom: boolean; // Created by the user
 }
 
 export interface AttributeType {
@@ -89,20 +89,20 @@ export interface AttributeType {
     options?: string[];
 }
 
-// Атрибут внутри питомца (значение)
+// Attribute value inside a pet
 export interface PetAttribute {
     attribute: AttributeType;
     value: string;
 }
 
-// Простой объект родителя (то, что возвращает поле mother/father)
+// Simple parent object (what the mother/father field returns)
 export interface ParentSimple {
     id: number;
     name: string;
     slug: string;
 }
 
-// Расширенный объект родителя (для UI с фото)
+// Extended parent object (for UI with photo)
 export interface ParentInfo {
     id: number;
     name: string;
@@ -110,38 +110,38 @@ export interface ParentInfo {
     image?: string | null;
 }
 
-// === ПИТОМЕЦ ===
+// === PET ===
 
 export interface PetBasic {
     id: number;
     name: string;
     slug: string;
-    owner: number | null; // ID владельца
+    owner: number | null; // Owner user ID
     owner_info?: OwnerInfo | null;
     
-    // Медиа
+    // Media
     images?: PetImage[];
     
-    // Основное
+    // Core
     is_active: boolean;
     is_public: boolean;
     gender: 'M' | 'F';
     birth_date?: string; // YYYY-MM-DD
-    age?: string;        // Вычисляемое на бэке (например "2 года")
+    age?: string;        // Computed on the backend (e.g. "2 years")
     description?: string;
-    clinic?: number | null; // ID клиники
+    clinic?: number | null; // Clinic ID
     created_at?: string;
 
-    // Классификация (Read-only объекты)
+    // Classification (read-only objects)
     categories?: Category[]; 
     tags?: PetTag[];
     attributes?: PetAttribute[];
     
-    // Хелперы
-    species?: string; // Вид (Кошка)
-    breed?: string;   // Порода (Мейн-кун)
+    // Helpers
+    species?: string; // Species (Cat)
+    breed?: string;   // Breed (Maine Coon)
     
-    // Теневые данные
+    // Shadow data
     temp_owner_name?: string;
     temp_owner_phone?: string;
     created_by?: number;
@@ -149,23 +149,23 @@ export interface PetBasic {
 }
 
 export interface PetDetail extends PetBasic {
-    // Родословная
-    mother?: ParentSimple | null; // ID и имя
+    // Pedigree
+    mother?: ParentSimple | null; // ID and name
     father?: ParentSimple | null;
-    mother_info?: ParentInfo | null; // Красивое превью
+    mother_info?: ParentInfo | null; // Rich preview
     father_info?: ParentInfo | null;
 
-    // История
+    // History
     active_vets: UserProfile[]; 
     recent_events?: PetEvent[]; 
     
-    // Данные для входа (возвращаются только при создании пациента)
+    // Login data (returned only when a patient is created)
     generated_login?: string;
     generated_password?: string;
 }
 
-// === PAYLOADS (ДЛЯ ОТПРАВКИ НА БЭКЕНД) ===
-// Используем это в PetForm
+// === PAYLOADS (SENT TO THE BACKEND) ===
+// Used in PetForm
 export interface PetPayload {
     name: string;
     gender: 'M' | 'F';
@@ -173,15 +173,32 @@ export interface PetPayload {
     description?: string;
     is_public: boolean;
     
-    // ID-шники для связей
+    // Relation IDs
     categories: number[];
-    tags: string[]; // Отправляем слаги тегов
+    tags: string[]; // Tag slugs are sent
     attributes: { attribute_slug: string; value: string }[];
     
     mother?: number | null; // ID
     father?: number | null; // ID
     
-    // Теневой владелец
+    // Shadow owner
     temp_owner_name?: string;
     temp_owner_phone?: string;
+}
+
+// Internal wizard state (usePetForm → PetFormSteps)
+export interface PetFormData {
+    name: string;
+    gender: 'M' | 'F' | '';
+    birth_date: string;
+    description: string;
+    selectedCategoryId: number | null;
+    selectedBreedId: number | null;
+    tagSlugs: string[];
+    attributeValues: Record<string, string>;
+    motherId: number | null;
+    fatherId: number | null;
+    is_public: boolean;
+    tempOwnerName: string;
+    tempOwnerPhone: string;
 }

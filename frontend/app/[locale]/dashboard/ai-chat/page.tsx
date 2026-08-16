@@ -7,7 +7,7 @@ import AuthGuard from '@/components/providers/AuthGuard';
 import AIChatSidebar from '@/components/dashboard/AIChatSidebar';
 import AIChatWindow from '@/components/dashboard/AIChatWindow';
 import { AIChatSession } from '@/types/ai-chat';
-import { createSession } from '@/services/aiChatService';
+import { streamSessionCreation } from '@/services/aiChatService';
 
 interface PetBasic {
   id: number;
@@ -26,6 +26,7 @@ export default function AIChatPage() {
 
   const petIdParam = searchParams.get('petId');
   const queryParam = searchParams.get('query');
+  const petFilterId = petIdParam ? parseInt(petIdParam, 10) : null;
 
   const [activeSession, setActiveSession] = useState<AIChatSession | null>(null);
   const [userPets, setUserPets] = useState<PetBasic[]>([]);
@@ -34,6 +35,7 @@ export default function AIChatPage() {
   const [pendingPetId, setPendingPetId] = useState<number | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState<string | null>(null);
 
   // Защита от двойного создания сессии из URL-параметров.
   // useSearchParams может пересоздавать объект, из-за чего useEffect
@@ -73,7 +75,7 @@ export default function AIChatPage() {
     handleCreateSessionFromParams(petId, queryParam, paramsKey);
   }, [petIdParam, queryParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCreateSessionFromParams = async (
+  const handleCreateSessionFromParams = (
     petId: number,
     query: string,
     paramsKey: string,
@@ -82,20 +84,30 @@ export default function AIChatPage() {
     createdParamsRef.current = paramsKey;
     setIsCreatingSession(true);
     setError(null);
-    try {
-      const { session } = await createSession(petId, query);
-      setActiveSession(session);
-      setPendingPetId(null);
-      setPendingQuery(null);
-      setSidebarRefresh(prev => prev + 1);
-      // Clear URL params
-      router.replace('/dashboard/ai-chat', { scroll: false });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create session');
-    } finally {
-      setIsCreatingSession(false);
-      creatingFromParamsRef.current = false;
-    }
+    setStreamText('');
+    streamSessionCreation(petId, query, undefined, {
+      onSession: (session) => {
+        setActiveSession(session);
+        setPendingPetId(null);
+        setPendingQuery(null);
+        setSidebarRefresh(prev => prev + 1);
+        router.replace('/dashboard/ai-chat', { scroll: false });
+      },
+      onToken: (token) => {
+        setStreamText(prev => (prev ?? '') + token);
+      },
+      onDone: () => {
+        setStreamText(null);
+        setIsCreatingSession(false);
+        creatingFromParamsRef.current = false;
+      },
+      onError: (errMsg) => {
+        setError(errMsg);
+        setStreamText(null);
+        setIsCreatingSession(false);
+        creatingFromParamsRef.current = false;
+      },
+    });
   };
 
   const handleSessionSelect = useCallback((session: AIChatSession) => {
@@ -121,8 +133,8 @@ export default function AIChatPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50/50 pt-20 pb-0 px-0">
-        <div className="h-[calc(100vh-5rem)] flex bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mx-4 sm:mx-6">
+      <div className="min-h-screen bg-muted/50 pt-20 pb-0 px-0">
+        <div className="h-[calc(100vh-5rem)] flex bg-card rounded-2xl shadow-sm border border-border overflow-hidden mx-4 sm:mx-6">
           {/* Sidebar */}
           <div className="w-[320px] shrink-0 hidden md:block">
             <AIChatSidebar
@@ -136,26 +148,20 @@ export default function AIChatPage() {
               activeSessionId={activeSession?.id || null}
               refreshTrigger={sidebarRefresh}
               userPets={userPets}
+              filterPetId={petFilterId}
             />
           </div>
 
           {/* Mobile: simplified view */}
           <div className="flex-1 flex flex-col min-w-0">
-            {isCreatingSession ? (
+            {error && !activeSession ? (
               <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-[#FFCBA4] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">Creating conversation...</p>
-                </div>
-              </div>
-            ) : error && !activeSession ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center text-red-500">
+                <div className="text-center text-destructive">
                   <p className="font-bold mb-2">Something went wrong</p>
                   <p className="text-sm">{error}</p>
                   <button
                     onClick={() => setError(null)}
-                    className="mt-4 px-4 py-2 bg-gray-100 rounded-xl text-sm font-bold hover:bg-gray-200 transition"
+                    className="mt-4 px-4 py-2 bg-muted rounded-xl text-sm font-bold hover:bg-muted transition"
                   >
                     Try again
                   </button>
@@ -166,6 +172,7 @@ export default function AIChatPage() {
                 session={activeSession}
                 pendingPetId={pendingPetId}
                 pendingQuery={pendingQuery}
+                extraStreamingText={streamText}
                 onSessionCreated={handleSessionCreated}
               />
             )}

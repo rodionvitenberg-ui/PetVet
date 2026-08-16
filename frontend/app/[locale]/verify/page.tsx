@@ -51,31 +51,31 @@ export default function VerifyPage() {
     }, [searchParams]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 max-w-md w-full text-center transition-all animate-in fade-in zoom-in duration-300">
+        <div className="min-h-screen flex items-center justify-center bg-muted p-4">
+            <div className="bg-card p-8 rounded-3xl shadow-xl border border-border max-w-md w-full text-center transition-all animate-in fade-in zoom-in duration-300">
                 
                 {/* 1. ЗАГРУЗКА */}
                 {status === 'loading' && (
                     <div className="py-10">
-                        <Loader2 className="animate-spin w-16 h-16 text-blue-500 mx-auto mb-6" />
-                        <h2 className="text-xl font-bold text-gray-900">Activating account...</h2>
-                        <p className="text-gray-500 mt-2">Please wait</p>
+                        <Loader2 className="animate-spin w-16 h-16 text-primary mx-auto mb-6" />
+                        <h2 className="text-xl font-bold text-foreground">Activating account...</h2>
+                        <p className="text-muted-foreground mt-2">Please wait</p>
                     </div>
                 )}
 
                 {/* 2. УСПЕХ */}
                 {status === 'success' && (
                     <div className="py-6">
-                        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                        <div className="w-20 h-20 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                             <CheckCircle2 size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Successfully!</h2>
-                        <p className="text-gray-500 mb-8">
+                        <h2 className="text-2xl font-bold text-foreground mb-2">Successfully!</h2>
+                        <p className="text-muted-foreground mb-8">
                             Your account has been activated. You can now log in to the system and configure your profile.
                         </p>
                         <Link 
                             href="/login" 
-                            className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+                            className="block w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-primary transition shadow-lg shadow-primary/20"
                         >
                             Log in to your account
                         </Link>
@@ -85,18 +85,18 @@ export default function VerifyPage() {
                 {/* 3. ОШИБКА */}
                 {status === 'error' && (
                     <div className="py-6">
-                        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <div className="w-20 h-20 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto mb-6">
                             <XCircle size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Activation Error</h2>
-                        <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl text-sm border border-red-100">
+                        <h2 className="text-2xl font-bold text-foreground mb-2">Activation Error</h2>
+                        <p className="text-muted-foreground mb-8 bg-destructive/10 p-4 rounded-xl text-sm border border-destructive/20">
                             {message}
                         </p>
                         <div className="flex flex-col gap-3">
-                            <Link href="/register" className="text-blue-600 font-bold hover:bg-blue-50 py-3 rounded-xl transition">
+                            <Link href="/register" className="text-primary font-bold hover:bg-primary/10 py-3 rounded-xl transition">
                                 Register again
                             </Link>
-                            <Link href="/login" className="text-gray-400 text-sm hover:text-gray-600">
+                            <Link href="/login" className="text-muted-foreground text-sm hover:text-muted-foreground">
                                 Return to homepage
                             </Link>
                         </div>

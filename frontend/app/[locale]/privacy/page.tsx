@@ -4,14 +4,14 @@ import React from 'react';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-gray-100 p-8 sm:p-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 mb-8">Last Updated: {new Date().toLocaleDateString()}</p>
+    <div className="min-h-screen bg-muted pt-24 pb-16 px-4">
+      <div className="max-w-4xl mx-auto bg-card rounded-3xl shadow-sm border border-border p-8 sm:p-12">
+        <h1 className="text-3xl font-bold text-foreground mb-2">Privacy Policy</h1>
+        <p className="text-muted-foreground mb-8">Last Updated: {new Date().toLocaleDateString()}</p>
 
-        <div className="prose prose-blue max-w-none text-gray-700 space-y-6">
+        <div className="prose prose-blue max-w-none text-foreground space-y-6">
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">1. Introduction</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">1. Introduction</h2>
             <p>
               Welcome to PetVet («we», «our» or «Platform»). We take the confidentiality of your data seriously. 
               This Policy describes how we collect, use, and protect user information when using the PetVet application.
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">2. What Data We Collect</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">2. What Data We Collect</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Account Data:</strong> Name, email, profile photo, city, and links to social networks and messengers (Telegram, WhatsApp), if you choose to include them in your profile.</li>
               <li><strong>Pet Data:</strong> Names, breeds, ages, medical histories, photos, and files uploaded by you.</li>
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">3. How We Use Your Data</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">3. How We Use Your Data</h2>
             <p>We use the collected information for:</p>
             <ul className="list-disc pl-5 space-y-2">
               <li>Providing access to the service and user dashboard.</li>
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">4. Access to Data and Disclosure to Third Parties</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">4. Access to Data and Disclosure to Third Parties</h2>
             <p>
               We <strong>do not sell</strong> your personal data. Access to the pet's medical record is provided only:
             </p>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">5. Google User Data</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">5. Google User Data</h2>
             <p>
               When logging in through Google, we only receive access to your email, name, and public avatar. 
               This data is used exclusively for creating and identifying your profile in the PetVet system.
@@ -63,18 +63,18 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">6. Data Deletion</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">6. Data Deletion</h2>
             <p>
               You have the right to request complete deletion of your account and all associated data. 
-              To do so, please send a request to <a href="mailto:support@petvet.app" className="text-blue-600 hover:underline">support@petvet.app</a> or use the deletion function in your profile settings.
+              To do so, please send a request to <a href="mailto:support@petvet.app" className="text-primary hover:underline">support@petvet.app</a> or use the deletion function in your profile settings.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">7. Contacts</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">7. Contacts</h2>
             <p>
               If you have any questions about this Privacy Policy, please contact us: <br />
-              Email: <a href="mailto:support@petvet.app" className="text-blue-600 font-medium">support@petvet.app</a>
+              Email: <a href="mailto:support@petvet.app" className="text-primary font-medium">support@petvet.app</a>
             </p>
           </section>
         </div>

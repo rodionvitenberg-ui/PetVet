@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 // [ВАЖНО] AttributeType теперь включает attr_type и options,
 // поэтому хук автоматически научится работать с новыми полями.
 import { 
-  PetDetail, PetPayload, Category, PetTag, AttributeType 
+  PetDetail, PetPayload, PetFormData, Category, PetTag, AttributeType 
 } from '@/types/pet'; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -36,27 +36,27 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   });
 
   // === FORM DATA ===
-  const initialFormState = {
+  const initialFormState: PetFormData = {
     name: '',
-    gender: '' as 'M' | 'F' | '',
+    gender: '',
     birth_date: '',
     description: '',
     
-    selectedCategoryId: null as number | null,
-    selectedBreedId: null as number | null,
+    selectedCategoryId: null,
+    selectedBreedId: null,
     
-    tagSlugs: [] as string[],
-    attributeValues: {} as Record<string, string>,
+    tagSlugs: [],
+    attributeValues: {},
     
-    motherId: null as number | null,
-    fatherId: null as number | null,
+    motherId: null,
+    fatherId: null,
 
     is_public: false,
     tempOwnerName: '',
     tempOwnerPhone: '',
   };
 
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState<PetFormData>(initialFormState);
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -225,7 +225,7 @@ export const usePetForm = ({ mode, initialData, onSuccess }: UsePetFormProps) =>
   };
 
   // === HANDLERS ===
-  const updateField = (field: keyof typeof formData, value: any) => {
+  const updateField = <K extends keyof PetFormData>(field: K, value: PetFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };

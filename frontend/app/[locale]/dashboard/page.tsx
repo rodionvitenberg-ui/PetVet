@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
     return (
         <AuthGuard>
-            <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
+            <div className="min-h-screen bg-muted/50 pt-24 pb-10 px-4 sm:px-6">
                 <div className="max-w-[1920px] mx-auto">
 
                     <div className="mb-8 max-w-7xl mx-auto">
@@ -130,37 +130,37 @@ export default function DashboardPage() {
                     <header className="flex flex-col gap-5 mb-8 max-w-7xl mx-auto w-full">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">
+                                <h1 className="text-3xl font-bold text-foreground">
                                     {viewMode === 'my' ? 'My Pets' : viewMode === 'today' ? "Today's Schedule" : 'Clinic Patients'}
                                 </h1>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <div className="hidden sm:flex bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+                                <div className="hidden sm:flex bg-card p-1 rounded-xl border border-border shadow-sm">
                                     <button
                                         onClick={() => setDensity('comfortable')}
                                         title="View as comfortable grid"
-                                        className={`p-2 rounded-lg transition-all ${!isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                                        className={`p-2 rounded-lg transition-all ${!isCompact ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
                                     >
                                         <LayoutGrid size={20} />
                                     </button>
                                     <button
                                         onClick={() => setDensity('compact')}
                                         title="View as compact list"
-                                        className={`p-2 rounded-lg transition-all ${isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                                        className={`p-2 rounded-lg transition-all ${isCompact ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
                                     >
                                         <Grid3x3 size={20} />
                                     </button>
                                 </div>
 
                                 {user?.is_veterinarian && (
-                                    <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                    <div className="bg-card p-1 rounded-xl border border-border flex shadow-sm">
                                         <button
                                             onClick={() => setViewMode('my')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
                                                 viewMode === 'my'
-                                                    ? 'bg-blue-50 text-blue-600 shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-700'
+                                                    ? 'bg-primary/10 text-primary shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
                                             <PawPrint size={16} /> <span className="hidden sm:inline">My Pets</span>
@@ -169,8 +169,8 @@ export default function DashboardPage() {
                                             onClick={() => setViewMode('patients')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
                                                 viewMode === 'patients'
-                                                    ? 'bg-emerald-50 text-emerald-600 shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-700'
+                                                    ? 'bg-success/10 text-success shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
                                             <Users size={16} /> <span className="hidden sm:inline">Clinic</span>
@@ -179,8 +179,8 @@ export default function DashboardPage() {
                                             onClick={() => setViewMode('today')}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
                                                 viewMode === 'today'
-                                                    ? 'bg-amber-50 text-amber-600 shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-700'
+                                                    ? 'bg-accent/15 text-accent shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
                                             <CalendarCheck size={16} /> <span className="hidden sm:inline">Today</span>
@@ -191,10 +191,10 @@ export default function DashboardPage() {
                                     </div>
                                 )}
 
-                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                <div className="bg-card p-1 rounded-xl border border-border flex shadow-sm">
                                     <Link
                                         href="/dashboard/catalog"
-                                        className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                        className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
                                     >
                                         <BookText size={16} /> <span className="hidden sm:inline">Catalog</span>
                                     </Link>
@@ -264,9 +264,9 @@ export default function DashboardPage() {
                                         ${isCompact
                                             ? 'top-2 left-2 px-1.5 py-0.5 text-[10px]'
                                             : 'top-3 left-3 px-2 py-1 text-xs'
-                                        } ${pet.owner_info?.is_temporary ? "bg-yellow-500/40" : "bg-black/60"}`}
+                                        } ${pet.owner_info?.is_temporary ? "bg-accent/150/40" : "bg-black/60"}`}
                                     >
-                                        <Users size={isCompact ? 8 : 10} className={pet.owner_info?.is_temporary ? "text-yellow-200" : "text-emerald-400"} />
+                                        <Users size={isCompact ? 8 : 10} className={pet.owner_info?.is_temporary ? "text-yellow-200" : "text-success"} />
                                         <span className="truncate max-w-[80px] sm:max-w-none">
                                             {pet.owner_info?.name || pet.temp_owner_name}
                                         </span>
@@ -276,14 +276,14 @@ export default function DashboardPage() {
                         ))}
 
                         {displayedPets.length === 0 && viewMode === 'today' && (
-                            <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                            <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-3xl">
                                 <CalendarCheck size={48} className="mx-auto mb-3 opacity-50" />
                                 <p>No events scheduled for today.</p>
                             </div>
                         )}
 
                         {displayedPets.length === 0 && viewMode === 'patients' && (
-                            <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                            <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-3xl">
                                 <Users size={48} className="mx-auto mb-3 opacity-50" />
                                 {hasFilters ? (
                                     <>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                         <PetDetailsModal
                             petId={selectedPetId}
                             isOpen={isDetailsOpen}
-                            onClose={() => setIsDetailsOpen(false)}
+                            onClose={() => { setIsDetailsOpen(false); setSelectedPetId(null); }}
                         />
                     )}
                 </div>

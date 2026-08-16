@@ -249,37 +249,37 @@ export default function PlanboardPage() {
                 </div>
             ) : (
                 <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                    <div className="min-h-screen bg-gray-50/50 pt-24 pb-10 px-4 sm:px-6">
+                    <div className="min-h-screen bg-muted/50 pt-24 pb-10 px-4 sm:px-6">
                         <div className="max-w-[1920px] mx-auto">
                             
                             <header className="flex flex-col gap-5 mb-6">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
-                                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                                             {viewMode === 'my' ? 'My Tasks' : 'Clinic'}
-                                            <span className="text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                                                 {visiblePets.length}
                                             </span>
                                         </h1>
                                     </div>
                                     
                                     <div className="flex items-center gap-3">
-                                        <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
-                                            <button onClick={() => setDensity('comfortable')} className={`p-2 rounded-md transition-all ${!isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}><LayoutGrid size={18} /></button>
-                                            <button onClick={() => setDensity('compact')} className={`p-2 rounded-md transition-all ${isCompact ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}><List size={18} /></button>
+                                        <div className="bg-card p-1 rounded-lg border border-border flex shadow-sm">
+                                            <button onClick={() => setDensity('comfortable')} className={`p-2 rounded-md transition-all ${!isCompact ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}><LayoutGrid size={18} /></button>
+                                            <button onClick={() => setDensity('compact')} className={`p-2 rounded-md transition-all ${isCompact ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}><List size={18} /></button>
                                         </div>
 
                                         {user?.is_veterinarian && (
-                                            <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
-                                                <button onClick={() => setViewMode('my')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'my' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}><PawPrint size={14} /> My</button>
-                                                <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}><Users size={14} /> Patients</button>
+                                            <div className="bg-card p-1 rounded-lg border border-border flex shadow-sm">
+                                                <button onClick={() => setViewMode('my')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'my' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}><PawPrint size={14} /> My</button>
+                                                <button onClick={() => setViewMode('patients')} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${viewMode === 'patients' ? 'bg-success/10 text-success' : 'text-muted-foreground hover:text-foreground'}`}><Users size={14} /> Patients</button>
                                             </div>
                                         )}
 
-                                        <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
+                                        <div className="bg-card p-1 rounded-lg border border-border flex shadow-sm">
                                             <Link 
                                                 href="/billing/invoices"
-                                                className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                                className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
                                             >
                                                 <Receipt size={14} /> <span className="hidden sm:inline">Invoices</span>
                                             </Link>
@@ -295,13 +295,13 @@ export default function PlanboardPage() {
                                 </div>
                             </header>
 
-                            <div className={`hidden md:grid gap-4 mb-2 px-2 sticky top-20 z-10 bg-gray-50/95 backdrop-blur py-2 border-b border-gray-200
+                            <div className={`hidden md:grid gap-4 mb-2 px-2 sticky top-20 z-10 bg-muted/95 backdrop-blur py-2 border-b border-border
                                 ${isCompact ? 'grid-cols-[120px_1fr_1fr_1fr]' : 'grid-cols-[180px_1fr_1fr_1fr]'}`}
                             >
-                                <div className="text-xs font-bold text-gray-400 uppercase">Patient</div> 
-                                <div className="flex items-center gap-2 text-red-600 font-bold text-xs uppercase pl-1"><AlertCircle size={14} /> Today</div>
-                                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase pl-1"><Calendar size={14} /> Plans</div>
-                                <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase pl-1"><CheckCircle2 size={14} /> History</div>
+                                <div className="text-xs font-bold text-muted-foreground uppercase">Patient</div> 
+                                <div className="flex items-center gap-2 text-destructive font-bold text-xs uppercase pl-1"><AlertCircle size={14} /> Today</div>
+                                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase pl-1"><Calendar size={14} /> Plans</div>
+                                <div className="flex items-center gap-2 text-muted-foreground font-bold text-xs uppercase pl-1"><CheckCircle2 size={14} /> History</div>
                             </div>
 
                             <div className={isCompact ? "space-y-1" : "space-y-8"}>
@@ -326,7 +326,7 @@ export default function PlanboardPage() {
                                         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
                                     return (
-                                        <div key={pet.id} className={`bg-white rounded-xl border border-gray-200 transition-all hover:border-blue-300
+                                        <div key={pet.id} className={`bg-card rounded-xl border border-border transition-all hover:border-primary/40
                                             ${isCompact ? 'py-2 px-2 shadow-sm' : 'p-5 shadow-sm'}`}
                                         >
                                             <div className={`md:grid gap-4 items-start
@@ -337,13 +337,13 @@ export default function PlanboardPage() {
                                                 <div className={`flex items-center gap-3 ${isCompact ? 'flex-row' : 'md:flex-col md:items-start'}`}>
                                                     <div 
                                                         onClick={() => router.push(`/planboard/pets/${pet.id}`)}
-                                                        className={`shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative group cursor-pointer
+                                                        className={`shrink-0 bg-muted rounded-lg overflow-hidden border border-border relative group cursor-pointer
                                                         ${isCompact ? 'w-10 h-10' : 'w-16 h-16 md:w-full md:h-32'}`}
                                                     >
                                                         {mainImage ? (
                                                             <img src={getMediaUrl(mainImage)!} className="w-full h-full object-cover transition duration-300 group-hover:scale-105" />
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={isCompact?16:32} /></div>
+                                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground"><ImageIcon size={isCompact?16:32} /></div>
                                                         )}
                                                         
                                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
@@ -358,13 +358,13 @@ export default function PlanboardPage() {
                                                     </div>
                                                     
                                                     <div className="min-w-0">
-                                                        <h3 className={`font-bold text-gray-900 leading-tight truncate ${isCompact ? 'text-sm' : 'text-lg'}`}>
+                                                        <h3 className={`font-bold text-foreground leading-tight truncate ${isCompact ? 'text-sm' : 'text-lg'}`}>
                                                             {pet.name}
                                                         </h3>
                                                         
                                                         <button 
                                                             onClick={() => handleCreateClick(pet.id)} 
-                                                            className={`mt-1 flex items-center gap-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition
+                                                            className={`mt-1 flex items-center gap-1 text-primary bg-primary/10 hover:bg-primary/15 rounded transition
                                                             ${isCompact ? 'p-1' : 'w-full py-2 px-3 justify-center mt-2'}`}
                                                             title="Add new event"
                                                         >
@@ -375,7 +375,7 @@ export default function PlanboardPage() {
                                                 </div>
 
                                                 {/* СЕГОДНЯ */}
-                                                <DroppableColumn id={`urgent-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-white p-3 min-h-[140px] border-red-50'}`}>
+                                                <DroppableColumn id={`urgent-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-muted/50 p-1 min-h-[60px] border-transparent' : 'bg-card p-3 min-h-[140px] border-red-50'}`}>
                                                     <div className="space-y-2">
                                                         {todayEvents.map(ev => (
                                                             <DraggableCard key={ev.id} id={ev.id}>
@@ -388,7 +388,7 @@ export default function PlanboardPage() {
                                                 </DroppableColumn>
 
                                                 {/* ПЛАНЫ */}
-                                                <DroppableColumn id={`plans-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-white p-3 min-h-[140px] border-gray-100'}`}>
+                                                <DroppableColumn id={`plans-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-muted/50 p-1 min-h-[60px] border-transparent' : 'bg-card p-3 min-h-[140px] border-border'}`}>
                                                     <div className="space-y-2">
                                                         {futureEvents.map(ev => (
                                                             <DraggableCard key={ev.id} id={ev.id}>
@@ -401,7 +401,7 @@ export default function PlanboardPage() {
                                                 </DroppableColumn>
 
                                                 {/* ИСТОРИЯ */}
-                                                <DroppableColumn id={`history-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-gray-50/50 p-1 min-h-[60px] border-transparent' : 'bg-gray-50/50 p-3 min-h-[140px] border-gray-100/50'}`}>
+                                                <DroppableColumn id={`history-pet-${pet.id}`} className={`rounded-xl h-full border transition-colors ${isCompact ? 'bg-muted/50 p-1 min-h-[60px] border-transparent' : 'bg-muted/50 p-3 min-h-[140px] border-border/50'}`}>
                                                     <div className="space-y-2">
                                                         {historyEvents.map(ev => (
                                                             <DraggableCard key={ev.id} id={ev.id}>
@@ -414,7 +414,7 @@ export default function PlanboardPage() {
                                                         {petEvents.filter(e => e.status === 'completed' || e.status === 'missed').length > 5 && (
                                                             <button 
                                                                 onClick={() => router.push(`/planboard/pets/${pet.id}`)}
-                                                                className="w-full text-xs text-center text-gray-400 hover:text-blue-500 py-2 transition font-medium border-t border-gray-100 mt-2"
+                                                                className="w-full text-xs text-center text-muted-foreground hover:text-primary py-2 transition font-medium border-t border-border mt-2"
                                                             >
                                                                 Show full history →
                                                             </button>
@@ -427,7 +427,7 @@ export default function PlanboardPage() {
                                 })}
                                 
                                 {visiblePets.length === 0 && (
-                                     <div className="text-center py-20 text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                                     <div className="text-center py-20 text-muted-foreground border-2 border-dashed border-border rounded-3xl">
                                         <Users size={48} className="mx-auto mb-3 opacity-50" />
                                         {searchParams.toString().length > 0 ? (
                                             <p>Nothing found. Try changing the filters.</p>

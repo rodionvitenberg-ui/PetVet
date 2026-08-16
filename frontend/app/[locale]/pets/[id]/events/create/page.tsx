@@ -1,4 +1,5 @@
 'use client';
+import { addToast } from "@heroui/toast";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -13,18 +14,18 @@ import { EventType } from '@/types/event';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 const STATUS_CHOICES = [
-    { value: 'planned', label: 'Запланировано', color: 'bg-blue-100 text-blue-700' },
-    { value: 'completed', label: 'Завершено', color: 'bg-green-100 text-green-700' },
-    { value: 'missed', label: 'Пропущено', color: 'bg-red-100 text-red-700' },
+    { value: 'planned', label: 'Запланировано', color: 'bg-primary/15 text-primary' },
+    { value: 'completed', label: 'Завершено', color: 'bg-success/10 text-success' },
+    { value: 'missed', label: 'Пропущено', color: 'bg-destructive/10 text-destructive' },
 ];
 
 // Конфигурация категорий
 const CATEGORY_CONFIG: Record<string, { label: string, icon: any, color: string }> = {
-    medical: { label: 'Медицина', icon: Activity, color: 'text-red-500 bg-red-50' },
-    reproduction: { label: 'Репродукция', icon: Heart, color: 'text-pink-500 bg-pink-50' },
-    show: { label: 'Выставки и Документы', icon: Trophy, color: 'text-amber-500 bg-amber-50' },
-    care: { label: 'Уход и Груминг', icon: Sparkles, color: 'text-purple-500 bg-purple-50' },
-    other: { label: 'Другое', icon: HelpCircle, color: 'text-gray-500 bg-gray-50' },
+    medical: { label: 'Медицина', icon: Activity, color: 'text-destructive bg-destructive/10' },
+    reproduction: { label: 'Репродукция', icon: Heart, color: 'text-accent bg-accent/15' },
+    show: { label: 'Выставки и Документы', icon: Trophy, color: 'text-accent bg-accent/15' },
+    care: { label: 'Уход и Груминг', icon: Sparkles, color: 'text-primary bg-primary/10' },
+    other: { label: 'Другое', icon: HelpCircle, color: 'text-muted-foreground bg-muted' },
 };
 
 export default function CreateEventPage() {
@@ -116,7 +117,7 @@ export default function CreateEventPage() {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
             if (files.length + newFiles.length > 5) {
-                alert('Максимум 5 файлов');
+                addToast({ title: "Error", description: "Максимум 5 файлов", color: "danger", variant: "flat" });
                 return;
             }
             setFiles(prev => [...prev, ...newFiles]);
@@ -132,7 +133,7 @@ export default function CreateEventPage() {
         e.preventDefault();
         
         if (!selectedTypeId) {
-            alert("Пожалуйста, выберите тип события");
+            addToast({ title: "Error", description: "Пожалуйста, выберите тип события", color: "danger", variant: "flat" });
             return;
         }
 
@@ -181,40 +182,40 @@ export default function CreateEventPage() {
 
         } catch (error) {
             console.error(error);
-            alert('Не удалось создать запись. Проверьте данные.');
+            addToast({ title: "Error", description: "Не удалось создать запись. Проверьте данные.", color: "danger", variant: "flat" });
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20 pb-10 px-4">
+        <div className="min-h-screen bg-muted pt-20 pb-10 px-4">
             <div className="max-w-2xl mx-auto">
                 
                 {/* ХЕДЕР */}
                 <div className="flex items-center gap-4 mb-6">
                     <button 
                         onClick={() => router.back()}
-                        className="p-2 hover:bg-white rounded-full transition text-gray-500"
+                        className="p-2 hover:bg-card rounded-full transition text-muted-foreground"
                     >
                         <ChevronLeft size={24} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Новая запись</h1>
-                        <p className="text-sm text-gray-500">
+                        <h1 className="text-2xl font-bold text-foreground">Новая запись</h1>
+                        <p className="text-sm text-muted-foreground">
                             {petName ? `Для питомца ${petName}` : 'Заполнение медкарты'}
                         </p>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-6">
                     
                     {/* ТИП СОБЫТИЯ (ГРУППИРОВАННЫЙ СПИСОК) */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Что произошло?</label>
+                        <label className="block text-sm font-bold text-foreground mb-3 uppercase tracking-wider">Что произошло?</label>
                         
                         {isLoadingTypes ? (
-                            <div className="text-sm text-gray-400 py-4 text-center">Загрузка списка событий...</div>
+                            <div className="text-sm text-muted-foreground py-4 text-center">Загрузка списка событий...</div>
                         ) : (
                             <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
                                 {Object.entries(groupedTypes).map(([catKey, types]) => {
@@ -222,10 +223,10 @@ export default function CreateEventPage() {
                                     const CatIcon = catConfig.icon;
 
                                     return (
-                                        <div key={catKey} className="bg-gray-50/50 rounded-xl p-3 border border-gray-100">
+                                        <div key={catKey} className="bg-muted/50 rounded-xl p-3 border border-border">
                                             <div className="flex items-center gap-2 mb-2 px-1">
                                                 <CatIcon size={16} className={catConfig.color.split(' ')[0]} />
-                                                <span className="text-xs uppercase font-bold text-gray-500">{catConfig.label}</span>
+                                                <span className="text-xs uppercase font-bold text-muted-foreground">{catConfig.label}</span>
                                             </div>
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {types.map(type => (
@@ -235,8 +236,8 @@ export default function CreateEventPage() {
                                                         onClick={() => handleTypeSelect(type)}
                                                         className={`text-left px-3 py-2.5 rounded-lg text-sm border transition-all flex items-center gap-2 ${
                                                             selectedTypeId === type.id 
-                                                            ? 'border-blue-500 bg-white ring-2 ring-blue-100 text-blue-700 font-bold shadow-sm' 
-                                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:shadow-sm'
+                                                            ? 'border-blue-500 bg-card ring-2 ring-primary/20 text-primary font-bold shadow-sm' 
+                                                            : 'border-border bg-card text-muted-foreground hover:border-border hover:shadow-sm'
                                                         }`}
                                                     >
                                                         {type.icon ? (
@@ -255,39 +256,39 @@ export default function CreateEventPage() {
                         )}
                     </div>
 
-                    <div className="h-px bg-gray-100 my-4" />
+                    <div className="h-px bg-muted my-4" />
 
                     {/* ОСНОВНЫЕ ПОЛЯ */}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Заголовок</label>
+                            <label className="block text-sm font-bold text-foreground mb-2">Заголовок</label>
                             <input 
                                 type="text"
                                 required
                                 placeholder="Например: Плановая прививка"
                                 value={formData.title}
                                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition font-medium"
+                                className="w-full p-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-blue-400 outline-none transition font-medium"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Дата события</label>
+                                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Дата события</label>
                                 <input 
                                     type="datetime-local"
                                     required
                                     value={formData.date}
                                     onChange={(e) => setFormData({...formData, date: e.target.value})}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none"
+                                    className="w-full p-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Статус</label>
+                                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">Статус</label>
                                 <select 
                                     value={formData.status}
                                     onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none"
+                                    className="w-full p-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
                                 >
                                     {STATUS_CHOICES.map(s => (
                                         <option key={s.value} value={s.value}>{s.label}</option>
@@ -297,45 +298,45 @@ export default function CreateEventPage() {
                         </div>
 
                         {/* Напоминание */}
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                            <label className="block text-xs font-bold text-blue-600 mb-2 uppercase flex items-center gap-2">
+                        <div className="bg-primary/10 p-4 rounded-xl border border-primary/15">
+                            <label className="block text-xs font-bold text-primary mb-2 uppercase flex items-center gap-2">
                                 <Activity size={14} /> Напомнить о повторе
                             </label>
                             <input 
                                 type="datetime-local" 
                                 value={formData.next_date}
                                 onChange={e => setFormData({...formData, next_date: e.target.value})}
-                                className="w-full border border-blue-200 bg-white rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                                className="w-full border border-primary/20 bg-card rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                             />
                         </div>
                     </div>
 
                     {/* ОПИСАНИЕ */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Описание / Заметки</label>
+                        <label className="block text-sm font-bold text-foreground mb-2">Описание / Заметки</label>
                         <textarea 
                             rows={4}
                             placeholder="Опишите симптомы, диагноз, вес, лекарства..."
                             value={formData.description}
                             onChange={(e) => setFormData({...formData, description: e.target.value})}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition resize-none"
+                            className="w-full p-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-blue-400 outline-none transition resize-none"
                         />
                     </div>
 
                     {/* ФАЙЛЫ */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Вложения</label>
+                        <label className="block text-sm font-bold text-foreground mb-2">Вложения</label>
                         
                         {(files.length) < 5 && (
                             <div 
                                 onClick={() => fileInputRef.current?.click()} 
-                                className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition group"
+                                className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted transition group"
                             >
-                                <div className="p-3 bg-gray-100 rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 transition">
-                                    <UploadCloud size={24} className="text-gray-400 group-hover:text-blue-600" />
+                                <div className="p-3 bg-muted rounded-full group-hover:bg-primary/10 group-hover:text-primary transition">
+                                    <UploadCloud size={24} className="text-muted-foreground group-hover:text-primary" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600">Нажмите, чтобы загрузить файлы</span>
-                                <span className="text-xs text-gray-400">PDF, JPG, PNG (макс. 5)</span>
+                                <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">Нажмите, чтобы загрузить файлы</span>
+                                <span className="text-xs text-muted-foreground">PDF, JPG, PNG (макс. 5)</span>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
                             </div>
                         )}
@@ -343,15 +344,15 @@ export default function CreateEventPage() {
                         {files.length > 0 && (
                             <div className="space-y-2 mt-4">
                                 {files.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-xl text-sm border border-gray-100">
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-muted text-foreground rounded-xl text-sm border border-border">
                                         <div className="flex items-center gap-2 truncate">
-                                            <Paperclip size={16} className="text-blue-500" />
+                                            <Paperclip size={16} className="text-primary" />
                                             <span className="truncate max-w-[200px]">{file.name}</span>
                                         </div>
                                         <button 
                                             type="button" 
                                             onClick={() => removeFile(idx)}
-                                            className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition"
+                                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-full transition"
                                         >
                                             <X size={16} />
                                         </button>
@@ -365,7 +366,7 @@ export default function CreateEventPage() {
                     <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full py-4 bg-primary hover:bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <Activity className="animate-spin" />

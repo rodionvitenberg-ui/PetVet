@@ -48,17 +48,17 @@ export default function DemoLoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl shadow-blue-200/30 border border-gray-100 p-10 text-center">
+      <div className="max-w-md w-full bg-card rounded-3xl shadow-2xl shadow-primary/20/30 border border-border p-10 text-center">
 
         {status === 'loading' && (
           <>
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
-              <Loader2 size={32} className="animate-spin text-blue-600" />
+            <div className="mx-auto w-16 h-16 bg-primary/15 rounded-2xl flex items-center justify-center mb-6">
+              <Loader2 size={32} className="animate-spin text-primary" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
+            <h1 className="text-2xl font-extrabold text-foreground mb-2">
               Entering Demo Mode
             </h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               Signing you in to the demo account...
             </p>
           </>
@@ -66,13 +66,13 @@ export default function DemoLoginPage() {
 
         {status === 'success' && (
           <>
-            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6">
-              <PawPrint size={32} className="text-emerald-600" />
+            <div className="mx-auto w-16 h-16 bg-success/10 rounded-2xl flex items-center justify-center mb-6">
+              <PawPrint size={32} className="text-success" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
+            <h1 className="text-2xl font-extrabold text-foreground mb-2">
               Welcome to the Demo!
             </h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               Redirecting to dashboard...
             </p>
           </>
@@ -80,13 +80,13 @@ export default function DemoLoginPage() {
 
         {status === 'error' && (
           <>
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-6">
-              <ShieldOff size={32} className="text-red-500" />
+            <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mb-6">
+              <ShieldOff size={32} className="text-destructive" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
+            <h1 className="text-2xl font-extrabold text-foreground mb-2">
               Demo Unavailable
             </h1>
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-muted-foreground text-sm mb-6">
               {errorMsg}
             </p>
             <div className="flex flex-col gap-3">
@@ -98,7 +98,7 @@ export default function DemoLoginPage() {
               </Link>
               <Link
                 href="/register"
-                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+                className="w-full bg-muted text-foreground py-3 rounded-xl font-semibold hover:bg-muted transition-all"
               >
                 Create Account
               </Link>

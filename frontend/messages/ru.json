@@ -1,7 +1,8 @@
 {
   "HomePage": {
     "title": "Тест",
-    "subtitle": "Тест"
+    "subtitle": "Тест",
+    "pets_grid_title": "Наши пушистые пользователи"
   },
   "Passport": {
   "title": "ПАСПОРТ ПИТОМЦА",

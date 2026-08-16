@@ -172,23 +172,23 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
 
   const getIcon = (cat: string) => {
     switch (cat) {
-      case 'medical': return <Stethoscope className="text-blue-500" size={20} />;
-      case 'reminder': return <Calendar className="text-orange-500" size={20} />;
-      case 'action': return <AlertTriangle className="text-red-500" size={20} />;
-      default: return <Info className="text-gray-400" size={20} />;
+      case 'medical': return <Stethoscope className="text-primary" size={20} />;
+      case 'reminder': return <Calendar className="text-accent" size={20} />;
+      case 'action': return <AlertTriangle className="text-destructive" size={20} />;
+      default: return <Info className="text-muted-foreground" size={20} />;
     }
   };
 
   return (
-    <div className="w-[300px] sm:w-[360px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="w-[300px] sm:w-[360px] bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
       
-      <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 backdrop-blur-sm">
-        <h3 className="font-bold text-gray-700 text-sm">Notifications</h3>
+      <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/80 backdrop-blur-sm">
+        <h3 className="font-bold text-foreground text-sm">Notifications</h3>
         {unreadCount > 0 && (
            <button 
              onClick={markAllRead}
              disabled={loading}
-             className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 disabled:opacity-50"
+             className="text-xs text-primary hover:text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
            >
              {loading && <Loader2 size={10} className="animate-spin"/>}
              Mark all as read
@@ -196,7 +196,7 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
         )}
         <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition"
+            className="p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-muted-foreground transition"
             title="Notification Settings"
         >
             <Settings size={16} />
@@ -206,7 +206,7 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
 
       <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
         {notifications.length === 0 ? (
-            <div className="py-12 px-6 text-center text-gray-400">
+            <div className="py-12 px-6 text-center text-muted-foreground">
                 <Bell size={32} className="mx-auto mb-2 opacity-20" />
                 <p className="text-sm">No new notifications</p>
             </div>
@@ -220,18 +220,18 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
                   key={note.id} 
                   onClick={() => handleItemClick(note)} 
                   className={`
-                    p-4 border-b border-gray-50 flex gap-3 group relative transition
-                    ${!note.is_read ? 'bg-blue-50/40' : 'hover:bg-gray-50'}
-                    ${isClickable ? 'cursor-pointer active:bg-blue-50' : ''} 
+                    p-4 border-b border-border flex gap-3 group relative transition
+                    ${!note.is_read ? 'bg-primary/10' : 'hover:bg-muted'}
+                    ${isClickable ? 'cursor-pointer active:bg-primary/10' : ''} 
                   `}
                 >
-                  <div className="mt-1 flex-shrink-0 bg-white p-2 rounded-full shadow-sm border border-gray-100 h-fit">
+                  <div className="mt-1 flex-shrink-0 bg-card p-2 rounded-full shadow-sm border border-border h-fit">
                       {getIcon(note.category)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-0.5">
-                          <p className={`text-sm ${!note.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                          <p className={`text-sm ${!note.is_read ? 'font-bold text-foreground' : 'font-medium text-foreground'}`}>
                               {note.title}
                           </p>
                           
@@ -243,16 +243,16 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
                                           e.stopPropagation(); 
                                           markAsRead(note.id); 
                                       }}
-                                      className="text-blue-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition p-1"
+                                      className="text-primary/70 hover:text-primary opacity-0 group-hover:opacity-100 transition p-1"
                                       title="Mark as read"
                                   >
-                                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                      <div className="w-2 h-2 rounded-full bg-primary" />
                                   </button>
                               )}
                               
                               <button 
                                   onClick={(e) => deleteNotification(note.id, e)}
-                                  className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1"
+                                  className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition p-1"
                                   title="Delete notification"
                               >
                                   <X size={14} />
@@ -260,7 +260,7 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
                           </div>
                       </div>
                       
-                      <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-3">
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-3">
                           {note.message}
                       </p>
                       
@@ -275,8 +275,8 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
                                       }}
                                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm
                                           ${act.style === 'danger' 
-                                              ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100' 
-                                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
+                                              ? 'bg-destructive/10 text-destructive hover:bg-destructive/10 border border-destructive/20' 
+                                              : 'bg-primary/10 text-primary hover:bg-primary/10 border border-primary/15'
                                           }`}
                                   >
                                       {act.label}
@@ -285,9 +285,9 @@ export default function NotificationsDropdown({ onClose }: NotificationsDropdown
                           </div>
                       )}
 
-                      <p className="text-[10px] text-gray-400 font-medium flex items-center gap-2">
+                      <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-2">
                           {note.created_at_formatted}
-                          {isClickable && <span className="text-blue-400 opacity-0 group-hover:opacity-100 transition">➔</span>}
+                          {isClickable && <span className="text-primary/70 opacity-0 group-hover:opacity-100 transition">➔</span>}
                       </p>
                   </div>
                 </div>

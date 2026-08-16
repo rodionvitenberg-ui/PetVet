@@ -315,11 +315,12 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-# Позволяет кукам ходить между поддоменами (если нужно) и при POST запросах
-CSRF_COOKIE_SAMESITE = 'None'  # Иногда нужно 'Lax', но для кросс-домена часто 'None'
-SESSION_COOKIE_SAMESITE = 'None'
+# Secure cookies только в проде (HTTP-локальный dev не получит куки при True).
+# SameSite='None' требует Secure, поэтому в dev — 'Lax'.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax' if DEBUG else 'None'
+CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'None'
 
 JAZZMIN_SETTINGS = {
     "site_title": "careyour.pet Admin",

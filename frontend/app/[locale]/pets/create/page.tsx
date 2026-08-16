@@ -36,19 +36,19 @@ export default function MobileCreatePetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-23 pb-20 px-4">
+    <div className="min-h-screen bg-muted pt-23 pb-20 px-4">
       <div className="max-w-xl mx-auto">
         
         {/* ХЕДЕР */}
         <div className="flex items-center gap-4 mb-6">
             <button 
                 onClick={() => step === 1 ? router.back() : prevStep()}
-                className="p-2 bg-white hover:bg-gray-100 rounded-full transition text-gray-600 shadow-sm border border-gray-200"
+                className="p-2 bg-card hover:bg-muted rounded-full transition text-muted-foreground shadow-sm border border-border"
             >
                 <ArrowLeft size={20} />
             </button>
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                     {step === 1 ? 'Новый питомец' : 
                      step === 2 ? 'Детали' : 'Фотографии'}
                 </h1>
@@ -56,19 +56,19 @@ export default function MobileCreatePetPage() {
                 <div className="flex gap-2 mt-2">
                     {[1, 2, 3].map(i => (
                         <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${
-                            i === step ? 'bg-blue-600 w-12' : i < step ? 'bg-blue-200 w-8' : 'bg-gray-200 w-8'
+                            i === step ? 'bg-primary w-12' : i < step ? 'bg-primary/20 w-8' : 'bg-muted w-8'
                         }`} />
                     ))}
                 </div>
             </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-6 sm:p-8 min-h-[50vh] flex flex-col">
+        <div className="bg-card rounded-[2rem] shadow-xl border border-border p-6 sm:p-8 min-h-[50vh] flex flex-col">
             
             {/* ОТОБРАЖЕНИЕ ШАГОВ (Используем общие компоненты!) */}
             <div className="flex-1">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-40 text-gray-400">Загрузка...</div>
+                    <div className="flex items-center justify-center h-40 text-muted-foreground">Загрузка...</div>
                 ) : (
                     <>
                         {step === 1 && (
@@ -106,18 +106,18 @@ export default function MobileCreatePetPage() {
 
             {/* ОШИБКИ */}
             {error && (
-                <div className="mt-4 p-4 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 flex items-center gap-2 animate-pulse">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                <div className="mt-4 p-4 bg-destructive/10 text-destructive text-sm font-medium rounded-xl border border-destructive/20 flex items-center gap-2 animate-pulse">
+                    <div className="w-2 h-2 rounded-full bg-destructive/100" />
                     {error}
                 </div>
             )}
 
             {/* ФУТЕР */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="mt-8 pt-6 border-t border-border">
                 <button 
                     onClick={handleNext} 
                     disabled={isSubmitting || isLoading}
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-primary hover:bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? 'Создаем...' : step < 3 ? (
                         <>Далее <ChevronRight size={20} /></>

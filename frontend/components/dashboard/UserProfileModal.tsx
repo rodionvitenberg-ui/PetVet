@@ -1,233 +1,228 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-    X, Phone, Mail, MapPin, Stethoscope, 
-    User, Send, Copy, Check, Briefcase,
-    MessageCircle, Instagram, Globe, ArrowUpRight 
+import {
+  Phone, Mail, MapPin, Stethoscope,
+  User, Send, Copy, Check, Briefcase,
+  MessageCircle, Instagram, Globe, ArrowUpRight
 } from 'lucide-react';
-import { UserProfile } from '@/types/pet'; 
+import { UserProfile } from '@/types/pet';
+
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface UserProfileModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    user: UserProfile | null;
+  isOpen: boolean;
+  onClose: () => void;
+  user: UserProfile | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 const getAvatarUrl = (url?: string) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    return `${API_URL}${url}`;
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${API_URL}${url}`;
 };
 
-// Хелпер для выбора иконки и цвета на основе типа контакта
+// Brand-colors for social contacts stay hardcoded for recognizability.
 const getContactConfig = (type: string) => {
-    switch (type) {
-        case 'whatsapp': return { icon: <MessageCircle size={18} />, color: 'text-green-600', bg: 'bg-green-100', label: 'WhatsApp' };
-        case 'telegram': return { icon: <Send size={18} />, color: 'text-blue-500', bg: 'bg-blue-100', label: 'Telegram' };
-        case 'instagram': return { icon: <Instagram size={18} />, color: 'text-pink-600', bg: 'bg-pink-100', label: 'Instagram' };
-        case 'email': return { icon: <Mail size={18} />, color: 'text-gray-600', bg: 'bg-gray-100', label: 'Email' };
-        case 'site': return { icon: <Globe size={18} />, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Сайт' };
-        case 'vk': return { icon: <span className="font-bold text-xs">VK</span>, color: 'text-blue-700', bg: 'bg-blue-100', label: 'ВКонтакте' };
-        case 'phone': default: return { icon: <Phone size={18} />, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Телефон' };
-    }
+  switch (type) {
+    case 'whatsapp': return { icon: <MessageCircle size={18} />, color: 'text-green-600', bg: 'bg-green-100', label: 'WhatsApp' };
+    case 'telegram': return { icon: <Send size={18} />, color: 'text-sky-600', bg: 'bg-sky-100', label: 'Telegram' };
+    case 'instagram': return { icon: <Instagram size={18} />, color: 'text-pink-600', bg: 'bg-pink-100', label: 'Instagram' };
+    case 'email': return { icon: <Mail size={18} />, color: 'text-muted-foreground', bg: 'bg-muted', label: 'Email' };
+    case 'site': return { icon: <Globe size={18} />, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Сайт' };
+    case 'vk': return { icon: <span className="text-xs font-bold">VK</span>, color: 'text-blue-700', bg: 'bg-blue-100', label: 'ВКонтакте' };
+    case 'phone': default: return { icon: <Phone size={18} />, color: 'text-primary', bg: 'bg-primary/10', label: 'Телефон' };
+  }
 };
 
-// Хелпер для формирования правильной ссылки (href)
 const getContactLink = (type: string, value: string) => {
-    const cleanValue = value.replace(/\s+/g, '').replace(/-/g, '').replace('(', '').replace(')', '');
-    switch (type) {
-        case 'phone': return `tel:${cleanValue}`;
-        case 'email': return `mailto:${value}`;
-        case 'whatsapp': return `https://wa.me/${cleanValue.startsWith('+') ? cleanValue.substring(1) : cleanValue}`;
-        case 'telegram': return `https://t.me/${value.replace('@', '').replace('https://t.me/', '')}`;
-        case 'instagram': return `https://instagram.com/${value.replace('@', '').replace('https://instagram.com/', '')}`;
-        case 'site': return value.startsWith('http') ? value : `https://${value}`;
-        case 'vk': return value.startsWith('http') ? value : `https://vk.com/${value}`;
-        default: return null;
-    }
+  const cleanValue = value.replace(/\s+/g, '').replace(/-/g, '').replace('(', '').replace(')', '');
+  switch (type) {
+    case 'phone': return `tel:${cleanValue}`;
+    case 'email': return `mailto:${value}`;
+    case 'whatsapp': return `https://wa.me/${cleanValue.startsWith('+') ? cleanValue.substring(1) : cleanValue}`;
+    case 'telegram': return `https://t.me/${value.replace('@', '').replace('https://t.me/', '')}`;
+    case 'instagram': return `https://instagram.com/${value.replace('@', '').replace('https://instagram.com/', '')}`;
+    case 'site': return value.startsWith('http') ? value : `https://${value}`;
+    case 'vk': return value.startsWith('http') ? value : `https://vk.com/${value}`;
+    default: return null;
+  }
 };
 
 export default function UserProfileModal({ isOpen, onClose, user }: UserProfileModalProps) {
-    const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-    if (!isOpen || !user) return null;
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
-    const copyToClipboard = (text: string, field: string) => {
-        navigator.clipboard.writeText(text);
-        setCopiedField(field);
-        setTimeout(() => setCopiedField(null), 2000);
-    };
+  const isVet = user?.is_veterinarian ?? false;
 
-    const isVet = user.is_veterinarian;
-
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            
-            <div 
-                className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Хедер с фоном */}
-                <div className={`h-32 ${isVet ? 'bg-emerald-600' : 'bg-blue-600'} relative`}>
-                    <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition">
-                        <X size={20} />
-                    </button>
-                    <div className="absolute -bottom-12 left-6 p-1 bg-white rounded-full">
-                        <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden border-4 border-white shadow-sm flex items-center justify-center">
-                            {user.avatar ? (
-                                <img src={getAvatarUrl(user.avatar)!} alt={user.name} className="w-full h-full object-cover" />
-                            ) : (
-                                isVet ? <Stethoscope size={40} className="text-emerald-500" /> : <User size={40} className="text-blue-500" />
-                            )}
-                        </div>
-                    </div>
+  return (
+    <Dialog open={isOpen && !!user} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md overflow-hidden p-0" showCloseButton={false}>
+        {user && (
+          <>
+            <div className={cn('relative h-32', isVet ? 'bg-success' : 'bg-primary')}>
+              <button
+                onClick={onClose}
+                className="absolute right-4 top-4 rounded-full bg-black/20 p-2 text-white transition hover:bg-black/30 focus-ring"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                <span className="sr-only">Close</span>
+              </button>
+              <div className="absolute -bottom-12 left-6 rounded-full bg-card p-1">
+                <div className="flex size-24 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-muted shadow-sm">
+                  {user.avatar ? (
+                    <img src={getAvatarUrl(user.avatar)!} alt={user.name} className="size-full object-cover" />
+                  ) : isVet ? (
+                    <Stethoscope size={40} className="text-success" />
+                  ) : (
+                    <User size={40} className="text-primary" />
+                  )}
                 </div>
-
-                {/* Основная инфо */}
-                <div className="pt-14 pb-6 px-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 leading-tight">{user.name}</h2>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
-                                    isVet ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                                }`}>
-                                    {isVet ? 'Vet' : 'Owner'}
-                                </span>
-                                {user.city && (
-                                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                                        <MapPin size={12} /> {user.city}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {user.clinic_name && isVet && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm text-emerald-600 border border-gray-100">
-                                <Briefcase size={20} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Workplace</p>
-                                <p className="font-bold text-gray-800 text-sm">{user.clinic_name}</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {user.about && (
-                        <div className="mt-4 text-sm text-gray-600 leading-relaxed bg-yellow-50/50 p-3 rounded-xl border border-yellow-100/50">
-                            {user.about}
-                        </div>
-                    )}
-
-                    {/* ДИНАМИЧЕСКИЕ КОНТАКТЫ */}
-                    <div className="mt-6 space-y-3">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Contact</h3>
-
-                        {/* Если контактов ВООБЩЕ нет, показываем старые поля как fallback */}
-                        {(!user.contacts || user.contacts.length === 0) && (
-                            <>
-                                {user.phone && (
-                                     <ContactRow 
-                                        icon={<Phone size={18} />}
-                                        label="Phone"
-                                        value={user.phone}
-                                        type="phone"
-                                        onCopy={() => copyToClipboard(user.phone!, 'phone')}
-                                        isCopied={copiedField === 'phone'}
-                                        color="blue"
-                                        link={`tel:${user.phone}`}
-                                    />
-                                )}
-                                {user.email && (
-                                    <ContactRow 
-                                        icon={<Mail size={18} />}
-                                        label="Email"
-                                        value={user.email}
-                                        type="email"
-                                        onCopy={() => copyToClipboard(user.email, 'email')}
-                                        isCopied={copiedField === 'email'}
-                                        color="gray"
-                                        link={`mailto:${user.email}`}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                        {/* Новый динамический список */}
-                        {user.contacts?.map((contact) => {
-                            const config = getContactConfig(contact.type);
-                            const link = getContactLink(contact.type, contact.value);
-
-                            return (
-                                <div key={contact.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-300 transition group bg-white">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg} ${config.color}`}>
-                                        {config.icon}
-                                    </div>
-                                    
-                                    <div className="flex-1 overflow-hidden">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase">
-                                            {contact.label || config.label}
-                                        </p>
-                                        <p className="font-bold text-gray-800 text-sm truncate">{contact.value}</p>
-                                    </div>
-
-                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {link && (
-                                            <a 
-                                                href={link} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer" 
-                                                className="p-2 hover:bg-gray-100 rounded-lg text-blue-600"
-                                            >
-                                                <ArrowUpRight size={16} />
-                                            </a>
-                                        )}
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); copyToClipboard(contact.value, contact.type); }} 
-                                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
-                                        >
-                                            {copiedField === contact.type ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+              </div>
             </div>
-        </div>
-    );
+
+            <div className="px-6 pb-6 pt-14">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold leading-tight text-foreground">{user.name}</h2>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className={cn(
+                      'rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide',
+                      isVet ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'
+                    )}>
+                      {isVet ? 'Vet' : 'Owner'}
+                    </span>
+                    {user.city && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin size={12} /> {user.city}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {user.clinic_name && isVet && (
+                <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-card text-success shadow-sm">
+                    <Briefcase size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Workplace</p>
+                    <p className="text-sm font-bold text-foreground">{user.clinic_name}</p>
+                  </div>
+                </div>
+              )}
+
+              {user.about && (
+                <div className="mt-4 rounded-xl border border-accent/30 bg-accent/10 p-3 text-sm leading-relaxed text-foreground">
+                  {user.about}
+                </div>
+              )}
+
+              <div className="mt-6 space-y-3">
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact</h3>
+
+                {(!user.contacts || user.contacts.length === 0) && (
+                  <>
+                    {user.phone && (
+                      <ContactRow
+                        icon={<Phone size={18} />}
+                        label="Phone"
+                        value={user.phone}
+                        onCopy={() => copyToClipboard(user.phone!, 'phone')}
+                        isCopied={copiedField === 'phone'}
+                        link={`tel:${user.phone}`}
+                      />
+                    )}
+                    {user.email && (
+                      <ContactRow
+                        icon={<Mail size={18} />}
+                        label="Email"
+                        value={user.email}
+                        onCopy={() => copyToClipboard(user.email, 'email')}
+                        isCopied={copiedField === 'email'}
+                        link={`mailto:${user.email}`}
+                      />
+                    )}
+                  </>
+                )}
+
+                {user.contacts?.map((contact) => {
+                  const config = getContactConfig(contact.type);
+                  const link = getContactLink(contact.type, contact.value);
+
+                  return (
+                    <div key={contact.id} className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-input">
+                      <div className={cn('flex size-9 items-center justify-center rounded-full', config.bg, config.color)}>
+                        {config.icon}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {contact.label || config.label}
+                        </p>
+                        <p className="truncate text-sm font-bold text-foreground">{contact.value}</p>
+                      </div>
+
+                      <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        {link && (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg p-2 text-primary hover:bg-muted"
+                          >
+                            <ArrowUpRight size={16} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => copyToClipboard(contact.value, contact.type)}
+                          className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+                        >
+                          {copiedField === contact.type ? <Check size={16} className="text-success" /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-// Микро-компонент (для fallback режима)
-const ContactRow = ({ icon, label, value, type, onCopy, isCopied, color, link }: any) => {
-    const bgClass = color === 'emerald' ? 'bg-emerald-100 text-emerald-600' : color === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600';
-    
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-300 transition group bg-white">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bgClass}`}>
-                {icon}
-            </div>
-            <div className="flex-1 overflow-hidden">
-                <p className="text-[10px] text-gray-400 font-bold uppercase">{label}</p>
-                <p className="font-bold text-gray-800 text-sm truncate">{value}</p>
-            </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {link && (
-                     <a href={link} className="p-2 hover:bg-gray-100 rounded-lg text-blue-600" target="_blank" rel="noopener noreferrer">
-                        <ArrowUpRight size={16} />
-                    </a>
-                )}
-                <button onClick={(e) => { e.stopPropagation(); onCopy(); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
-                    {isCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                </button>
-            </div>
-        </div>
-    );
-};
+const ContactRow = ({ icon, label, value, onCopy, isCopied, link }: any) => (
+  <div className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-input">
+    <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+      {icon}
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-bold uppercase text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-bold text-foreground">{value}</p>
+    </div>
+    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      {link && (
+        <a href={link} className="rounded-lg p-2 text-primary hover:bg-muted" target="_blank" rel="noopener noreferrer">
+          <ArrowUpRight size={16} />
+        </a>
+      )}
+      <button onClick={onCopy} className="rounded-lg p-2 text-muted-foreground hover:bg-muted">
+        {isCopied ? <Check size={16} className="text-success" /> : <Copy size={16} />}
+      </button>
+    </div>
+  </div>
+);

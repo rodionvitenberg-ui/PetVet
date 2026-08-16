@@ -24,16 +24,16 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen w-full bg-gray-50/50 pt-24 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
+            <div className="min-h-screen w-full bg-muted/50 pt-24 flex items-center justify-center">
+                <Loader2 className="animate-spin text-primary" size={48} />
             </div>
         );
     }
 
     if (!user) {
         return (
-            <div className="min-h-screen w-full bg-gray-50/50 pt-24 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
+            <div className="min-h-screen w-full bg-muted/50 pt-24 flex items-center justify-center">
+                <Loader2 className="animate-spin text-primary" size={48} />
             </div>
         );
     }

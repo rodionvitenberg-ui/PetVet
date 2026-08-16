@@ -11,7 +11,14 @@ interface User {
   first_name?: string;
   last_name?: string;
   is_veterinarian?: boolean;
+  phone?: string;
+  city?: string;
+  clinic_name?: string;
+  about?: string;
+  is_verified?: boolean;
 }
+
+export type { User };
 
 interface AuthContextType {
   user: User | null;
