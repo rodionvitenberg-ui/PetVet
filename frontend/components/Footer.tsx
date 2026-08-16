@@ -4,10 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; // <--- 1. Импортируем компонент Image
 import { 
-  Github, 
-  Send, 
   Mail, 
-  MapPin, 
   Shield, 
   FileText,
   Info
@@ -88,14 +85,6 @@ export default function Footer() {
                 </li>
             </ul>
             
-            <div className="flex gap-4 mt-6">
-                <a href="#" className="p-2 bg-muted rounded-full hover:bg-primary hover:text-primary-foreground transition">
-                    <Send size={18} />
-                </a>
-                <a href="#" className="p-2 bg-muted rounded-full hover:bg-muted-foreground hover:text-background transition">
-                    <Github size={18} />
-                </a>
-            </div>
         </div>
       </div>
 
