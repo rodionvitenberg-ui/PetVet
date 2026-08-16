@@ -35,7 +35,7 @@ export const AboutProject = () => {
   ];
 
   return (
-    <section id="about" className="relative py-20 md:py-28 overflow-hidden">
+    <section id="about" className="relative py-12 md:py-16 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center max-w-3xl mx-auto mb-14 md:mb-16"

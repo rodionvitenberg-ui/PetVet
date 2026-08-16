@@ -71,7 +71,7 @@ export default function Header() {
                 alt="PetVet Logo" 
                 width={60} 
                 height={60} 
-                className="object-contain md:w-[70px] md:h-[70px]"
+                className="object-contain w-[70px] h-[70px] md:w-[80px] md:h-[80px]"
                 priority
               />
            </div>

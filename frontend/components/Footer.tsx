@@ -95,7 +95,7 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-8 text-sm text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
         <p>&copy; {currentYear} {t('pravzash')}</p>
-        <p className="opacity-50">Powered by <a href="https://busisart.space" target="_blank" rel="noopener noreferrer" className="hover:text-background transition">busisart.space</a></p>
+        <p className="opacity-50">Powered by <a href="https://soshallitbe.cyou" target="_blank" rel="noopener noreferrer" className="hover:text-background transition">R.Vittenberg</a></p>
       </div>
     </footer>
   );
