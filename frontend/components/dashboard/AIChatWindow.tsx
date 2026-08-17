@@ -5,6 +5,7 @@ import { Send, Sparkles, PawPrint, Loader2, AlertTriangle } from 'lucide-react';
 import { AIChatSession, AIChatMessage } from '@/types/ai-chat';
 import { fetchMessages, streamResponse, streamSessionCreation } from '@/services/aiChatService';
 import Markdown from '@/components/chat/Markdown';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface AIChatWindowProps {
   session: AIChatSession | null;
@@ -23,6 +24,7 @@ export default function AIChatWindow({
   extraStreamingText,
   onSessionCreated,
 }: AIChatWindowProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -30,6 +32,10 @@ export default function AIChatWindow({
   const [streamingText, setStreamingText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  const aiLimit = user?.ai_daily_limit ?? 4;
+  const aiUsed = user?.ai_used_today ?? 0;
+  const aiRemaining = Math.max(0, aiLimit - aiUsed);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -87,6 +93,11 @@ export default function AIChatWindow({
 
   const handleSend = async () => {
     if (!inputText.trim() || isStreaming) return;
+
+    if (aiRemaining <= 0) {
+      setError('Daily AI limit reached. Subscribe to get 12 answers per day.');
+      return;
+    }
 
     // If no session but pending pet, create session and stream the first response
     if (!session && pendingPetId) {
@@ -228,6 +239,16 @@ export default function AIChatWindow({
             {session.pet?.name || 'Pet'}
           </h3>
           <p className="text-xs text-muted-foreground truncate">{session.title}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-medium text-muted-foreground">
+            {aiRemaining} / {aiLimit} today
+          </span>
+          {aiRemaining <= 0 && (
+            <a href="/become-vet" className="text-xs font-bold text-primary hover:underline">
+              Upgrade
+            </a>
+          )}
         </div>
         {isStreaming && (
           <div className="flex items-center gap-1.5 text-primary bg-primary/10 px-2.5 py-1 rounded-full">

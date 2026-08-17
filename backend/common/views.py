@@ -150,28 +150,12 @@ class ProtectedMediaView(APIView):
         )
 
     def _check_vet_docs_access(self, user, full_path, path):
-        """vet_docs может читать владелец заявки или staff."""
-        from users.models import VetVerificationRequest
-
+        """vet_docs больше не создаются (верификация заменена подпиской).
+        Оставляем доступ только staff для чтения исторических файлов."""
         if user.is_staff:
             return
 
-        # Путь вида: vet_docs/2026/08/file.jpg
-        request_has_access = VetVerificationRequest.objects.filter(
-            user=user,
-            document_image='vet_docs/' + path.split('vet_docs/', 1)[1] if 'vet_docs/' in path else path
-        ).exists()
-
-        # Более надёжно: ищем любую заявку юзера, у которой имя файла совпадает
-        if not request_has_access:
-            filename = os.path.basename(full_path)
-            request_has_access = VetVerificationRequest.objects.filter(
-                user=user,
-                document_image__endswith=filename,
-            ).exists()
-
-        if not request_has_access:
-            raise Http404("File not found")
+        raise Http404("File not found")
 
     def _check_chat_attachment_access(self, user, full_path, path):
         """chat_attachments может читать участник чата (owner или vet)."""

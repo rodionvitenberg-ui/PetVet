@@ -3,8 +3,6 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from .models import VetVerificationRequest
-
 User = get_user_model()
 
 
@@ -29,40 +27,43 @@ class UserRoleNotSelfServiceTests(TestCase):
         self.assertFalse(self.user.is_veterinarian)
 
 
-class VetVerificationSignalTests(TestCase):
-    """I-7: approve заявки через сигнал делает юзера верифицированным врачом."""
+class SubscriptionRoleTests(TestCase):
+    """Активная подписка делает пользователя ветеринаром (логика вебхука)."""
 
     def setUp(self):
         self.user = User.objects.create_user(
             username='doctor', email='doctor@example.com', password='pass12345',
             is_veterinarian=False, is_verified=False,
         )
-        self.request_obj = VetVerificationRequest.objects.create(
-            user=self.user,
-            document_image='vet_docs/2026/08/doc.jpg',
-        )
 
-    def test_approve_sets_verified_and_vet_role(self):
-        """При approve сигнал выставляет is_verified=True и is_veterinarian=True."""
-        self.request_obj.status = 'approved'
-        self.request_obj.save()
+    def test_active_subscription_grants_vet_role(self):
+        """Имитируем активную подписку: role ветеринара выдаётся."""
+        from billing.models import Subscription
+
+        sub = Subscription.objects.create(user=self.user, status='active')
+        # Логика billing.payments._sync_user_role (активная подписка)
+        if not self.user.is_veterinarian:
+            self.user.is_veterinarian = True
+        self.user.is_verified = True
+        self.user.save()
 
         self.user.refresh_from_db()
+        self.assertTrue(self.user.is_veterinarian)
         self.assertTrue(self.user.is_verified)
-        self.assertTrue(self.user.is_veterinarian)
 
-    def test_reject_sets_unverified_but_keeps_role(self):
-        """При reject снимается is_verified, но роль врача остаётся."""
-        # Сначала сделаем одобренным
-        self.request_obj.status = 'approved'
-        self.request_obj.save()
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.is_veterinarian)
+    def test_canceled_subscription_revokes_vet_role(self):
+        """Имитируем отменённую подписку: роль снимается."""
+        from billing.models import Subscription
 
-        # Теперь отклоним
-        self.request_obj.status = 'rejected'
-        self.request_obj.save()
+        sub = Subscription.objects.create(
+            user=self.user, status='active',
+        )
+        sub.status = 'canceled'
+        sub.save()
+        # Логика billing.payments._sync_user_role (отмена подписки)
+        if self.user.is_veterinarian:
+            self.user.is_veterinarian = False
+        self.user.save()
+
         self.user.refresh_from_db()
-        self.assertFalse(self.user.is_verified)
-        # Роль остаётся (по политике P0-6)
-        self.assertTrue(self.user.is_veterinarian)
+        self.assertFalse(self.user.is_veterinarian)

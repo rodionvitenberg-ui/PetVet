@@ -16,6 +16,8 @@ interface User {
   clinic_name?: string;
   about?: string;
   is_verified?: boolean;
+  ai_daily_limit?: number;
+  ai_used_today?: number;
 }
 
 export type { User };

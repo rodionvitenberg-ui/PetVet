@@ -1,11 +1,11 @@
 // frontend/services/chat.ts
 
-// 1. Keep /api out of the default value to avoid confusion. This is just the host.
+// 1. Убираем /api из дефолтного значения, чтобы не путаться. Пусть это будет просто хост.
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// 2. Builds a correct API path
+// 2. Функция, которая гарантирует правильный путь
 const getEndpoint = (path: string) => {
-    // If BASE_URL already contains /api (e.g. set via env), do not duplicate it
+    // Если BASE_URL уже содержит /api (например, задан в env), не дублируем
     const baseUrl = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
     return `${baseUrl}${path}`;
 };

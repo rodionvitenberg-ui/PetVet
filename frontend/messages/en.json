@@ -127,5 +127,22 @@
     "uslisp": "Terms of Use",
     "contacts": "Contacts",
     "pravzash": "All rights reserved."
+  },
+  "BecomeVet": {
+    "badge": "Veterinarian Plan",
+    "title": "Become a Veterinarian for $5/month",
+    "subtitle": "Unlock the full veterinarian workspace and get more AI answers.",
+    "feature_patients_title": "Patients",
+    "feature_patients_desc": "Manage patient cards, medical history, and treatments.",
+    "feature_ai_title": "AI Assistant",
+    "feature_ai_desc": "Up to 12 AI answers per day instead of 4.",
+    "feature_invoices_title": "Invoices & Catalog",
+    "feature_invoices_desc": "Create invoices, service catalog, and exam templates.",
+    "per_month": "per month",
+    "plan_include_1": "Full veterinarian mode with patients",
+    "plan_include_2": "12 AI answers per day",
+    "plan_include_3": "Service catalog, invoices, and exam templates",
+    "cta": "Subscribe — $5/month",
+    "cancel_anytime": "Cancel anytime. Secured by Stripe."
   }
 }

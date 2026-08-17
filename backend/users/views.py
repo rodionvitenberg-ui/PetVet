@@ -6,13 +6,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserContact, VetVerificationRequest
+from .models import UserContact
 from django.contrib.auth import get_user_model
 from .serializers import (
     UserSerializer, 
     GoogleAuthSerializer,
     UserContactSerializer, 
-    VetVerificationSerializer,
     RegisterSerializer
 )
 
@@ -121,8 +120,8 @@ class UserMeView(generics.RetrieveUpdateAPIView):
     
     def perform_update(self, serializer):
         # [P0-6] Роль больше нельзя сменить самому через PATCH.
-        # is_veterinarian выдаётся ТОЛЬКО через admin / users.signals
-        # (approve VetVerificationRequest). Поле "role" из фронта игнорируется.
+        # is_veterinarian выдаётся ТОЛЬКО через активную подписку (webhook провайдера).
+        # Поле "role" из фронта игнорируется.
         serializer.save()
 
 
@@ -220,21 +219,3 @@ class DemoLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class VerificationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.ListModelMixin):
-    serializer_class = VetVerificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        # Юзер видит только свои заявки
-        return VetVerificationRequest.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    # Удобный метод получить последнюю актуальную заявку
-    @action(detail=False, methods=['get'])
-    def current_status(self, request):
-        latest = self.get_queryset().first() # Благодаря ordering=['-created_at'] это последняя
-        if latest:
-            return Response(self.get_serializer(latest).data)
-        return Response(None)

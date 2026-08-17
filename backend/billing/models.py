@@ -70,6 +70,38 @@ class CatalogItem(models.Model):
         ]
 
 
+class Subscription(models.Model):
+    """
+    Платная подписка $5/мес. Активная подписка делает пользователя ветеринаром
+    (is_veterinarian=True) и поднимает лимит ИИ до 12 ответов в сутки.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('canceled', 'Canceled'),
+        ('past_due', 'Past due'),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='subscription',
+        verbose_name="User"
+    )
+    provider_customer_id = models.CharField("Provider Customer ID", max_length=255, blank=True, null=True)
+    provider_subscription_id = models.CharField("Provider Subscription ID", max_length=255, blank=True, null=True)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='canceled')
+    current_period_end = models.DateTimeField("Current period end", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Subscription({self.user.username}, {self.status})"
+
+    class Meta:
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
+
+
 class EventTemplate(models.Model):
     """
     Macro: pre-built text and service bundle.

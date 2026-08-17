@@ -1,7 +1,15 @@
 from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
-from .models import CatalogItem, Invoice, EventTemplate
+from django.conf import settings
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+from .models import CatalogItem, Invoice, EventTemplate, Subscription
+from .payments import ProviderError, create_checkout, handle_webhook
 from .serializers import CatalogItemSerializer, InvoiceSerializer, EventTemplateSerializer
 
 
@@ -46,7 +54,7 @@ class CatalogItemViewSet(viewsets.ModelViewSet):
     serializer_class = CatalogItemSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    search_fields = ['name', 'code'] 
+    search_fields = ['name', 'code']
     filterset_fields = ['item_type']
 
     def get_queryset(self):
@@ -98,3 +106,61 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+
+# ──────────────────────────────────────────────
+# Subscription API (Cryptomus)
+# ──────────────────────────────────────────────
+
+
+class SubscriptionCheckoutView(APIView):
+    """
+    POST /api/billing/subscription/checkout/
+    Создаёт крипто-подписку $5/мес через Cryptomus.
+    Возвращает { "checkout_url": "https://..." }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            checkout_url = create_checkout(request.user)
+        except ProviderError as exc:
+            return Response({"error": str(exc)}, status=400)
+
+        return Response({"checkout_url": checkout_url})
+
+
+class SubscriptionStatusView(APIView):
+    """
+    GET /api/billing/subscription/status/
+    Текущий статус подписки пользователя (источник правды — webhook).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        sub = Subscription.objects.filter(user=request.user).first()
+        if not sub:
+            return Response({"status": "none", "is_active": False})
+
+        if sub.current_period_end and sub.current_period_end < timezone.now() and sub.status == 'active':
+            sub.status = 'canceled'
+            sub.save(update_fields=['status', 'updated_at'])
+
+        return Response({
+            "status": sub.status,
+            "is_active": sub.status == 'active',
+            "current_period_end": sub.current_period_end,
+        })
+
+
+@csrf_exempt
+def cryptomus_webhook(request):
+    """
+    POST /api/billing/subscription/webhook/cryptomus/
+    Обрабатывает события подписки Cryptomus.
+    """
+    try:
+        result = handle_webhook(request.body, request.META.get('HTTP_SIGN', ''))
+    except ProviderError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    return JsonResponse({"status": result})

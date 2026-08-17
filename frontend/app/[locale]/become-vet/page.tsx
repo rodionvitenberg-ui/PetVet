@@ -1,243 +1,105 @@
 'use client';
-import { addToast } from "@heroui/toast";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Upload, FileText, CheckCircle, XCircle, Clock, ChevronLeft } from 'lucide-react';
-import AuthGuard from '@/components/providers/AuthGuard';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-interface VerificationRequest {
-    id: number;
-    status: 'pending' | 'approved' | 'rejected';
-    rejection_reason?: string;
-    created_at: string;
-}
+import { Check, ChevronLeft, Sparkles, Stethoscope, MessageSquareText, ShieldCheck } from 'lucide-react';
+import { createCheckoutSession } from '@/services/subscriptionService';
 
 export default function BecomeVetPage() {
     const router = useRouter();
-    const { user } = useAuth(); 
-    
-    const [request, setRequest] = useState<VerificationRequest | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    
-    const [file, setFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const { isAuth } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const t = useTranslations('BecomeVet');
 
-    // Загружаем текущий статус
-    useEffect(() => {
-        const fetchStatus = async () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                setIsLoading(false); 
-                return;
-            }
-            try {
-                const res = await fetch(`${API_URL}/api/auth/verification/current_status/`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (res.status === 204) {
-                    setRequest(null);
-                    return;
-                }
-
-                if (res.ok) {
-                    const text = await res.text();
-                    const data = text ? JSON.parse(text) : null;
-                    
-                    if (data) setRequest(data);
-                }
-            } catch (e) {
-                console.error("Ошибка при загрузке статуса:", e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (user) {
-            fetchStatus();
+    const handleSubscribe = async () => {
+        if (!isAuth) {
+            router.push('/login');
+            return;
         }
-    }, [user]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const f = e.target.files[0];
-            setFile(f);
-            setPreviewUrl(URL.createObjectURL(f));
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!file) return;
         setIsSubmitting(true);
-        const token = localStorage.getItem('access_token');
-        
+        setError(null);
         try {
-            const formData = new FormData();
-            formData.append('document_image', file);
-
-            const res = await fetch(`${API_URL}/api/auth/verification/`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setRequest(data);
-            } else {
-                addToast({ title: "Error", description: "Ошибка загрузки. Попробуйте файл меньшего размера.", color: "danger", variant: "flat" });
-            }
+            const { checkout_url } = await createCheckoutSession();
+            window.location.href = checkout_url;
         } catch (e) {
-            console.error(e);
-            addToast({ title: "Error", description: "Ошибка сети", color: "danger", variant: "flat" });
-        } finally {
+            setError(e instanceof Error ? e.message : 'Failed to start checkout');
             setIsSubmitting(false);
         }
     };
 
-    // Обновил и лоадер, чтобы он тоже был на правильном затемненном фоне
-    if (isLoading && user) {
-        return (
-            <AuthGuard>
-                <div className="min-h-screen relative pt-24 pb-10 px-4">
-                    <div className="absolute inset-0 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed z-0" />
-                    <div className="absolute inset-0 bg-black/60 z-0" />
-                    <div className="relative z-10 flex items-center justify-center h-[60vh]">
-                         <div className="animate-spin w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
-                    </div>
-                </div>
-            </AuthGuard>
-        );
-    }
+    const features = [
+        { icon: Stethoscope, title: t('feature_patients_title'), desc: t('feature_patients_desc') },
+        { icon: MessageSquareText, title: t('feature_ai_title'), desc: t('feature_ai_desc') },
+        { icon: ShieldCheck, title: t('feature_invoices_title'), desc: t('feature_invoices_desc') },
+    ];
 
     return (
-        <AuthGuard>
-            <div className="min-h-screen relative pt-24 pb-10 px-4">
-                
-                {/* 1. Слой с картинкой (фиксированный фон) */}
-                <div className="absolute inset-0 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed z-0" />
+        <div className="min-h-screen relative pt-24 pb-10 px-4">
+            <div className="absolute inset-0 bg-[url('/bg/bg1.jpg')] bg-cover bg-center bg-no-repeat bg-fixed z-0" />
+            <div className="absolute inset-0 bg-black/60 z-0" />
+            <div className="relative z-10 max-w-3xl mx-auto">
+                <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition">
+                    <ChevronLeft size={20} /> <span>Go Back</span>
+                </button>
 
-                {/* 2. Слой затемнения (bg-black/60) */}
-                <div className="absolute inset-0 bg-black/60 z-0" />
-
-                {/* 3. Контент (поднимаем выше с relative z-10) */}
-                <div className="relative z-10 max-w-2xl mx-auto">
-                    <button onClick={() => router.back()} className="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition">
-                        <ChevronLeft size={20} /> <span className="text-white">Go Back</span>
-                    </button>
-
-                    <div className="bg-card rounded-[2rem] shadow-xl border border-border p-8">
-                        <h1 className="text-3xl font-bold text-foreground mb-2">Complete Verification</h1>
-                        <p className="text-muted-foreground mb-8">
-                            To access veterinarian features, we need to verify your qualifications.
-                        </p>
-
-                        {request ? (
-                            <div className="space-y-6">
-                                {request.status === 'pending' && (
-                                    <div className="bg-accent/15 border border-yellow-200 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <Clock size={32} />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-foreground">Заявка на проверке</h3>
-                                        <p className="text-muted-foreground mt-2">
-                                            We are checking your documents. Usually, this takes up to 24 hours. 
-                                            You will receive a notification about the decision.
-                                        </p>
-                                    </div>
-                                )}
-
-                                {request.status === 'approved' && (
-                                    <div className="bg-success/10 border border-green-200 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <CheckCircle size={32} />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-foreground">You are verified!</h3>
-                                        <p className="text-muted-foreground mt-2">
-                                            Your status has been verified. You now have access to tools for working with patients.
-                                        </p>
-                                        <button onClick={() => router.push('/dashboard')} className="mt-4 px-6 py-2 bg-green-600 text-white rounded-xl font-bold">
-                                            Go to dashboard
-                                        </button>
-                                    </div>
-                                )}
-
-                                {request.status === 'rejected' && (
-                                    <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6 text-center">
-                                        <div className="w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <XCircle size={32} />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-foreground">Request Rejected</h3>
-                                        <p className="text-muted-foreground mt-2">
-                                            Unfortunately, we could not verify your status.
-                                        </p>
-                                        {request.rejection_reason && (
-                                            <div className="mt-4 p-3 bg-card rounded-xl text-sm font-medium text-destructive border border-destructive/20">
-                                                Reason: {request.rejection_reason}
-                                            </div>
-                                        )}
-                                        <button 
-                                            onClick={() => { setRequest(null); setFile(null); setPreviewUrl(null); }} 
-                                            className="mt-6 text-primary font-bold hover:underline"
-                                        >
-                                            Try Again
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/15 flex gap-4">
-                                    <div className="shrink-0 text-primary"><FileText size={24} /></div>
-                                    <div>
-                                        <h4 className="font-bold text-foreground">What needs to be uploaded?</h4>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            A photo or scan of your <b>veterinary degree</b>. 
-                                            Your name in the profile must match the name in the document.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <label className={`
-                                        border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all
-                                        ${file ? 'border-blue-500 bg-primary/10' : 'border-border hover:border-border hover:bg-muted'}
-                                    `}>
-                                        {previewUrl ? (
-                                            <div className="relative w-full h-48">
-                                                <img src={previewUrl} className="w-full h-full object-contain rounded-xl" alt="Preview" />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold opacity-0 hover:opacity-100 transition rounded-xl">
-                                                    Click to change
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <Upload className="text-muted-foreground mb-3" size={40} />
-                                                <span className="font-bold text-foreground">Click to upload photo</span>
-                                                <span className="text-xs text-muted-foreground mt-1">JPG, PNG up to 5MB</span>
-                                            </>
-                                        )}
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                                    </label>
-
-                                    <button 
-                                        onClick={handleSubmit} 
-                                        disabled={!file || isSubmitting}
-                                        className="w-full py-4 bg-primary hover:bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isSubmitting ? 'Sending...' : 'Submit for Review'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                <div className="bg-card rounded-[2rem] shadow-xl border border-border p-8 md:p-12">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                            <Sparkles size={24} />
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                            {t('badge')}
+                        </span>
                     </div>
+
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">{t('title')}</h1>
+                    <p className="text-lg text-muted-foreground mb-8">{t('subtitle')}</p>
+
+                    <div className="grid md:grid-cols-3 gap-4 mb-8">
+                        {features.map((f) => (
+                            <div key={f.title} className="p-4 rounded-2xl border border-border bg-background/50">
+                                <f.icon className="text-primary mb-3" size={24} />
+                                <h3 className="font-bold text-foreground mb-1">{f.title}</h3>
+                                <p className="text-sm text-muted-foreground">{f.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-5 rounded-2xl border border-success/20 bg-success/5 mb-8">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-bold text-foreground">$5</span>
+                            <span className="text-muted-foreground">{t('per_month')}</span>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                            {[t('plan_include_1'), t('plan_include_2'), t('plan_include_3')].map((line) => (
+                                <div key={line} className="flex items-start gap-2 text-sm text-foreground">
+                                    <Check size={18} className="text-success shrink-0 mt-0.5" />
+                                    <span>{line}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleSubscribe}
+                        disabled={isSubmitting}
+                        className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSubmitting ? 'Processing...' : t('cta')}
+                    </button>
+                    <p className="text-center text-xs text-muted-foreground mt-3">{t('cancel_anytime')}</p>
                 </div>
             </div>
-        </AuthGuard>
+        </div>
     );
 }

@@ -6,13 +6,11 @@ from .views import (
     UserMeView, 
     GoogleLoginView, 
     DemoLoginView,
-    UserContactViewSet, 
-    VerificationViewSet
+    UserContactViewSet
 )
 
 router = DefaultRouter()
 router.register(r'contacts', UserContactViewSet, basename='user-contacts')
-router.register(r'verification', VerificationViewSet, basename='verification')
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth_register'),

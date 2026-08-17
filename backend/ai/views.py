@@ -7,7 +7,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, DestroyAPIView
 from rest_framework import status, permissions
-from rest_framework.throttling import ScopedRateThrottle
 
 from pets.models import Pet
 from .models import SystemPrompt, AIChatSession, AIChatMessage
@@ -25,6 +24,7 @@ from .services import (
     build_chat_messages,
     call_deepseek_chat,
 )
+from .throttles import AILimitThrottle
 
 
 # ──────────────────────────────────────────────
@@ -57,8 +57,7 @@ class AIChatSessionCreateView(APIView, _GetUserPetMixin):
     Returns: { "session": {...}, "message": {...} }
     """
     permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'ai'
+    throttle_classes = [AILimitThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = AIChatSessionCreateSerializer(data=request.data)
@@ -218,8 +217,7 @@ class AIChatStreamView(APIView, _GetUserPetMixin):
     Returns: text/event-stream
     """
     permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'ai'
+    throttle_classes = [AILimitThrottle]
 
     def post(self, request, session_id, *args, **kwargs):
         serializer = AIChatStreamRequestSerializer(data=request.data)

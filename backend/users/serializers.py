@@ -4,13 +4,20 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import AuthenticationFailed
 from django.utils.crypto import get_random_string 
-from .models import User, UserContact, VetVerificationRequest
+from .models import User, UserContact
 # Импорты для Google
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.conf import settings
 
 User = get_user_model()
+
+def get_ai_usage(user):
+    """Возвращает (limit_today, used_today) для пользователя."""
+    from ai.throttles import AILimitThrottle
+
+    t = AILimitThrottle()
+    return t.get_limit(user), t.get_used_today(user)
 
 class UserContactSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source='get_type_display', read_only=True)
@@ -22,6 +29,8 @@ class UserContactSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    ai_daily_limit = serializers.SerializerMethodField()
+    ai_used_today = serializers.SerializerMethodField()
     
     # [FIX] Добавили явное определение поля contacts
     contacts = UserContactSerializer(many=True, read_only=True)
@@ -34,12 +43,21 @@ class UserSerializer(serializers.ModelSerializer):
             'phone', 'work_phone', 'telegram', 'about', 
             'contacts', # Поле включено в список
             'city', 'clinic_name', 'avatar',
-            'is_verified', 'password'
+            'is_verified', 'password',
+            'ai_daily_limit', 'ai_used_today',
         ]
         read_only_fields = ['id', 'email', 'username', 'is_verified']
 
     def get_role(self, obj):
         return "vet" if obj.is_veterinarian else "owner"
+
+    def get_ai_daily_limit(self, obj):
+        limit, _ = get_ai_usage(obj)
+        return limit
+
+    def get_ai_used_today(self, obj):
+        _, used = get_ai_usage(obj)
+        return used
     
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
@@ -145,8 +163,3 @@ class PublicProfileSerializer(serializers.ModelSerializer):
         name = f"{obj.first_name} {obj.last_name}".strip()
         return name if name else obj.username
     
-class VetVerificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VetVerificationRequest
-        fields = ['id', 'document_image', 'status', 'rejection_reason', 'created_at']
-        read_only_fields = ['status', 'rejection_reason', 'created_at']

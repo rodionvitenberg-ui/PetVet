@@ -194,7 +194,6 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        'ai': '20/hour',
         'auth': '10/hour',
     },
 }
@@ -359,6 +358,19 @@ ENABLE_DEMO_LOGIN = os.getenv('ENABLE_DEMO_LOGIN', 'False') == 'True'
 # === AI ASSISTANT (DeepSeek) ===
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY', '')
 DEEPSEEK_MODEL = os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
+
+# === Subscription ($5/mo): Cryptomus (crypto) ===
+CRYPTOMUS_MERCHANT_ID = os.getenv('CRYPTOMUS_MERCHANT_ID', '')
+CRYPTOMUS_API_KEY = os.getenv('CRYPTOMUS_API_KEY', '')
+CRYPTOMUS_AMOUNT = os.getenv('CRYPTOMUS_AMOUNT', '5')
+CRYPTOMUS_SUCCESS_URL = os.getenv(
+    'CRYPTOMUS_SUCCESS_URL',
+    f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/profile?checkout=success",
+)
+CRYPTOMUS_WEBHOOK_URL = os.getenv(
+    'CRYPTOMUS_WEBHOOK_URL',
+    f"{os.getenv('BACKEND_URL', 'http://localhost:8000')}/api/billing/subscription/webhook/cryptomus/",
+)
 
 # Проверяем, задан ли пароль в .env. Если да — используем SMTP.
 if os.getenv('EMAIL_HOST_PASSWORD'):
