@@ -63,7 +63,7 @@ export default function PlanModal({ isOpen, onClose, onConfirm }: PlanModalProps
       <DialogContent className="max-w-sm p-0">
         <DialogHeader className="flex-row items-center gap-2 border-b border-border bg-muted px-4 py-3 sm:text-left">
           <CalendarClock className="text-primary" size={20} />
-          <DialogTitle>Перенос в планы</DialogTitle>
+          <DialogTitle>Move to plans</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 p-6">

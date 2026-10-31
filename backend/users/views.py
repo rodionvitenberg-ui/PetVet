@@ -180,7 +180,7 @@ class DemoLoginView(APIView):
     """
     permission_classes = (permissions.AllowAny,)
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'auth'
+    throttle_scope = 'demo'
 
     def post(self, request):
         if not getattr(settings, 'ENABLE_DEMO_LOGIN', False):

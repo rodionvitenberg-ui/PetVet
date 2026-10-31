@@ -54,7 +54,7 @@ export default function CalendarPage() {
 
     // Динамическая культура: 'ru' или 'en-GB' по языку браузера
     const culture = useMemo(() =>
-        navigator.language.startsWith('ru') ? 'ru' : 'en-GB',
+        (typeof navigator !== 'undefined' && navigator.language.startsWith('ru')) ? 'ru' : 'en-GB',
     []);
 
     const fetchEvents = useCallback(async (currentDate: Date, currentView: View) => {

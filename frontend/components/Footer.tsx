@@ -28,7 +28,7 @@ export default function Footer() {
                     alt="PetVet Logo" 
                     width={40} 
                     height={40} 
-                    className="object-contain" // Чтобы логотип не растягивался
+                    className="object-contain w-10 h-10 shrink-0" // Фиксированный квадрат 40x40 — логотип не сжимается
                 />
                 <span>careyour.pet</span>
             </a>

@@ -358,7 +358,6 @@ export default function MessagesPage() {
             <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center mb-4 shadow-sm border border-border">
                 <UserIcon className="w-10 h-10 opacity-20" />
             </div>
-            <p className="font-medium text-muted-foreground">Choose a chat to start messaging</p>
           </div>
         )}
       </div>

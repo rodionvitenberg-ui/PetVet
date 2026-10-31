@@ -195,6 +195,8 @@ REST_FRAMEWORK = {
         'anon': '100/hour',
         'user': '1000/hour',
         'auth': '10/hour',
+        # Демо-вход: отдельный лимит, чтобы показы не упирались в auth (10/hour).
+        'demo': '30/hour',
     },
 }
 

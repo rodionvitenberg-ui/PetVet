@@ -73,13 +73,13 @@ export default function Header() {
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between text-foreground">
 
         <Link href="/" className="flex items-center flex-1 select-none">
-          <div className="flex flex-col items-center justify-center leading-none">
+          <div className="flex flex-col items-center justify-center leading-none shrink-0">
             <Image
               src="/logo1.png"
               alt="PetVet Logo"
               width={60}
               height={60}
-              className="object-contain w-[70px] h-[70px] md:w-[80px] md:h-[80px]"
+              className="object-contain w-[70px] h-[70px] md:w-[80px] md:h-[80px] shrink-0"
               priority
             />
           </div>
@@ -168,16 +168,17 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* 3. ПРАВАЯ ЧАСТЬ */}
-        <div className="flex items-center justify-end gap-2 flex-1 relative" ref={menuRef}>
+        {/* 3. ПРАВАЯ ЧАСТЬ (self-stretch: на всю высоту хедера, чтобы absolute top-full
+            у панелей уведомлений и бургер-меню был ровно от нижней границы хедера) */}
+        <div className="flex items-center justify-end gap-2 flex-1 relative self-stretch" ref={menuRef}>
 
           {isAuth ? (
             <div className="flex items-center gap-1">
-              {/* === КНОПКА ЧАТА === */}
+              {/* === КНОПКА ЧАТА (скрыта на мобильных) === */}
               <Link
                 href="/dashboard/messages"
                 className={`
-                  p-2 rounded-full transition duration-200 flex items-center justify-center outline-none focus-ring relative
+                  hidden md:flex p-2 rounded-full transition duration-200 items-center justify-center outline-none focus-ring relative
                   ${isActive('/dashboard/messages')
                     ? 'text-primary bg-muted'
                     : 'text-muted-foreground hover:text-primary hover:bg-muted'
@@ -197,27 +198,6 @@ export default function Header() {
                 )}
               </Link>
 
-              {/* Кнопка-триггер: Анимированный колокольчик */}
-              <div className="relative">
-                <button
-                  onClick={() => toggleMenu('notifications')}
-                  className={`
-                    p-2 rounded-full transition duration-200 flex items-center justify-center outline-none focus-ring
-                    ${activeMenu === 'notifications'
-                      ? 'text-primary bg-muted'
-                      : 'text-muted-foreground hover:text-primary hover:bg-muted'
-                    }
-                  `}
-                >
-                  <BellIcon size={24} />
-                </button>
-
-                {activeMenu === 'notifications' && (
-                  <div className="absolute top-full right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                    <NotificationsDropdown />
-                  </div>
-                )}
-              </div>
             </div>
           ) : null}
 
@@ -254,6 +234,31 @@ export default function Header() {
           </div>
 
           <ThemeToggle />
+
+          {/* Колокольчик уведомлений: между переключателем темы и бургером (для авторизованных) */}
+          {isAuth && (
+            <button
+              onClick={() => toggleMenu('notifications')}
+              className={`
+                p-2 rounded-full transition duration-200 flex items-center justify-center outline-none focus-ring
+                ${activeMenu === 'notifications'
+                  ? 'text-primary bg-muted'
+                  : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                }
+              `}
+            >
+              <BellIcon size={24} />
+            </button>
+          )}
+
+          {/* Панель уведомлений: открывается ниже хедера, от его нижней границы
+              (absolute top-full внутри правой части на всю высоту хедера — тот же
+              паттерн, что у бургер-меню), без выхода за край экрана */}
+          {activeMenu === 'notifications' && (
+            <div className="absolute top-full right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+              <NotificationsDropdown />
+            </div>
+          )}
 
           {/* Кнопка Бургер-меню */}
           <button

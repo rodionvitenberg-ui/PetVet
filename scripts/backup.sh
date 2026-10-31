@@ -5,11 +5,19 @@
 
 set -euo pipefail
 
-# --- Конфиг из .env сервера ---
+# --- Конфиг из .env сервера (только нужные ключи: SECRET_KEY ломает `source`) ---
 BACKEND_DIR="$(cd "$(dirname "$0")/../backend" && pwd)"
-set -a
-source "$BACKEND_DIR/.env"
-set +a
+env_get() {
+    local key="$1"
+    local line
+    line="$(grep -E "^${key}=" "$BACKEND_DIR/.env" | tail -n1 || true)"
+    printf '%s' "${line#${key}=}"
+}
+DB_USER="$(env_get DB_USER)"
+DB_PASSWORD="$(env_get DB_PASSWORD)"
+DB_HOST="$(env_get DB_HOST)"
+DB_PORT="$(env_get DB_PORT)"
+DB_NAME="$(env_get DB_NAME)"
 
 BACKUP_ROOT="${BACKUP_ROOT:-/home/petvet/backups}"
 DATE="$(date +%Y%m%d_%H%M)"
